@@ -8,8 +8,16 @@ import {
   json,
 } from "./_shared/responses.js";
 
+/*
+ * Use a directory-based sign-in page:
+ * public/signin/index.html → /signin/
+ *
+ * This avoids Cloudflare Pages' automatic clean-URL handling for login.html,
+ * which can otherwise create a redirect loop with authentication middleware.
+ */
 const PUBLIC_PATHS = new Set([
-  "/login.html",
+  "/signin",
+  "/signin/",
   "/login.js",
   "/styles.css",
   "/api/login",
@@ -57,7 +65,7 @@ export async function onRequest(context) {
       }
 
       return Response.redirect(
-        new URL("/login.html", url),
+        new URL("/signin/", url),
         302,
       );
     }
