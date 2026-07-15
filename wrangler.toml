@@ -2,13 +2,14 @@ name = "bps-order-portal"
 compatibility_date = "2026-07-15"
 pages_build_output_dir = "public"
 
+[[d1_databases]]
+binding = "DB"
+database_name = "bps-order-portal"
+database_id = "fa68bf94-f2fb-4f22-946e-eec21b3ed5d4"
+
+[[r2_buckets]]
+binding = "ORDER_FILES"
+bucket_name = "bps-order-files"
+
 [observability]
 enabled = true
-
-# Bind these in the Cloudflare dashboard:
-# DB          -> D1 database
-# ORDER_FILES -> R2 bucket
-#
-# Pages Functions do not currently list Email Service as a supported
-# Pages binding, so this project calls Cloudflare Email Service through
-# its REST API using encrypted secrets.
