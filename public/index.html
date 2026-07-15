@@ -28,78 +28,27 @@
   </header>
 
   <main class="page-shell">
-
     <form id="orderForm" novalidate>
-      <section class="form-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-number">01</p>
-            <h2>Order and site details</h2>
-          </div>
-          <p class="section-note">Required fields are marked with *</p>
-        </div>
-
-        <div class="form-grid form-grid-3">
-          <label class="field">
-            <span>Customer reference / PO *</span>
-            <input id="customerReference" name="customerReference" maxlength="100" autocomplete="off" required>
-          </label>
-
-          <label class="field field-span-2">
-            <span>Project / job name *</span>
-            <input id="jobName" name="jobName" maxlength="160" required>
-          </label>
-
-          <label class="field field-span-2">
-            <span>Site address *</span>
-            <input id="siteAddress1" name="siteAddress1" maxlength="160" placeholder="Street address" required>
-          </label>
-
-          <label class="field">
-            <span>Suburb, state and postcode *</span>
-            <input id="siteAddress2" name="siteAddress2" maxlength="160" placeholder="Pascoe Vale VIC 3044" required>
-          </label>
-
-          <label class="field">
-            <span>Site contact</span>
-            <input id="siteContact" name="siteContact" maxlength="100">
-          </label>
-
-          <label class="field">
-            <span>Site contact phone</span>
-            <input id="siteContactPhone" name="siteContactPhone" inputmode="tel" maxlength="30">
-          </label>
-
-          <label class="field">
-            <span>Order contact *</span>
-            <input id="requesterName" name="requesterName" maxlength="120" required>
-          </label>
-
-          <label class="field">
-            <span>Order contact phone</span>
-            <input id="requesterPhone" name="requesterPhone" inputmode="tel" maxlength="30">
-          </label>
-
-          <label class="field field-span-2">
-            <span>General comments</span>
-            <textarea id="comments" name="comments" maxlength="2000" rows="3"></textarea>
-          </label>
-        </div>
+      <!-- Retained in code for future use, but intentionally hidden. -->
+      <section class="form-card future-order-details" hidden>
+        <input id="customerReference">
+        <input id="jobName" value="BPS Brunswick Plastering Services">
+        <input id="siteAddress1" value="125 Sussex Street">
+        <input id="siteAddress2" value="Pascoe Vale VIC 3044">
+        <input id="siteContact">
+        <input id="siteContactPhone">
+        <input id="requesterName" value="BPS">
+        <input id="requesterPhone">
+        <textarea id="comments"></textarea>
       </section>
 
       <section class="form-card">
-        <div class="section-heading section-heading-stack-mobile">
+        <div class="section-heading floor-heading">
           <div>
-            <p class="section-number">02</p>
-            <h2>Floor orders</h2>
+            <h2>Order products</h2>
           </div>
 
-          <div class="floor-header-actions">
-            <div class="status-pill" id="catalogStatus" role="status">
-              Loading verified product catalogue…
-            </div>
-
-            <div class="floor-tabs" role="tablist" aria-label="Floor order">
+          <div class="floor-tabs" role="tablist" aria-label="Floor order">
             <button class="floor-tab is-active" type="button" role="tab" aria-selected="true" data-floor-tab="ground">
               Ground Floor
               <span id="groundTabCount" class="tab-count">0</span>
@@ -109,7 +58,6 @@
               1st Floor
               <span id="firstTabCount" class="tab-count">0</span>
             </button>
-            </div>
           </div>
         </div>
 
@@ -117,79 +65,19 @@
           <div class="floor-toolbar">
             <label class="toggle-line">
               <input type="checkbox" id="groundEnabled" checked>
-              <span>
-                <strong>Include Ground Floor</strong>
-                <small>Creates a separate GF Accrivia file.</small>
-              </span>
+              <span><strong>Ground Floor</strong></span>
             </label>
 
             <div class="floor-summary" id="groundSummary">No products selected</div>
           </div>
 
           <div class="floor-content" data-floor-content="ground">
-            <div class="form-grid form-grid-4 compact-grid">
-              <label class="field">
-                <span>Date required *</span>
-                <input type="date" id="groundDateRequired">
-              </label>
-
-              <label class="field">
-                <span>Delivery method</span>
-                <select id="groundDeliveryMode">
-                  <option value="Delivery">Delivery</option>
-                  <option value="Pickup">Pickup</option>
-                  <option value="Other">Other</option>
-                </select>
-              </label>
-
-              <label class="field">
-                <span>Delivery sequence</span>
-                <select id="groundDeliverySequence">
-                  <option value="">Not specified</option>
-                  <option value="1st">1st delivery</option>
-                  <option value="2nd">2nd delivery</option>
-                  <option value="3rd">3rd delivery</option>
-                </select>
-              </label>
-
-              <label class="field">
-                <span>Delivery window</span>
-                <select id="groundDeliveryWindow">
-                  <option value="">Not specified</option>
-                  <option value="AM">AM</option>
-                  <option value="PM">PM</option>
-                  <option value="Any time">Any time</option>
-                </select>
-              </label>
-
-              <label class="field field-span-2">
-                <span>Level / delivery location</span>
-                <input id="groundLevel" value="Ground Floor" maxlength="80">
-              </label>
-            </div>
-
-            <div class="check-grid">
-              <label><input type="checkbox" id="groundClearAccess"> Clear access</label>
-              <label><input type="checkbox" id="groundScaffolding"> Scaffolding</label>
-              <label><input type="checkbox" id="groundPassUp"> Pass up required</label>
-              <label><input type="checkbox" id="groundAreaSetAside"> Area set aside</label>
-              <label><input type="checkbox" id="groundPlasticWrap"> Plastic wrap</label>
-            </div>
-
-            <label class="field">
-              <span>Ground Floor delivery notes</span>
-              <textarea id="groundDeliveryNotes" maxlength="2000" rows="3"></textarea>
-            </label>
-
             <div class="product-heading">
-              <div>
-                <h3>Verified products</h3>
-                <p>Enter a quantity only for products required on this floor.</p>
-              </div>
+              <h3>Products</h3>
 
               <label class="search-field">
                 <span class="visually-hidden">Search Ground Floor products</span>
-                <input type="search" id="groundProductSearch" placeholder="Search product or SKU">
+                <input type="search" id="groundProductSearch" placeholder="Search product or code">
               </label>
             </div>
 
@@ -197,8 +85,8 @@
 
             <label class="field manual-review-field">
               <span>Other products</span>
-              <textarea id="groundOtherProducts" maxlength="3000" rows="4"
-                placeholder="Add any items not listed above, including the product name, size and quantity. Bell Plaster will review these before processing the order."></textarea>
+              <textarea id="groundOtherProducts" maxlength="3000" rows="3"
+                placeholder="Product name, size and quantity. Bell Plaster will review these separately."></textarea>
             </label>
           </div>
         </article>
@@ -206,80 +94,20 @@
         <article class="floor-panel" data-floor-panel="first" hidden>
           <div class="floor-toolbar">
             <label class="toggle-line">
-              <input type="checkbox" id="firstEnabled" checked>
-              <span>
-                <strong>Include 1st Floor</strong>
-                <small>Creates a separate L1 Accrivia file.</small>
-              </span>
+              <input type="checkbox" id="firstEnabled">
+              <span><strong>1st Floor</strong></span>
             </label>
 
-            <div class="floor-summary" id="firstSummary">No products selected</div>
+            <div class="floor-summary" id="firstSummary">Floor not included</div>
           </div>
 
-          <div class="floor-content" data-floor-content="first">
-            <div class="form-grid form-grid-4 compact-grid">
-              <label class="field">
-                <span>Date required *</span>
-                <input type="date" id="firstDateRequired">
-              </label>
-
-              <label class="field">
-                <span>Delivery method</span>
-                <select id="firstDeliveryMode">
-                  <option value="Delivery">Delivery</option>
-                  <option value="Pickup">Pickup</option>
-                  <option value="Other">Other</option>
-                </select>
-              </label>
-
-              <label class="field">
-                <span>Delivery sequence</span>
-                <select id="firstDeliverySequence">
-                  <option value="">Not specified</option>
-                  <option value="1st">1st delivery</option>
-                  <option value="2nd" selected>2nd delivery</option>
-                  <option value="3rd">3rd delivery</option>
-                </select>
-              </label>
-
-              <label class="field">
-                <span>Delivery window</span>
-                <select id="firstDeliveryWindow">
-                  <option value="">Not specified</option>
-                  <option value="AM">AM</option>
-                  <option value="PM">PM</option>
-                  <option value="Any time">Any time</option>
-                </select>
-              </label>
-
-              <label class="field field-span-2">
-                <span>Level / delivery location</span>
-                <input id="firstLevel" value="1st Floor" maxlength="80">
-              </label>
-            </div>
-
-            <div class="check-grid">
-              <label><input type="checkbox" id="firstClearAccess"> Clear access</label>
-              <label><input type="checkbox" id="firstScaffolding"> Scaffolding</label>
-              <label><input type="checkbox" id="firstPassUp"> Pass up required</label>
-              <label><input type="checkbox" id="firstAreaSetAside"> Area set aside</label>
-              <label><input type="checkbox" id="firstPlasticWrap"> Plastic wrap</label>
-            </div>
-
-            <label class="field">
-              <span>1st Floor delivery notes</span>
-              <textarea id="firstDeliveryNotes" maxlength="2000" rows="3"></textarea>
-            </label>
-
+          <div class="floor-content is-disabled" data-floor-content="first">
             <div class="product-heading">
-              <div>
-                <h3>Verified products</h3>
-                <p>Enter a quantity only for products required on this floor.</p>
-              </div>
+              <h3>Products</h3>
 
               <label class="search-field">
                 <span class="visually-hidden">Search 1st Floor products</span>
-                <input type="search" id="firstProductSearch" placeholder="Search product or SKU">
+                <input type="search" id="firstProductSearch" placeholder="Search product or code" disabled>
               </label>
             </div>
 
@@ -287,31 +115,19 @@
 
             <label class="field manual-review-field">
               <span>Other products</span>
-              <textarea id="firstOtherProducts" maxlength="3000" rows="4"
-                placeholder="Add any items not listed above, including the product name, size and quantity. Bell Plaster will review these before processing the order."></textarea>
+              <textarea id="firstOtherProducts" maxlength="3000" rows="3" disabled
+                placeholder="Product name, size and quantity. Bell Plaster will review these separately."></textarea>
             </label>
           </div>
         </article>
       </section>
 
       <section class="form-card review-card">
-        <div class="section-heading">
-          <div>
-            <p class="section-number">03</p>
-            <h2>Submit order</h2>
-          </div>
-        </div>
-
         <div id="formMessage" class="message" hidden role="alert"></div>
 
         <div class="submit-row">
           <div>
-            <p class="submit-note">
-              Bell Plaster will receive one upload-ready XLSX for each floor containing verified products.
-            </p>
-            <p class="submit-subnote">
-              Duplicate submissions are blocked using the submission ID.
-            </p>
+            <p class="submit-note">A separate Accrivia file will be generated for each included floor.</p>
           </div>
 
           <button id="submitButton" class="button button-primary" type="submit">
@@ -320,20 +136,35 @@
         </div>
 
         <div id="successPanel" class="success-panel" hidden>
-          <h3>Order submitted</h3>
+          <h3>Order created</h3>
           <p id="successSummary"></p>
           <div id="generatedFiles" class="generated-files"></div>
           <p class="submission-reference">
-            Submission ID: <code id="submissionIdDisplay"></code>
+            Order number: <code id="orderNumberDisplay"></code>
           </p>
         </div>
       </section>
     </form>
+
+    <section class="form-card order-history-card">
+      <div class="section-heading">
+        <div>
+          <h2>Order history</h2>
+        </div>
+
+        <button id="refreshHistoryButton" class="button button-secondary button-small" type="button">
+          Refresh
+        </button>
+      </div>
+
+      <div id="orderHistoryStatus" class="history-status">Loading orders…</div>
+      <div id="orderHistoryList" class="order-history-list"></div>
+    </section>
   </main>
 
   <footer class="site-footer">
     <span>Bell Plaster</span>
-    <span>BPS order portal</span>
+    <span>BPS Order Portal</span>
   </footer>
 
   <script src="/app.js" defer></script>

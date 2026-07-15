@@ -882,3 +882,149 @@ code {
     width: 100%;
   }
 }
+
+
+/* Compact BPS ordering interface */
+.future-order-details,
+.section-number,
+.section-note,
+.status-pill,
+.toggle-line small,
+.product-heading p,
+.submit-subnote {
+  display: none !important;
+}
+
+.floor-heading {
+  align-items: center;
+}
+
+.floor-toolbar {
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+.product-heading {
+  align-items: center;
+  margin: 18px 0 12px;
+}
+
+.product-groups {
+  gap: 12px;
+}
+
+.product-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  background: #e8eeec;
+}
+
+.product-row {
+  grid-template-columns: minmax(0, 1fr) 70px;
+  min-height: 58px;
+  padding: 10px 12px;
+  border-top: 0;
+  background: #fff;
+}
+
+.product-row:hover {
+  background: #f8faf9;
+}
+
+.product-info strong {
+  font-size: 12px;
+}
+
+.product-meta {
+  font-size: 10px;
+  color: #52635f;
+}
+
+.quantity-input {
+  width: 66px;
+  min-height: 36px;
+}
+
+.manual-review-field {
+  margin-top: 18px;
+}
+
+.order-history-card {
+  margin-top: 22px;
+}
+
+.history-status {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.order-history-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.history-order {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.history-order-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.history-order-header > div {
+  display: grid;
+  gap: 2px;
+}
+
+.history-order-header span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.history-badge {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: #eef2f1;
+  color: #43524f !important;
+  font-size: 11px !important;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.history-badge-completed {
+  background: var(--success-bg);
+  color: var(--success) !important;
+}
+
+.history-badge-failed {
+  background: var(--error-bg);
+  color: var(--error) !important;
+}
+
+.history-files {
+  display: grid;
+  gap: 3px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 1000px) {
+  .product-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .product-list {
+    grid-template-columns: 1fr;
+  }
+}

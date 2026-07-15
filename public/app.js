@@ -1,6 +1,5 @@
 const state = {
   catalog: {},
-  submissionId: null,
   isSubmitting: false,
 };
 
@@ -21,28 +20,18 @@ const floorLabels = {
 document.addEventListener("DOMContentLoaded", initialise);
 
 async function initialise() {
-  setMinimumDates();
   bindTabs();
   bindFloorToggles();
   bindSearch();
   bindSubmission();
   bindLogout();
 
+  document
+    .getElementById("refreshHistoryButton")
+    .addEventListener("click", loadOrderHistory);
+
   await loadCatalog();
-}
-
-function setMinimumDates() {
-  const today = new Date();
-  const localDate = new Date(
-    today.getTime() - today.getTimezoneOffset() * 60000,
-  )
-    .toISOString()
-    .slice(0, 10);
-
-  ["groundDateRequired", "firstDateRequired"].forEach((id) => {
-    const field = document.getElementById(id);
-    field.min = localDate;
-  });
+  await loadOrderHistory();
 }
 
 function bindTabs() {
@@ -76,7 +65,7 @@ function bindFloorToggles() {
 
       content.classList.toggle("is-disabled", !checkbox.checked);
 
-      content.querySelectorAll("input, select, textarea, button").forEach((field) => {
+      content.querySelectorAll("input, textarea, button").forEach((field) => {
         field.disabled = !checkbox.checked;
       });
 
@@ -109,13 +98,11 @@ function bindLogout() {
         method: "POST",
       }).catch(() => null);
 
-      window.location.replace("/login.html");
+      window.location.replace("/signin/");
     });
 }
 
 async function loadCatalog() {
-  const status = document.getElementById("catalogStatus");
-
   try {
     const response = await fetch("/api/catalog", {
       headers: {
@@ -124,7 +111,7 @@ async function loadCatalog() {
     });
 
     if (response.status === 401) {
-      window.location.replace("/login.html");
+      window.location.replace("/signin/");
       return;
     }
 
@@ -137,7 +124,7 @@ async function loadCatalog() {
       throw new Error(
         result.error ||
         result.message ||
-        "The verified product catalogue could not be loaded.",
+        "The product catalogue could not be loaded.",
       );
     }
 
@@ -147,14 +134,7 @@ async function loadCatalog() {
       renderCatalog(floor);
       updateFloorSummary(floor);
     });
-
-    const count = Object.keys(state.catalog).length;
-    status.textContent = `${count} verified Accrivia products available`;
-    status.classList.add("status-pill-ready");
   } catch (error) {
-    status.textContent = `Catalogue error: ${error.message || String(error)}`;
-    status.classList.add("status-pill-error");
-
     showMessage(
       `The product catalogue could not be loaded. ${error.message || String(error)}`,
       "error",
@@ -173,7 +153,7 @@ function renderCatalog(floor) {
       return;
     }
 
-    const section = product.section || "Other verified products";
+    const section = product.section || "Other";
     grouped[section] ||= [];
     grouped[section].push({
       key,
@@ -207,7 +187,7 @@ function renderCatalog(floor) {
 
     const details = document.createElement("details");
     details.className = "product-section";
-    details.open = sectionIndex < 2;
+    details.open = sectionIndex === 0;
 
     const summary = document.createElement("summary");
 
@@ -253,7 +233,7 @@ function createProductRow(floor, product) {
 
   const meta = document.createElement("span");
   meta.className = "product-meta";
-  meta.textContent = `SKU ${product.sku}`;
+  meta.textContent = product.sku;
 
   info.append(label, meta);
 
@@ -267,10 +247,7 @@ function createProductRow(floor, product) {
   quantity.placeholder = "0";
   quantity.dataset.productKey = product.key;
   quantity.dataset.floor = floor;
-  quantity.setAttribute(
-    "aria-label",
-    `${floorLabels[floor]} quantity for ${product.label}`,
-  );
+  quantity.disabled = !document.getElementById(`${floor}Enabled`).checked;
 
   quantity.addEventListener("input", () => {
     normaliseQuantityField(quantity);
@@ -341,10 +318,10 @@ function updateFloorSummary(floor) {
   const totalUnits = items.reduce((sum, item) => sum + item.quantity, 0);
 
   const text = !enabled
-    ? "Floor excluded"
+    ? "Floor not included"
     : items.length === 0
       ? "No products selected"
-      : `${items.length} product line${items.length === 1 ? "" : "s"} · ${totalUnits} total units`;
+      : `${items.length} line${items.length === 1 ? "" : "s"} · ${totalUnits} total`;
 
   document.getElementById(`${floor}Summary`).textContent = text;
   document.getElementById(`${floor}TabCount`).textContent = String(items.length);
@@ -361,20 +338,16 @@ async function submitOrder(event) {
   document.getElementById("successPanel").hidden = true;
 
   try {
-    validateBrowserForm();
+    validateOrder();
 
     const payload = buildPayload();
-    state.submissionId = payload.submissionId;
     state.isSubmitting = true;
 
     const button = document.getElementById("submitButton");
     button.disabled = true;
-    button.textContent = "Generating Accrivia files…";
+    button.textContent = "Generating files…";
 
-    showMessage(
-      "Submission received by the portal. Validating products and generating separate floor files…",
-      "info",
-    );
+    showMessage("Generating order files…", "info");
 
     const response = await fetch("/api/submit", {
       method: "POST",
@@ -386,7 +359,7 @@ async function submitOrder(event) {
     });
 
     if (response.status === 401) {
-      window.location.replace("/login.html");
+      window.location.replace("/signin/");
       return;
     }
 
@@ -396,19 +369,11 @@ async function submitOrder(event) {
     }));
 
     if (!response.ok || !result.ok) {
-      const diagnostic = result.diagnostic?.lastError;
       const stage = result.diagnostic?.lastStage?.stage;
-
-      const parts = [
-        result.error || "The order could not be generated.",
-      ];
+      const parts = [result.error || "The order could not be generated."];
 
       if (stage) {
         parts.push(`Failed stage: ${stage}.`);
-      }
-
-      if (diagnostic?.message && diagnostic.message !== result.error) {
-        parts.push(diagnostic.message);
       }
 
       if (result.requestId) {
@@ -419,6 +384,7 @@ async function submitOrder(event) {
     }
 
     showSuccess(result);
+    await loadOrderHistory();
   } catch (error) {
     showMessage(error.message || String(error), "error");
   } finally {
@@ -430,13 +396,7 @@ async function submitOrder(event) {
   }
 }
 
-function validateBrowserForm() {
-  const form = document.getElementById("orderForm");
-
-  if (!form.reportValidity()) {
-    throw new Error("Complete the required order and site fields.");
-  }
-
+function validateOrder() {
   const enabledFloors = ["ground", "first"].filter(
     (floor) => document.getElementById(`${floor}Enabled`).checked,
   );
@@ -446,30 +406,22 @@ function validateBrowserForm() {
   }
 
   enabledFloors.forEach((floor) => {
-    const dateField = document.getElementById(`${floor}DateRequired`);
     const items = getFloorItems(floor);
     const otherProducts = document
       .getElementById(`${floor}OtherProducts`)
       .value.trim();
 
-    if (!dateField.value) {
-      activateFloorTab(floor);
-      dateField.focus();
-      throw new Error(`${floorLabels[floor]} requires a Date Required.`);
-    }
-
     if (items.length === 0 && !otherProducts) {
       activateFloorTab(floor);
       throw new Error(
-        `${floorLabels[floor]} requires at least one verified product or an Other Products entry.`,
+        `${floorLabels[floor]} requires at least one product.`,
       );
     }
   });
 }
 
 function activateFloorTab(floor) {
-  const button = document.querySelector(`[data-floor-tab="${floor}"]`);
-  button.click();
+  document.querySelector(`[data-floor-tab="${floor}"]`).click();
 }
 
 function buildPayload() {
@@ -486,33 +438,35 @@ function buildPayload() {
     }
 
     floors[floor] = {
-      dateRequired: value(`${floor}DateRequired`),
-      deliveryMode: value(`${floor}DeliveryMode`),
-      deliverySequence: value(`${floor}DeliverySequence`),
-      deliveryWindow: value(`${floor}DeliveryWindow`),
-      clearAccess: checked(`${floor}ClearAccess`),
-      scaffolding: checked(`${floor}Scaffolding`),
-      passUp: checked(`${floor}PassUp`),
-      level: value(`${floor}Level`),
-      areaSetAside: checked(`${floor}AreaSetAside`),
-      plasticWrap: checked(`${floor}PlasticWrap`),
-      deliveryNotes: value(`${floor}DeliveryNotes`),
+      dateRequired: new Date().toISOString().slice(0, 10),
+      deliveryMode: "",
+      deliverySequence: "",
+      deliveryWindow: "",
+      clearAccess: false,
+      scaffolding: false,
+      passUp: false,
+      level: floor === "ground" ? "Ground Floor" : "1st Floor",
+      areaSetAside: false,
+      plasticWrap: false,
+      deliveryNotes: "",
       items: getFloorItems(floor),
-      otherProducts: value(`${floor}OtherProducts`),
+      otherProducts: document
+        .getElementById(`${floor}OtherProducts`)
+        .value.trim(),
     };
   });
 
   return {
     submissionId,
-    customerReference: value("customerReference"),
-    jobName: value("jobName"),
-    siteAddress1: value("siteAddress1"),
-    siteAddress2: value("siteAddress2"),
-    siteContact: value("siteContact"),
-    siteContactPhone: value("siteContactPhone"),
-    requesterName: value("requesterName"),
-    requesterPhone: value("requesterPhone"),
-    comments: value("comments"),
+    customerReference: "",
+    jobName: "BPS Brunswick Plastering Services",
+    siteAddress1: "125 Sussex Street",
+    siteAddress2: "Pascoe Vale VIC 3044",
+    siteContact: "",
+    siteContactPhone: "",
+    requesterName: "BPS",
+    requesterPhone: "",
+    comments: "",
     floors,
   };
 }
@@ -523,7 +477,6 @@ function showSuccess(result) {
   const panel = document.getElementById("successPanel");
   const summary = document.getElementById("successSummary");
   const files = document.getElementById("generatedFiles");
-  const submissionId = result.submissionId || state.submissionId;
 
   files.replaceChildren();
 
@@ -532,8 +485,8 @@ function showSuccess(result) {
     : [];
 
   summary.textContent = result.duplicate
-    ? "This submission was already processed. No duplicate files or email were created."
-    : `${generated.length} Accrivia file${generated.length === 1 ? " was" : "s were"} generated${result.emailSent ? " and emailed to Bell Plaster" : ""}.`;
+    ? "This order was already processed."
+    : `${generated.length} Accrivia file${generated.length === 1 ? " was" : "s were"} generated and saved.`;
 
   generated.forEach((file) => {
     const item = document.createElement("div");
@@ -543,7 +496,7 @@ function showSuccess(result) {
     name.textContent = file.filename;
 
     const detail = document.createElement("span");
-    detail.textContent = `${file.floorLabel} · ${file.itemCount} product line${file.itemCount === 1 ? "" : "s"}`;
+    detail.textContent = `${file.floorLabel} · ${file.itemCount} line${file.itemCount === 1 ? "" : "s"}`;
 
     item.append(name, detail);
     files.append(item);
@@ -553,18 +506,111 @@ function showSuccess(result) {
     const warning = document.createElement("div");
     warning.className = "manual-review-warning";
     warning.textContent =
-      "This submission includes Other Products that Bell Plaster must review manually.";
+      "Other Products were saved with the order for Bell Plaster to review. They were not inserted into the XLSX.";
     files.append(warning);
   }
 
-  document.getElementById("submissionIdDisplay").textContent =
-    submissionId || "Not returned";
+  document.getElementById("orderNumberDisplay").textContent =
+    result.customerReference || result.submissionId || "Not returned";
 
   panel.hidden = false;
   panel.scrollIntoView({
     behavior: "smooth",
     block: "center",
   });
+}
+
+async function loadOrderHistory() {
+  const status = document.getElementById("orderHistoryStatus");
+  const list = document.getElementById("orderHistoryList");
+
+  status.textContent = "Loading orders…";
+  list.replaceChildren();
+
+  try {
+    const response = await fetch("/api/orders", {
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    if (response.status === 401) {
+      window.location.replace("/signin/");
+      return;
+    }
+
+    const result = await response.json().catch(() => ({
+      ok: false,
+      error: "The order history service returned an unreadable response.",
+    }));
+
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "Order history could not be loaded.");
+    }
+
+    const orders = Array.isArray(result.orders) ? result.orders : [];
+
+    if (orders.length === 0) {
+      status.textContent = "No orders yet.";
+      return;
+    }
+
+    status.textContent = `${orders.length} order${orders.length === 1 ? "" : "s"}`;
+
+    orders.forEach((order) => {
+      const card = document.createElement("article");
+      card.className = "history-order";
+
+      const header = document.createElement("div");
+      header.className = "history-order-header";
+
+      const identity = document.createElement("div");
+      const title = document.createElement("strong");
+      title.textContent = order.customer_reference || order.submission_id;
+
+      const meta = document.createElement("span");
+      meta.textContent = formatHistoryDate(order.created_at);
+
+      identity.append(title, meta);
+
+      const badge = document.createElement("span");
+      badge.className = `history-badge history-badge-${order.status || "unknown"}`;
+      badge.textContent = String(order.status || "unknown").replace(/_/g, " ");
+
+      header.append(identity, badge);
+      card.append(header);
+
+      if (Array.isArray(order.files) && order.files.length > 0) {
+        const fileList = document.createElement("div");
+        fileList.className = "history-files";
+
+        order.files.forEach((file) => {
+          const item = document.createElement("span");
+          item.textContent = `${file.floor_label}: ${file.filename}`;
+          fileList.append(item);
+        });
+
+        card.append(fileList);
+      }
+
+      list.append(card);
+    });
+  } catch (error) {
+    status.textContent = error.message || String(error);
+  }
+}
+
+function formatHistoryDate(value) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return String(value || "");
+  }
+
+  return new Intl.DateTimeFormat("en-AU", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
 }
 
 function showMessage(text, type) {
@@ -579,12 +625,4 @@ function clearMessage() {
   message.hidden = true;
   message.textContent = "";
   message.className = "message";
-}
-
-function value(id) {
-  return document.getElementById(id).value.trim();
-}
-
-function checked(id) {
-  return document.getElementById(id).checked;
 }
