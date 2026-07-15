@@ -426,7 +426,7 @@ async function submitOrder(event) {
 
     const button = document.getElementById("submitButton");
     button.disabled = false;
-    button.textContent = "Submit Brunswick order";
+    button.textContent = "Submit order";
   }
 }
 
@@ -533,7 +533,7 @@ function showSuccess(result) {
 
   summary.textContent = result.duplicate
     ? "This submission was already processed. No duplicate files or email were created."
-    : `${generated.length} Accrivia file${generated.length === 1 ? " was" : "s were"} generated${result.emailSent ? " and emailed to Bell" : ""}.`;
+    : `${generated.length} Accrivia file${generated.length === 1 ? " was" : "s were"} generated${result.emailSent ? " and emailed to Bell Plaster" : ""}.`;
 
   generated.forEach((file) => {
     const item = document.createElement("div");
@@ -553,7 +553,7 @@ function showSuccess(result) {
     const warning = document.createElement("div");
     warning.className = "manual-review-warning";
     warning.textContent =
-      "This submission includes Other Products that Bell must review manually.";
+      "This submission includes Other Products that Bell Plaster must review manually.";
     files.append(warning);
   }
 

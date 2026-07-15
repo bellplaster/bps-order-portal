@@ -4,17 +4,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <title>Brunswick Order Portal | Bell Plaster Supplies</title>
+  <title>BPS Order Portal | Bell Plaster</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <header class="site-header">
     <div class="brand-block">
-      <div class="brand-mark" aria-hidden="true">B</div>
-      <div>
-        <p class="eyebrow">Bell Plaster Supplies</p>
-        <h1>Brunswick Order Portal</h1>
-      </div>
+      <img
+        class="brand-logo"
+        src="https://bellplastersupplies.com.au/cdn/shop/files/bell_logo_black.png?v=1781229976"
+        alt="Bell Plaster"
+      >
+      <span class="brand-divider" aria-hidden="true"></span>
+      <h1>BPS Order Portal</h1>
     </div>
 
     <button id="logoutButton" class="button button-secondary button-small" type="button">
@@ -23,21 +28,6 @@
   </header>
 
   <main class="page-shell">
-    <section class="intro-card">
-      <div>
-        <p class="eyebrow">Accrivia order automation</p>
-        <h2>Enter each floor once. Bell receives upload-ready files.</h2>
-        <p>
-          Ground Floor and 1st Floor are generated as separate Accrivia orders.
-          Only verified Accrivia products are automated. Any other products are
-          clearly marked for manual review.
-        </p>
-      </div>
-
-      <div class="status-pill" id="catalogStatus" role="status">
-        Loading verified product catalogue…
-      </div>
-    </section>
 
     <form id="orderForm" novalidate>
       <section class="form-card">
@@ -67,7 +57,7 @@
 
           <label class="field">
             <span>Suburb, state and postcode *</span>
-            <input id="siteAddress2" name="siteAddress2" maxlength="160" placeholder="Brunswick VIC 3056" required>
+            <input id="siteAddress2" name="siteAddress2" maxlength="160" placeholder="Pascoe Vale VIC 3044" required>
           </label>
 
           <label class="field">
@@ -104,7 +94,12 @@
             <h2>Floor orders</h2>
           </div>
 
-          <div class="floor-tabs" role="tablist" aria-label="Floor order">
+          <div class="floor-header-actions">
+            <div class="status-pill" id="catalogStatus" role="status">
+              Loading verified product catalogue…
+            </div>
+
+            <div class="floor-tabs" role="tablist" aria-label="Floor order">
             <button class="floor-tab is-active" type="button" role="tab" aria-selected="true" data-floor-tab="ground">
               Ground Floor
               <span id="groundTabCount" class="tab-count">0</span>
@@ -114,6 +109,7 @@
               1st Floor
               <span id="firstTabCount" class="tab-count">0</span>
             </button>
+            </div>
           </div>
         </div>
 
@@ -200,9 +196,9 @@
             <div id="groundProductList" class="product-groups" aria-live="polite"></div>
 
             <label class="field manual-review-field">
-              <span>Other products requiring manual review</span>
+              <span>Other products</span>
               <textarea id="groundOtherProducts" maxlength="3000" rows="4"
-                placeholder="Enter product, size and quantity. These items will be listed for Bell to process manually and will not be guessed or inserted into the XLSX."></textarea>
+                placeholder="Add any items not listed above, including the product name, size and quantity. Bell Plaster will review these before processing the order."></textarea>
             </label>
           </div>
         </article>
@@ -290,9 +286,9 @@
             <div id="firstProductList" class="product-groups" aria-live="polite"></div>
 
             <label class="field manual-review-field">
-              <span>Other products requiring manual review</span>
+              <span>Other products</span>
               <textarea id="firstOtherProducts" maxlength="3000" rows="4"
-                placeholder="Enter product, size and quantity. These items will be listed for Bell to process manually and will not be guessed or inserted into the XLSX."></textarea>
+                placeholder="Add any items not listed above, including the product name, size and quantity. Bell Plaster will review these before processing the order."></textarea>
             </label>
           </div>
         </article>
@@ -311,7 +307,7 @@
         <div class="submit-row">
           <div>
             <p class="submit-note">
-              Bell will receive one upload-ready XLSX for each floor containing verified products.
+              Bell Plaster will receive one upload-ready XLSX for each floor containing verified products.
             </p>
             <p class="submit-subnote">
               Duplicate submissions are blocked using the submission ID.
@@ -319,7 +315,7 @@
           </div>
 
           <button id="submitButton" class="button button-primary" type="submit">
-            Submit Brunswick order
+            Submit order
           </button>
         </div>
 
@@ -336,8 +332,8 @@
   </main>
 
   <footer class="site-footer">
-    <span>Bell Plaster Supplies</span>
-    <span>Brunswick order automation</span>
+    <span>Bell Plaster</span>
+    <span>BPS order portal</span>
   </footer>
 
   <script src="/app.js" defer></script>
