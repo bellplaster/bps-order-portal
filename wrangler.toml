@@ -1,6 +1,14 @@
-name = "brunswick-order-portal"
+name = "bps-order-portal"
 compatibility_date = "2026-07-15"
 pages_build_output_dir = "public"
 
 [observability]
 enabled = true
+
+# Bind these in the Cloudflare dashboard:
+# DB          -> D1 database
+# ORDER_FILES -> R2 bucket
+#
+# Pages Functions do not currently list Email Service as a supported
+# Pages binding, so this project calls Cloudflare Email Service through
+# its REST API using encrypted secrets.

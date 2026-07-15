@@ -1,10 +1,12 @@
 {
-  "name": "brunswick-order-portal",
+  "name": "bps-order-portal-cloudflare-native",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
+  "type": "module",
   "scripts": {
     "dev": "wrangler pages dev public",
-    "deploy": "wrangler pages deploy public --project-name brunswick-order-portal"
+    "deploy": "wrangler pages deploy public --project-name bps-order-portal",
+    "test:xlsx": "node tools/generate-test-files.mjs"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"

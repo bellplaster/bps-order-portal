@@ -1,44 +1,51 @@
-# Deployment checklist
+# Cloudflare-native deployment checklist
 
-## Apps Script
+## 1. Accrivia generator acceptance
 
-- [ ] Replace `WEBHOOK_KEY: "brunswick-order"` with a long random secret.
-- [ ] Save the Apps Script project.
-- [ ] Deploy as a Web app.
-- [ ] Execute as: Me.
-- [ ] Access: Anyone.
-- [ ] Copy the `/exec` URL.
-- [ ] Test `/exec?key=SECRET`.
-- [ ] Test `/exec?key=SECRET&action=catalog`.
-- [ ] Confirm the catalogue returns 47 products.
+- [ ] Download `Cloudflare_Native_Test_GF.xlsx`.
+- [ ] Download `Cloudflare_Native_Test_L1.xlsx`.
+- [ ] Upload both into Accrivia.
+- [ ] Confirm debtor code `BPS BRUNSW17`.
+- [ ] Confirm Rate Ex is blank.
+- [ ] Confirm SKUs and quantities.
+- [ ] Confirm Ground Floor and 1st Floor remain separate.
 
-## GitHub
+## 2. D1
 
-- [ ] Create a private repository.
-- [ ] Upload the full project folder contents.
-- [ ] Confirm `.dev.vars` and `.env` are not committed.
+- [ ] Create D1 database `bps-order-portal`.
+- [ ] Open D1 console.
+- [ ] Run `migrations/0001_initial.sql`.
+- [ ] Bind database to Pages as `DB`.
 
-## Cloudflare Pages
+## 3. R2
 
-- [ ] Connect the GitHub repository.
-- [ ] Framework preset: none.
-- [ ] Build command: blank.
-- [ ] Build output directory: `public`.
-- [ ] Add encrypted secrets:
-  - [ ] `APPS_SCRIPT_URL`
-  - [ ] `BRUNSWICK_WEBHOOK_KEY`
-  - [ ] `PORTAL_PASSWORD`
-  - [ ] `SESSION_SECRET`
-- [ ] Redeploy.
+- [ ] Create R2 bucket `bps-order-files`.
+- [ ] Bind bucket to Pages as `ORDER_FILES`.
 
-## Portal acceptance test
+## 4. Email Service
 
-- [ ] Password login works.
-- [ ] Catalogue displays 47 verified products.
-- [ ] Ground Floor submission generates a GF XLSX.
-- [ ] 1st Floor submission generates an L1 XLSX.
-- [ ] Bell receives the email.
-- [ ] Generated files appear in the Drive output folder.
-- [ ] Both files import into Accrivia.
-- [ ] Other Products appear as manual review.
-- [ ] `/api/status` displays the latest request, stage, success and error.
+- [ ] Enable Cloudflare Email Sending for the account.
+- [ ] Verify sender domain/address.
+- [ ] Create API token with email sending permission.
+- [ ] Add `CLOUDFLARE_ACCOUNT_ID`.
+- [ ] Add encrypted `CLOUDFLARE_EMAIL_API_TOKEN`.
+- [ ] Add `EMAIL_FROM`.
+- [ ] Add `EMAIL_TO`.
+- [ ] Add optional `EMAIL_CC`.
+
+## 5. Remove Google settings
+
+- [ ] Delete `APPS_SCRIPT_URL`.
+- [ ] Delete `BRUNSWICK_WEBHOOK_KEY`.
+
+## 6. Deploy
+
+- [ ] Replace the GitHub repository files with this package.
+- [ ] Wait for a successful Pages deployment.
+- [ ] Confirm login works.
+- [ ] Confirm 47 verified products load.
+- [ ] Submit a test order.
+- [ ] Confirm email attachments.
+- [ ] Confirm files in R2.
+- [ ] Confirm order status in D1.
+- [ ] Check `/api/status`.
