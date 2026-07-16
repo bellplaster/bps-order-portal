@@ -1233,3 +1233,29 @@ code {
     padding-right: 14px;
   }
 }
+
+
+/* Fix quantity input overflow inside the three-column product grid */
+.product-row {
+  grid-template-columns: minmax(0, 1fr) 94px;
+  column-gap: 12px;
+}
+
+.quantity-input {
+  width: 94px;
+  min-width: 94px;
+  max-width: 94px;
+  justify-self: end;
+}
+
+@media (max-width: 640px) {
+  .product-row {
+    grid-template-columns: minmax(0, 1fr) 88px;
+  }
+
+  .quantity-input {
+    width: 88px;
+    min-width: 88px;
+    max-width: 88px;
+  }
+}
