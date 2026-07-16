@@ -1,6 +1,7 @@
 const state = {
   catalog: {},
   isSubmitting: false,
+  editingOrder: null,
 };
 
 const sectionOrder = [
@@ -30,6 +31,10 @@ async function initialise() {
     .getElementById("refreshHistoryButton")
     .addEventListener("click", loadOrderHistory);
 
+  document
+    .getElementById("cancelEditButton")
+    .addEventListener("click", cancelEdit);
+
   await loadCatalog();
   await loadOrderHistory();
 }
@@ -37,41 +42,53 @@ async function initialise() {
 function bindTabs() {
   document.querySelectorAll("[data-floor-tab]").forEach((button) => {
     button.addEventListener("click", () => {
-      const floor = button.dataset.floorTab;
-
-      document.querySelectorAll("[data-floor-tab]").forEach((tab) => {
-        const active = tab.dataset.floorTab === floor;
-        tab.classList.toggle("is-active", active);
-        tab.setAttribute("aria-selected", active ? "true" : "false");
-      });
-
-      document.querySelectorAll("[data-floor-panel]").forEach((panel) => {
-        const active = panel.dataset.floorPanel === floor;
-        panel.classList.toggle("is-active", active);
-        panel.hidden = !active;
-      });
+      activateFloorTab(button.dataset.floorTab);
     });
+  });
+}
+
+function activateFloorTab(floor) {
+  document.querySelectorAll("[data-floor-tab]").forEach((tab) => {
+    const active = tab.dataset.floorTab === floor;
+    tab.classList.toggle("is-active", active);
+    tab.setAttribute("aria-selected", active ? "true" : "false");
+  });
+
+  document.querySelectorAll("[data-floor-panel]").forEach((panel) => {
+    const active = panel.dataset.floorPanel === floor;
+    panel.classList.toggle("is-active", active);
+    panel.hidden = !active;
   });
 }
 
 function bindFloorToggles() {
   ["ground", "first"].forEach((floor) => {
-    const checkbox = document.getElementById(`${floor}Enabled`);
-
-    checkbox.addEventListener("change", () => {
-      const content = document.querySelector(
-        `[data-floor-content="${floor}"]`,
-      );
-
-      content.classList.toggle("is-disabled", !checkbox.checked);
-
-      content.querySelectorAll("input, textarea, button").forEach((field) => {
-        field.disabled = !checkbox.checked;
+    document
+      .getElementById(`${floor}Enabled`)
+      .addEventListener("change", () => {
+        applyFloorEnabledState(floor);
       });
-
-      updateFloorSummary(floor);
-    });
   });
+}
+
+function applyFloorEnabledState(floor) {
+  const enabled = document.getElementById(`${floor}Enabled`).checked;
+  const content = document.querySelector(
+    `[data-floor-content="${floor}"]`,
+  );
+
+  content.classList.toggle("is-disabled", !enabled);
+
+  content.querySelectorAll("input, textarea, button").forEach((field) => {
+    field.disabled = !enabled;
+  });
+
+  updateFloorSummary(floor);
+}
+
+function setFloorEnabled(floor, enabled) {
+  document.getElementById(`${floor}Enabled`).checked = enabled;
+  applyFloorEnabledState(floor);
 }
 
 function bindSearch() {
@@ -132,7 +149,7 @@ async function loadCatalog() {
 
     ["ground", "first"].forEach((floor) => {
       renderCatalog(floor);
-      updateFloorSummary(floor);
+      applyFloorEnabledState(floor);
     });
   } catch (error) {
     showMessage(
@@ -341,16 +358,28 @@ async function submitOrder(event) {
     validateOrder();
 
     const payload = buildPayload();
+    const editing = Boolean(state.editingOrder);
+    const endpoint = editing
+      ? `/api/orders/${encodeURIComponent(state.editingOrder.submissionId)}`
+      : "/api/submit";
+
     state.isSubmitting = true;
 
     const button = document.getElementById("submitButton");
     button.disabled = true;
-    button.textContent = "Generating files…";
+    button.textContent = editing
+      ? "Saving changes…"
+      : "Generating files…";
 
-    showMessage("Generating order files…", "info");
+    showMessage(
+      editing
+        ? `Generating an updated revision for ${state.editingOrder.orderNumber}…`
+        : "Generating order files…",
+      "info",
+    );
 
-    const response = await fetch("/api/submit", {
-      method: "POST",
+    const response = await fetch(endpoint, {
+      method: editing ? "PUT" : "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
@@ -384,6 +413,7 @@ async function submitOrder(event) {
     }
 
     showSuccess(result);
+    resetOrderForm();
     await loadOrderHistory();
   } catch (error) {
     showMessage(error.message || String(error), "error");
@@ -392,7 +422,9 @@ async function submitOrder(event) {
 
     const button = document.getElementById("submitButton");
     button.disabled = false;
-    button.textContent = "Submit order";
+    button.textContent = state.editingOrder
+      ? "Save changes"
+      : "Submit order";
   }
 }
 
@@ -420,15 +452,12 @@ function validateOrder() {
   });
 }
 
-function activateFloorTab(floor) {
-  document.querySelector(`[data-floor-tab="${floor}"]`).click();
-}
-
 function buildPayload() {
-  const submissionId =
+  const submissionId = state.editingOrder?.submissionId || (
     typeof crypto.randomUUID === "function"
       ? `BPS-${crypto.randomUUID()}`
-      : `BPS-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      : `BPS-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  );
 
   const floors = {};
 
@@ -458,7 +487,7 @@ function buildPayload() {
 
   return {
     submissionId,
-    customerReference: "",
+    customerReference: state.editingOrder?.orderNumber || "",
     jobName: "BPS Brunswick Plastering Services",
     siteAddress1: "125 Sussex Street",
     siteAddress2: "Pascoe Vale VIC 3044",
@@ -471,10 +500,144 @@ function buildPayload() {
   };
 }
 
+async function editOrder(submissionId) {
+  clearMessage();
+  document.getElementById("successPanel").hidden = true;
+
+  try {
+    const response = await fetch(
+      `/api/orders/${encodeURIComponent(submissionId)}`,
+      {
+        headers: {
+          Accept: "application/json",
+        },
+      },
+    );
+
+    if (response.status === 401) {
+      window.location.replace("/signin/");
+      return;
+    }
+
+    const result = await response.json().catch(() => ({
+      ok: false,
+      error: "The order could not be loaded for editing.",
+    }));
+
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "The order could not be loaded for editing.");
+    }
+
+    populateOrderForEditing(result);
+  } catch (error) {
+    showMessage(error.message || String(error), "error");
+  }
+}
+
+function populateOrderForEditing(result) {
+  clearProductSelections();
+
+  const payload = result.payload || {};
+  const floors = payload.floors || {};
+
+  ["ground", "first"].forEach((floor) => {
+    const floorPayload = floors[floor];
+    setFloorEnabled(floor, Boolean(floorPayload));
+
+    if (!floorPayload) {
+      return;
+    }
+
+    for (const item of floorPayload.items || []) {
+      const field = document.querySelector(
+        `.quantity-input[data-floor="${floor}"][data-product-key="${cssEscape(item.key)}"]`,
+      );
+
+      if (!field) {
+        continue;
+      }
+
+      field.value = String(item.quantity);
+      field.closest("details").open = true;
+    }
+
+    document.getElementById(`${floor}OtherProducts`).value =
+      floorPayload.otherProducts || "";
+
+    updateFloorSummary(floor);
+  });
+
+  state.editingOrder = {
+    submissionId: result.order.submissionId,
+    orderNumber: result.order.orderNumber,
+    latestRevision: result.order.latestRevision,
+  };
+
+  document.getElementById("editOrderNumber").textContent =
+    result.order.orderNumber;
+
+  document.getElementById("editRevisionText").textContent =
+    `Saving will create Revision ${result.order.latestRevision + 1}. Earlier files will remain available.`;
+
+  document.getElementById("editModeBanner").hidden = false;
+  document.getElementById("submitButton").textContent = "Save changes";
+
+  const firstIncluded = Boolean(floors.ground)
+    ? "ground"
+    : "first";
+
+  activateFloorTab(firstIncluded);
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth",
+  });
+}
+
+function cancelEdit() {
+  resetOrderForm();
+  clearMessage();
+  document.getElementById("successPanel").hidden = true;
+}
+
+function resetOrderForm() {
+  state.editingOrder = null;
+  clearProductSelections();
+  setFloorEnabled("ground", true);
+  setFloorEnabled("first", false);
+  activateFloorTab("ground");
+  document.getElementById("editModeBanner").hidden = true;
+  document.getElementById("editOrderNumber").textContent = "";
+  document.getElementById("editRevisionText").textContent = "";
+  document.getElementById("submitButton").textContent = "Submit order";
+}
+
+function clearProductSelections() {
+  document.querySelectorAll(".quantity-input").forEach((field) => {
+    field.value = "";
+  });
+
+  ["ground", "first"].forEach((floor) => {
+    document.getElementById(`${floor}OtherProducts`).value = "";
+    document.getElementById(`${floor}ProductSearch`).value = "";
+    filterProducts(floor, "");
+    updateFloorSummary(floor);
+  });
+}
+
+function cssEscape(value) {
+  if (window.CSS?.escape) {
+    return window.CSS.escape(String(value));
+  }
+
+  return String(value).replace(/(["\\])/g, "\\$1");
+}
+
 function showSuccess(result) {
   clearMessage();
 
   const panel = document.getElementById("successPanel");
+  const title = document.getElementById("successTitle");
   const summary = document.getElementById("successSummary");
   const files = document.getElementById("generatedFiles");
 
@@ -484,13 +647,22 @@ function showSuccess(result) {
     ? result.generatedFiles
     : [];
 
+  title.textContent = result.updated
+    ? "Order updated"
+    : "Order created";
+
   summary.textContent = result.duplicate
     ? "This order was already processed."
-    : `${generated.length} Accrivia file${generated.length === 1 ? " was" : "s were"} generated and saved.`;
+    : result.updated
+      ? `${generated.length} replacement file${generated.length === 1 ? " was" : "s were"} generated for Revision ${result.revisionNo}.`
+      : `${generated.length} Accrivia file${generated.length === 1 ? " was" : "s were"} generated and saved.`;
 
   generated.forEach((file) => {
     const item = document.createElement("div");
     item.className = "generated-file";
+
+    const info = document.createElement("div");
+    info.className = "generated-file-info";
 
     const name = document.createElement("strong");
     name.textContent = file.filename;
@@ -498,7 +670,17 @@ function showSuccess(result) {
     const detail = document.createElement("span");
     detail.textContent = `${file.floorLabel} · ${file.itemCount} line${file.itemCount === 1 ? "" : "s"}`;
 
-    item.append(name, detail);
+    info.append(name, detail);
+    item.append(info);
+
+    if (file.downloadUrl) {
+      const download = createDownloadLink(
+        file.downloadUrl,
+        file.filename,
+      );
+      item.append(download);
+    }
+
     files.append(item);
   });
 
@@ -558,46 +740,95 @@ async function loadOrderHistory() {
     status.textContent = `${orders.length} order${orders.length === 1 ? "" : "s"}`;
 
     orders.forEach((order) => {
-      const card = document.createElement("article");
-      card.className = "history-order";
-
-      const header = document.createElement("div");
-      header.className = "history-order-header";
-
-      const identity = document.createElement("div");
-      const title = document.createElement("strong");
-      title.textContent = order.customer_reference || order.submission_id;
-
-      const meta = document.createElement("span");
-      meta.textContent = formatHistoryDate(order.created_at);
-
-      identity.append(title, meta);
-
-      const badge = document.createElement("span");
-      badge.className = `history-badge history-badge-${order.status || "unknown"}`;
-      badge.textContent = String(order.status || "unknown").replace(/_/g, " ");
-
-      header.append(identity, badge);
-      card.append(header);
-
-      if (Array.isArray(order.files) && order.files.length > 0) {
-        const fileList = document.createElement("div");
-        fileList.className = "history-files";
-
-        order.files.forEach((file) => {
-          const item = document.createElement("span");
-          item.textContent = `${file.floor_label}: ${file.filename}`;
-          fileList.append(item);
-        });
-
-        card.append(fileList);
-      }
-
-      list.append(card);
+      list.append(createHistoryOrderCard(order));
     });
   } catch (error) {
     status.textContent = error.message || String(error);
   }
+}
+
+function createHistoryOrderCard(order) {
+  const card = document.createElement("article");
+  card.className = "history-order";
+
+  const header = document.createElement("div");
+  header.className = "history-order-header";
+
+  const identity = document.createElement("div");
+  const title = document.createElement("strong");
+  title.textContent = order.customer_reference || order.submission_id;
+
+  const meta = document.createElement("span");
+  meta.textContent = [
+    formatHistoryDate(order.updated_at || order.created_at),
+    `Revision ${order.latest_revision || 1}`,
+  ].join(" · ");
+
+  identity.append(title, meta);
+
+  const headerActions = document.createElement("div");
+  headerActions.className = "history-header-actions";
+
+  const badge = document.createElement("span");
+  badge.className = `history-badge history-badge-${order.status || "unknown"}`;
+  badge.textContent = String(order.status || "unknown").replace(/_/g, " ");
+  headerActions.append(badge);
+
+  if (order.can_edit) {
+    const editButton = document.createElement("button");
+    editButton.className = "button button-secondary button-small";
+    editButton.type = "button";
+    editButton.textContent = "Edit order";
+    editButton.addEventListener("click", () => {
+      editOrder(order.submission_id);
+    });
+    headerActions.append(editButton);
+  }
+
+  header.append(identity, headerActions);
+  card.append(header);
+
+  if (Array.isArray(order.files) && order.files.length > 0) {
+    const fileList = document.createElement("div");
+    fileList.className = "history-files";
+
+    order.files.forEach((file) => {
+      const fileRow = document.createElement("div");
+      fileRow.className = "history-file-row";
+
+      const info = document.createElement("div");
+      info.className = "history-file-info";
+
+      const name = document.createElement("strong");
+      name.textContent = file.filename;
+
+      const detail = document.createElement("span");
+      detail.textContent = `Revision ${file.revision} · ${file.floor_label} · ${file.item_count} line${Number(file.item_count) === 1 ? "" : "s"}`;
+
+      info.append(name, detail);
+      fileRow.append(info);
+      fileRow.append(
+        createDownloadLink(
+          file.download_url,
+          file.filename,
+        ),
+      );
+      fileList.append(fileRow);
+    });
+
+    card.append(fileList);
+  }
+
+  return card;
+}
+
+function createDownloadLink(url, filename) {
+  const link = document.createElement("a");
+  link.className = "button button-secondary button-small download-button";
+  link.href = url;
+  link.download = filename;
+  link.textContent = "Download XLSX";
+  return link;
 }
 
 function formatHistoryDate(value) {

@@ -23,21 +23,34 @@ export async function onRequestGet(context) {
     for (const order of ordersResult.results || []) {
       const filesResult = await context.env.DB.prepare(
         `SELECT
+           id,
            floor,
            floor_label,
            filename,
            r2_key,
-           item_count
+           item_count,
+           created_at
          FROM order_files
          WHERE submission_id = ?
-         ORDER BY id`,
+         ORDER BY id DESC`,
       )
         .bind(order.submission_id)
         .all();
 
+      const files = (filesResult.results || []).map((file) => ({
+        ...file,
+        revision: inferRevision(file.filename),
+        download_url: `/api/files/${file.id}`,
+      }));
+
       orders.push({
         ...order,
-        files: filesResult.results || [],
+        can_edit: order.status !== "cancelled",
+        latest_revision: files.reduce(
+          (highest, file) => Math.max(highest, file.revision),
+          1,
+        ),
+        files,
       });
     }
 
@@ -69,4 +82,14 @@ export async function onRequestGet(context) {
       },
     );
   }
+}
+
+function inferRevision(filename) {
+  const match = String(filename || "").match(
+    /-R(\d+)-(?:GF|L1)\.xlsx$/i,
+  );
+
+  return match
+    ? Number(match[1])
+    : 1;
 }

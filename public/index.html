@@ -42,6 +42,18 @@
         <textarea id="comments"></textarea>
       </section>
 
+      <div id="editModeBanner" class="edit-mode-banner" hidden>
+        <div>
+          <span>Editing order</span>
+          <strong id="editOrderNumber"></strong>
+          <small id="editRevisionText"></small>
+        </div>
+
+        <button id="cancelEditButton" class="button button-secondary button-small" type="button">
+          Cancel edit
+        </button>
+      </div>
+
       <section class="form-card">
         <div class="section-heading floor-heading">
           <div>
@@ -136,7 +148,7 @@
         </div>
 
         <div id="successPanel" class="success-panel" hidden>
-          <h3>Order created</h3>
+          <h3 id="successTitle">Order created</h3>
           <p id="successSummary"></p>
           <div id="generatedFiles" class="generated-files"></div>
           <p class="submission-reference">
