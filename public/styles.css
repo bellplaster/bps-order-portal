@@ -1162,3 +1162,22 @@ code {
   flex-wrap: wrap;
   justify-content: flex-end;
 }
+
+
+/* Order note and quantity input refinement */
+.quantity-input {
+  width: 82px;
+  min-width: 82px;
+  padding-left: 12px;
+  padding-right: 12px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.quantity-input::placeholder {
+  text-align: center;
+}
+
+.manual-review-field > span {
+  font-weight: 700;
+}

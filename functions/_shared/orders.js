@@ -839,9 +839,13 @@ function normaliseItems(floorKey, rawItems) {
 
     const quantity = Number(item.quantity);
 
-    if (!Number.isInteger(quantity) || quantity <= 0) {
+    if (
+      !Number.isInteger(quantity) ||
+      quantity <= 0 ||
+      quantity > 999
+    ) {
       throw new Error(
-        `${FLOORS[floorKey].label}: ${product.label} requires a positive whole-number quantity.`,
+        `${FLOORS[floorKey].label}: ${product.label} requires a whole-number quantity from 1 to 999.`,
       );
     }
 

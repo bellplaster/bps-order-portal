@@ -256,12 +256,13 @@ function createProductRow(floor, product) {
 
   const quantity = document.createElement("input");
   quantity.className = "quantity-input";
-  quantity.type = "number";
-  quantity.min = "0";
-  quantity.max = "99999";
-  quantity.step = "1";
+  quantity.type = "text";
   quantity.inputMode = "numeric";
+  quantity.pattern = "[0-9]*";
+  quantity.maxLength = 3;
+  quantity.autocomplete = "off";
   quantity.placeholder = "0";
+  quantity.setAttribute("aria-label", `${product.label} quantity`);
   quantity.dataset.productKey = product.key;
   quantity.dataset.floor = floor;
   quantity.disabled = !document.getElementById(`${floor}Enabled`).checked;
@@ -276,20 +277,23 @@ function createProductRow(floor, product) {
 }
 
 function normaliseQuantityField(field) {
-  if (field.value === "") {
-    return;
-  }
+  const digits = String(field.value || "")
+    .replace(/\D/g, "")
+    .slice(0, 3);
 
-  const quantity = Number(field.value);
-
-  if (!Number.isFinite(quantity) || quantity < 0) {
+  if (!digits) {
     field.value = "";
     return;
   }
 
-  if (!Number.isInteger(quantity)) {
-    field.value = String(Math.floor(quantity));
-  }
+  const quantity = Math.min(
+    999,
+    Number.parseInt(digits, 10),
+  );
+
+  field.value = Number.isFinite(quantity)
+    ? String(quantity)
+    : "";
 }
 
 function filterProducts(floor, rawQuery) {
@@ -802,7 +806,7 @@ function showSuccess(result) {
     const warning = document.createElement("div");
     warning.className = "manual-review-warning";
     warning.textContent =
-      "Other Products were saved with the order for Bell Plaster to review. They were not inserted into the XLSX.";
+      "Your order note has been saved with this order.";
     files.append(warning);
   }
 
@@ -954,7 +958,7 @@ function createHistoryOrderCard(order) {
     otherProducts.className = "history-other-products";
 
     const heading = document.createElement("strong");
-    heading.textContent = "Other products";
+    heading.textContent = "Order note";
     otherProducts.append(heading);
 
     order.other_products.forEach((item) => {
