@@ -256,10 +256,11 @@ function createProductRow(floor, product) {
 
   const quantity = document.createElement("input");
   quantity.className = "quantity-input";
-  quantity.type = "text";
+  quantity.type = "number";
+  quantity.min = "0";
+  quantity.max = "999";
+  quantity.step = "1";
   quantity.inputMode = "numeric";
-  quantity.pattern = "[0-9]*";
-  quantity.maxLength = 3;
   quantity.autocomplete = "off";
   quantity.placeholder = "0";
   quantity.setAttribute("aria-label", `${product.label} quantity`);
