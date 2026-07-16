@@ -8,9 +8,6 @@
  * A = Stock Code
  * B = Description
  * C = Quan
- * D = Rate Ex
- *
- * Rate Ex is intentionally blank.
  */
 
 const XLSX_MIME =
@@ -48,8 +45,7 @@ const SHEET_LAYOUT =
   '<cols>' +
   '<col min="1" max="1" width="18.140625" bestFit="1" customWidth="1"/>' +
   '<col min="2" max="2" width="33.28515625" bestFit="1" customWidth="1"/>' +
-  '<col min="3" max="3" width="5.85546875" bestFit="1" customWidth="1"/>' +
-  '<col min="4" max="4" width="7.140625" bestFit="1" customWidth="1"/>' +
+  '<col min="3" max="3" width="7.140625" bestFit="1" customWidth="1"/>' +
   '</cols>';
 
 const SHEET_SUFFIX =
@@ -71,7 +67,7 @@ export function createAccriviaXlsx(data) {
 
   const sheetXml =
     SHEET_PREFIX +
-    `<dimension ref="A1:D${finalRow}"/>` +
+    `<dimension ref="A1:C${finalRow}"/>` +
     SHEET_LAYOUT +
     `<sheetData>${sheetRows}</sheetData>` +
     SHEET_SUFFIX;
@@ -136,7 +132,6 @@ function buildSheetRows(data, productRows) {
       textCell("A11", 0, "Stock Code"),
       textCell("B11", 0, "Description"),
       textCell("C11", 0, "Quan"),
-      textCell("D11", 0, "Rate Ex"),
     ]),
   );
 
@@ -148,7 +143,6 @@ function buildSheetRows(data, productRows) {
         textCell(`A${row}`, 0, product[0]),
         textCell(`B${row}`, 0, product[1]),
         numberCell(`C${row}`, 4, product[2]),
-        blankCell(`D${row}`, 4),
       ]),
     );
   });
@@ -158,7 +152,7 @@ function buildSheetRows(data, productRows) {
 
 function rowXml(rowNumber, cells) {
   return (
-    `<row r="${rowNumber}" spans="1:4" x14ac:dyDescent="0.25">` +
+    `<row r="${rowNumber}" spans="1:3" x14ac:dyDescent="0.25">` +
     cells.join("") +
     "</row>"
   );

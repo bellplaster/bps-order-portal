@@ -500,6 +500,120 @@ function buildPayload() {
   };
 }
 
+async function changeOrderArchiveStatus(
+  submissionId,
+  orderNumber,
+  action,
+) {
+  const verb = action === "archive"
+    ? "archive"
+    : "restore";
+
+  if (
+    action === "archive" &&
+    !window.confirm(
+      `Archive ${orderNumber}? The order and files will remain available.`,
+    )
+  ) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `/api/orders/${encodeURIComponent(submissionId)}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          action,
+        }),
+      },
+    );
+
+    const result = await response.json().catch(() => ({
+      ok: false,
+      error: `The order could not be ${verb}d.`,
+    }));
+
+    if (!response.ok || !result.ok) {
+      throw new Error(
+        result.error ||
+        `The order could not be ${verb}d.`,
+      );
+    }
+
+    if (
+      state.editingOrder?.submissionId === submissionId &&
+      action === "archive"
+    ) {
+      cancelEdit();
+    }
+
+    await loadOrderHistory();
+  } catch (error) {
+    showMessage(error.message || String(error), "error");
+  }
+}
+
+async function deleteOrder(
+  submissionId,
+  orderNumber,
+) {
+  const confirmed = window.confirm(
+    `Permanently delete ${orderNumber}? This removes its D1 history and every XLSX and metadata file from R2. This cannot be undone.`,
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  const typed = window.prompt(
+    `Type ${orderNumber} to confirm permanent deletion.`,
+  );
+
+  if (typed !== orderNumber) {
+    showMessage("Deletion cancelled because the order number did not match.", "error");
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `/api/orders/${encodeURIComponent(submissionId)}`,
+      {
+        method: "DELETE",
+        headers: {
+          Accept: "application/json",
+        },
+      },
+    );
+
+    const result = await response.json().catch(() => ({
+      ok: false,
+      error: "The order could not be deleted.",
+    }));
+
+    if (!response.ok || !result.ok) {
+      throw new Error(
+        result.error ||
+        "The order could not be deleted.",
+      );
+    }
+
+    if (state.editingOrder?.submissionId === submissionId) {
+      cancelEdit();
+    }
+
+    document.getElementById("successPanel").hidden = true;
+    clearMessage();
+    await loadOrderHistory();
+  } catch (error) {
+    showMessage(error.message || String(error), "error");
+  }
+}
+
 async function editOrder(submissionId) {
   clearMessage();
   document.getElementById("successPanel").hidden = true;
@@ -785,8 +899,72 @@ function createHistoryOrderCard(order) {
     headerActions.append(editButton);
   }
 
+  if (order.can_archive) {
+    const archiveButton = document.createElement("button");
+    archiveButton.className = "button button-secondary button-small";
+    archiveButton.type = "button";
+    archiveButton.textContent = "Archive";
+    archiveButton.addEventListener("click", () => {
+      changeOrderArchiveStatus(
+        order.submission_id,
+        order.customer_reference,
+        "archive",
+      );
+    });
+    headerActions.append(archiveButton);
+  }
+
+  if (order.can_restore) {
+    const restoreButton = document.createElement("button");
+    restoreButton.className = "button button-secondary button-small";
+    restoreButton.type = "button";
+    restoreButton.textContent = "Restore";
+    restoreButton.addEventListener("click", () => {
+      changeOrderArchiveStatus(
+        order.submission_id,
+        order.customer_reference,
+        "restore",
+      );
+    });
+    headerActions.append(restoreButton);
+  }
+
+  if (order.can_delete) {
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "button button-danger button-small";
+    deleteButton.type = "button";
+    deleteButton.textContent = "Delete";
+    deleteButton.addEventListener("click", () => {
+      deleteOrder(
+        order.submission_id,
+        order.customer_reference,
+      );
+    });
+    headerActions.append(deleteButton);
+  }
+
   header.append(identity, headerActions);
   card.append(header);
+
+  if (
+    Array.isArray(order.other_products) &&
+    order.other_products.length > 0
+  ) {
+    const otherProducts = document.createElement("div");
+    otherProducts.className = "history-other-products";
+
+    const heading = document.createElement("strong");
+    heading.textContent = "Other products";
+    otherProducts.append(heading);
+
+    order.other_products.forEach((item) => {
+      const line = document.createElement("span");
+      line.textContent = `${item.floor_label}: ${item.details}`;
+      otherProducts.append(line);
+    });
+
+    card.append(otherProducts);
+  }
 
   if (Array.isArray(order.files) && order.files.length > 0) {
     const fileList = document.createElement("div");

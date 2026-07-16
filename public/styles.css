@@ -1124,3 +1124,41 @@ code {
     width: 100%;
   }
 }
+
+
+.button-danger {
+  border-color: #e6b8b8;
+  background: #fff;
+  color: #a42525;
+}
+
+.button-danger:hover:not(:disabled) {
+  border-color: #a42525;
+  background: #fff0f0;
+}
+
+.history-badge-archived {
+  background: #f0f1f1;
+  color: #5f6966 !important;
+}
+
+.history-other-products {
+  display: grid;
+  gap: 3px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-left: 3px solid #c77600;
+  border-radius: 7px;
+  background: #fff6e7;
+  color: #6e4a16;
+  font-size: 12px;
+}
+
+.history-other-products strong {
+  color: #6e4a16;
+}
+
+.history-header-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}

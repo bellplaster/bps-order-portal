@@ -4,7 +4,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "Sheetrock One — 1350 × 6000 mm",
     "sku": "10SR1360",
-    "description": "10MMSHEETROCKONE 1350 x6000",
+    "description": "10MM SHEETROCK ONE 1350 x 6000",
     "floors": [
       "ground",
       "first"
@@ -15,7 +15,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "Sheetrock One — 1350 × 4800 mm",
     "sku": "10SR1348",
-    "description": "10MMSHEETROCKONE 1350 x4800",
+    "description": "10MM SHEETROCK ONE 1350 x 4800",
     "floors": [
       "ground",
       "first"
@@ -26,7 +26,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "Sheetrock One — 1350 × 3600 mm",
     "sku": "10SR1336",
-    "description": "10MMSHEETROCKONE 1350 x3600",
+    "description": "10MM SHEETROCK ONE 1350 x 3600",
     "floors": [
       "ground",
       "first"
@@ -37,7 +37,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "Sheetrock One — 1200 × 6000 mm",
     "sku": "10SR1260",
-    "description": "10MMSHEETROCKONE 1200 x6000",
+    "description": "10MM SHEETROCK ONE 1200 x 6000",
     "floors": [
       "ground",
       "first"
@@ -48,7 +48,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "Sheetrock One — 1200 × 4800 mm",
     "sku": "10SR1248",
-    "description": "10MMSHEETROCKONE 1200 x4800",
+    "description": "10MM SHEETROCK ONE 1200 x 4800",
     "floors": [
       "ground",
       "first"
@@ -59,7 +59,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "Sheetrock One — 1200 × 3600 mm",
     "sku": "10SR1236",
-    "description": "10MMSHEETROCKONE 1200 x3600",
+    "description": "10MM SHEETROCK ONE 1200 x 3600",
     "floors": [
       "ground",
       "first"
@@ -70,7 +70,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "Sheetrock One — 1200 × 3000 mm",
     "sku": "10SR1230",
-    "description": "10MMSHEETROCKONE 1200 x3000",
+    "description": "10MM SHEETROCK ONE 1200 x 3000",
     "floors": [
       "ground",
       "first"
@@ -81,7 +81,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "Sheetrock One — 1200 × 2400 mm",
     "sku": "10SR1224",
-    "description": "10MMSHEETROCKONE 1200 x2400",
+    "description": "10MM SHEETROCK ONE 1200 x 2400",
     "floors": [
       "ground",
       "first"
@@ -92,7 +92,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "13HD — 1350 × 4800 mm",
     "sku": "13HD1348",
-    "description": "13MM S/ROCKSTANDARD1350 X 4800",
+    "description": "13MM S/ROCK STANDARD 1350 X 4800",
     "floors": [
       "ground",
       "first"
@@ -103,7 +103,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "13HD — 1350 × 3600 mm",
     "sku": "13HD1336",
-    "description": "13MM S/ROCKSTANDARD1350 X 3600",
+    "description": "13MM S/ROCK STANDARD 1350 X 3600",
     "floors": [
       "ground",
       "first"
@@ -114,7 +114,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "13HD — 1200 × 6000 mm",
     "sku": "13HD1260",
-    "description": "13MM S/ROCKSTANDARD1200 X 6000",
+    "description": "13MM S/ROCK STANDARD 1200 X 6000",
     "floors": [
       "ground",
       "first"
@@ -125,7 +125,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "13HD — 1200 × 4800 mm",
     "sku": "13HD1248",
-    "description": "13MM S/ROCKSTANDARD1200 X 4800",
+    "description": "13MM S/ROCK STANDARD 1200 X 4800",
     "floors": [
       "ground",
       "first"
@@ -136,7 +136,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "13HD — 1200 × 3600 mm",
     "sku": "13HD1236",
-    "description": "13MM S/ROCKSTANDARD1200 X 3600",
+    "description": "13MM S/ROCK STANDARD 1200 X 3600",
     "floors": [
       "ground",
       "first"
@@ -147,7 +147,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "13HD — 1200 × 3000 mm",
     "sku": "13HD1230",
-    "description": "13MM S/ROCKSTANDARD1200 X 3000",
+    "description": "13MM S/ROCK STANDARD 1200 X 3000",
     "floors": [
       "ground",
       "first"
@@ -158,7 +158,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "13HD — 1200 × 2700 mm",
     "sku": "13HD1227",
-    "description": "13MM S/ROCKSTANDARD1200 X 2700",
+    "description": "13MM S/ROCK STANDARD 1200 X 2700",
     "floors": [
       "ground",
       "first"
@@ -169,7 +169,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "13 FIRE STOP — 1350 × 3600 mm",
     "sku": "13FS1336",
-    "description": "13MM FIRESTOP RE1350x3600",
+    "description": "13MM FIRE STOP RE 1350 x 3600",
     "floors": [
       "ground",
       "first"
@@ -180,7 +180,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "13 FIRE STOP — 1200 × 3600 mm",
     "sku": "13FS1236",
-    "description": "13MM FIRESTOP RE1200x3600",
+    "description": "13MM FIRE STOP RE 1200 x 3600",
     "floors": [
       "ground",
       "first"
@@ -191,7 +191,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "13 FIRE STOP — 1200 × 3000 mm",
     "sku": "13FS1230",
-    "description": "13MM FIRESTOP RE1200x3000",
+    "description": "13MM FIRE STOP RE 1200 x 3000",
     "floors": [
       "ground",
       "first"
@@ -202,7 +202,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "13 FIRE STOP — 1200 × 2700 mm",
     "sku": "13FS1227",
-    "description": "13MM FIRESTOP RE 1200x 2700",
+    "description": "13MM FIRE STOP RE 1200 x 2700",
     "floors": [
       "ground",
       "first"
@@ -213,7 +213,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "13 FIRE STOP — 1200 × 2400 mm",
     "sku": "13FS1224",
-    "description": "13MM FIRESTOP RE1200x2400",
+    "description": "13MM FIRE STOP RE 1200 x 2400",
     "floors": [
       "ground",
       "first"
@@ -224,7 +224,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "16 FIRE STOP — 1350 × 3000 mm",
     "sku": "16FS1330",
-    "description": "16MM FIRESTOP RE1350x3000",
+    "description": "16MM FIRE STOP RE 1350 x 3000",
     "floors": [
       "ground",
       "first"
@@ -235,7 +235,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "16 FIRE STOP — 1200 × 3600 mm",
     "sku": "16FS1236",
-    "description": "16MM FIRESTOP RE1200x3600",
+    "description": "16MM FIRE STOP RE 1200 x 3600",
     "floors": [
       "ground",
       "first"
@@ -246,7 +246,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "16 FIRE STOP — 1200 × 3000 mm",
     "sku": "16FS1230",
-    "description": "16MM FIRESTOP RE1200x3000",
+    "description": "16MM FIRE STOP RE 1200 x 3000",
     "floors": [
       "ground",
       "first"
@@ -257,7 +257,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "16 FIRE STOP — 1200 × 2400 mm",
     "sku": "16FS1224",
-    "description": "16MM FIRESTOP RE1200x2400",
+    "description": "16MM FIRE STOP RE 1200 x 2400",
     "floors": [
       "ground",
       "first"
@@ -268,7 +268,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "Shaft Wall — 600 × 3600 mm",
     "sku": "25SW0636",
-    "description": "25mmShaftlinerMouldstop 600x 3600mm",
+    "description": "25MM SHAFTLINER MOULDSTOP 600 x 3600MM",
     "floors": [
       "ground",
       "first"
@@ -279,7 +279,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Knauf board matrix",
     "label": "Shaft Wall — 600 × 3000 mm",
     "sku": "25SW0630",
-    "description": "25mmShaftlinerMouldstop 600x 3000mm",
+    "description": "25MM SHAFTLINER MOULDSTOP 600 x 3000MM",
     "floors": [
       "ground",
       "first"
@@ -290,7 +290,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Specialty boards",
     "label": "Multi 4 — 1200 × 3600 mm",
     "sku": "13M41236",
-    "description": "13MMMULTISTOP 4 1200 x 3600",
+    "description": "13MM MULTISTOP 4 1200 x 3600",
     "floors": [
       "ground",
       "first"
@@ -301,7 +301,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Accessories",
     "label": "Stud Adhesive — 5.2 kg",
     "sku": "SADHPB5.2KG",
-    "description": "STUDADHESIVEPREMIUMBOND 5.2KG",
+    "description": "STUD ADHESIVE PREMIUM BOND 5.2KG",
     "floors": [
       "ground",
       "first"
@@ -312,7 +312,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Compounds",
     "label": "Finalcote — 20 kg",
     "sku": "FCOTE20",
-    "description": "FINALCOTE20KG",
+    "description": "FINALCOTE 20KG",
     "floors": [
       "ground",
       "first"
@@ -323,7 +323,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Compounds",
     "label": "Lite Finish — 18 kg",
     "sku": "LFINISH18",
-    "description": "LITE FINISH18KG",
+    "description": "LITE FINISH 18KG",
     "floors": [
       "ground",
       "first"
@@ -334,7 +334,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Compounds",
     "label": "Cornice Adhesive 45 — 20 kg",
     "sku": "CAN4520",
-    "description": "CORNICEADHESIVE 4520KG",
+    "description": "CORNICE ADHESIVE 45 20KG",
     "floors": [
       "ground",
       "first"
@@ -345,7 +345,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Compounds",
     "label": "Cornice Adhesive 60 — 20 kg",
     "sku": "CAN6020",
-    "description": "CORNICEADHESIVE 6020KG",
+    "description": "CORNICE ADHESIVE 60 20KG",
     "floors": [
       "ground",
       "first"
@@ -356,7 +356,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Compounds",
     "label": "Basecote 45 — 20 kg",
     "sku": "BC4520",
-    "description": "BASECOTE 4520kg",
+    "description": "BASECOTE 45 20KG",
     "floors": [
       "ground",
       "first"
@@ -367,7 +367,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Compounds",
     "label": "Basecote 60 — 20 kg",
     "sku": "BC6020",
-    "description": "BASECOTE 6020KG",
+    "description": "BASECOTE 60 20KG",
     "floors": [
       "ground",
       "first"
@@ -378,7 +378,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Compounds",
     "label": "Basecote 90 — 20 kg",
     "sku": "BC9020",
-    "description": "BASECOTE 9020KG",
+    "description": "BASECOTE 90 20KG",
     "floors": [
       "ground",
       "first"
@@ -389,7 +389,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Compounds",
     "label": "Back Block Adhesive — 20 kg",
     "sku": "BBADHESIVE20",
-    "description": "BACK BLOCKADH 20KG",
+    "description": "BACK BLOCK ADHESIVE 20KG",
     "floors": [
       "ground",
       "first"
@@ -400,7 +400,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Compounds",
     "label": "Casting Plaster — 20 kg",
     "sku": "CAST20",
-    "description": "CASTINGPLASTER20KG",
+    "description": "CASTING PLASTER 20KG",
     "floors": [
       "ground",
       "first"
@@ -411,7 +411,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Compounds",
     "label": "Masonry Adhesive — 20 kg",
     "sku": "CMASON20",
-    "description": "MASONRYADHESIVE20KG",
+    "description": "MASONRY ADHESIVE 20KG",
     "floors": [
       "ground",
       "first"
@@ -422,7 +422,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Cornice",
     "label": "55 mm Cove — 4.8 m",
     "sku": "55C48",
-    "description": "55mm Cove4800",
+    "description": "55MM COVE 4800",
     "floors": [
       "ground",
       "first"
@@ -433,7 +433,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Cornice",
     "label": "75 mm Cove — 4.8 m",
     "sku": "75C48",
-    "description": "75mm Cove4800",
+    "description": "75MM COVE 4800",
     "floors": [
       "ground",
       "first"
@@ -444,7 +444,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Cornice",
     "label": "90 mm Cove — 4.8 m",
     "sku": "90C48",
-    "description": "90mm Cove4800",
+    "description": "90MM COVE 4800",
     "floors": [
       "ground",
       "first"
@@ -455,7 +455,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Cornice",
     "label": "Sydney Decorative Cornice — 4.2 m",
     "sku": "90C42DCSYDNEY",
-    "description": "90MMSYDNEYCOVECORNICE4200",
+    "description": "90MM SYDNEY COVE CORNICE 4200",
     "floors": [
       "ground",
       "first"
@@ -466,7 +466,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Cornice",
     "label": "New York Decorative Cornice — 4.2 m",
     "sku": "90C42DCNY",
-    "description": "90MM NEWYORK COVE4200mm",
+    "description": "90MM NEW YORK COVE 4200MM",
     "floors": [
       "ground",
       "first"
@@ -477,7 +477,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Cornice",
     "label": "Cairo 3 Decorative Cornice — 4.2 m",
     "sku": "75C42DCCAIRO3S",
-    "description": "75MM CAIRO3 STEP4200mm",
+    "description": "75MM CAIRO 3 STEP 4200MM",
     "floors": [
       "ground",
       "first"
@@ -488,7 +488,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Partiwall",
     "label": "Partiwall H Section — 3.0 m",
     "sku": "R25HS3055",
-    "description": "25MM HSECTION 30000055BMT",
+    "description": "25MM H SECTION 3000 0055BMT",
     "floors": [
       "ground",
       "first"
@@ -499,7 +499,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Partiwall",
     "label": "Partiwall H Section — 3.6 m",
     "sku": "R25HS3655",
-    "description": "25MM HSECTION 36000055BMT",
+    "description": "25MM H SECTION 3600 0055BMT",
     "floors": [
       "ground",
       "first"
@@ -510,7 +510,7 @@ export const PRODUCT_CATALOG = Object.freeze({
     "section": "Partiwall",
     "label": "Partiwall Batts — 50 mm, 5 m x 200 mm, 3 rolls/bag",
     "sku": "IIPWBATT",
-    "description": "PARTIWALLBATT 50MM5Mx200mm ( 3ROLLS PERBAG)",
+    "description": "PARTIWALL BATT 50MM 5M x 200MM (3 ROLLS PER BAG)",
     "floors": [
       "ground",
       "first"

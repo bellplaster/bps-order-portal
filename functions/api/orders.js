@@ -12,7 +12,8 @@ export async function onRequestGet(context) {
          customer_reference,
          status,
          created_at,
-         updated_at
+         updated_at,
+         payload_json
        FROM orders
        ORDER BY created_at DESC
        LIMIT 100`,
@@ -43,9 +44,34 @@ export async function onRequestGet(context) {
         download_url: `/api/files/${file.id}`,
       }));
 
+      let payload = {};
+
+      try {
+        payload = JSON.parse(order.payload_json || "{}");
+      } catch (_error) {
+        payload = {};
+      }
+
+      const otherProducts = Object.entries(payload?.floors || {})
+        .map(([floor, details]) => ({
+          floor,
+          floor_label: floor === "first" ? "1st Floor" : "Ground Floor",
+          details: String(details?.otherProducts || "").trim(),
+        }))
+        .filter((item) => item.details);
+
+      const {
+        payload_json: _payloadJson,
+        ...orderSummary
+      } = order;
+
       orders.push({
-        ...order,
-        can_edit: order.status !== "cancelled",
+        ...orderSummary,
+        can_edit: !["cancelled", "archived"].includes(order.status),
+        can_archive: order.status !== "archived",
+        can_restore: order.status === "archived",
+        can_delete: true,
+        other_products: otherProducts,
         latest_revision: files.reduce(
           (highest, file) => Math.max(highest, file.revision),
           1,

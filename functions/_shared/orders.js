@@ -122,6 +122,10 @@ export async function updateOrderSubmission(
     throw new Error("A cancelled order cannot be edited.");
   }
 
+  if (order.status === "archived") {
+    throw new Error("An archived order must be restored before it can be edited.");
+  }
+
   const latestRevision = await getLatestRevisionNumber(
     env,
     submissionId,
@@ -136,6 +140,114 @@ export async function updateOrderSubmission(
     revisionNo: latestRevision + 1,
     isInitial: false,
   });
+}
+
+
+export async function setOrderArchiveStatus(
+  env,
+  submissionId,
+  archived,
+) {
+  requireBindings(env);
+
+  const order = await getOrderRecord(env, submissionId);
+
+  if (!order) {
+    throw new Error("Order not found.");
+  }
+
+  const nextStatus = archived
+    ? "archived"
+    : "completed";
+
+  await env.DB.prepare(
+    `UPDATE orders
+     SET status = ?,
+         updated_at = ?
+     WHERE submission_id = ?`,
+  )
+    .bind(
+      nextStatus,
+      nowIso(),
+      submissionId,
+    )
+    .run();
+
+  await addEvent(
+    env,
+    submissionId,
+    archived ? "Archived" : "Restored",
+  );
+
+  return {
+    ok: true,
+    submissionId,
+    orderNumber: order.customer_reference,
+    status: nextStatus,
+  };
+}
+
+export async function deleteOrderPermanently(
+  env,
+  submissionId,
+) {
+  requireBindings(env);
+
+  const order = await getOrderRecord(env, submissionId);
+
+  if (!order) {
+    throw new Error("Order not found.");
+  }
+
+  const matchingR2Keys = [];
+  let cursor;
+
+  do {
+    const page = await env.ORDER_FILES.list({
+      prefix: "orders/",
+      cursor,
+      limit: 1000,
+    });
+
+    for (const object of page.objects || []) {
+      if (object.key.includes(`/${submissionId}/`)) {
+        matchingR2Keys.push(object.key);
+      }
+    }
+
+    cursor = page.truncated
+      ? page.cursor
+      : undefined;
+  } while (cursor);
+
+  if (matchingR2Keys.length > 0) {
+    await env.ORDER_FILES.delete(matchingR2Keys);
+  }
+
+  await env.DB.batch([
+    env.DB.prepare(
+      `DELETE FROM order_files
+       WHERE submission_id = ?`,
+    ).bind(submissionId),
+
+    env.DB.prepare(
+      `DELETE FROM order_events
+       WHERE submission_id = ?`,
+    ).bind(submissionId),
+
+    env.DB.prepare(
+      `DELETE FROM orders
+       WHERE submission_id = ?`,
+    ).bind(submissionId),
+  ]);
+
+  return {
+    ok: true,
+    deleted: true,
+    submissionId,
+    orderNumber: order.customer_reference,
+    deletedR2Objects: matchingR2Keys.length,
+  };
 }
 
 export async function getStatusResponse(env) {
