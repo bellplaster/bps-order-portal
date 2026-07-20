@@ -1576,3 +1576,142 @@ code {
     min-width: 55px;
   }
 }
+
+
+/* ================================================================
+   Order-form usability refinement
+   ================================================================ */
+
+.draft-status {
+  min-height: 16px;
+  margin: 7px 0 0;
+  color: #66736f;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.draft-status[data-status="saving"] {
+  color: #8a6711;
+}
+
+.draft-status[data-status="saved"],
+.draft-status[data-status="restored"] {
+  color: var(--bell-green);
+}
+
+.draft-status[data-status="error"] {
+  color: #a42525;
+}
+
+/* LENGTH and mm are intentionally separate rows, matching the form. */
+.excel-matrix .matrix-length-heading,
+.excel-matrix .matrix-unit-heading,
+.excel-matrix .matrix-length-cell {
+  position: sticky;
+  left: 0;
+  z-index: 6;
+  width: 66px;
+  min-width: 66px;
+  font-weight: 800;
+}
+
+.excel-matrix .matrix-length-heading {
+  top: 0;
+  z-index: 9;
+  background: #e7ecea;
+}
+
+.excel-matrix .matrix-unit-heading {
+  top: 38px;
+  z-index: 9;
+  background: #fff;
+}
+
+.excel-matrix .matrix-length-cell {
+  background: #fff;
+}
+
+/*
+ * Every white cell is an available order position.
+ * The inset outline makes that obvious even before a quantity is entered.
+ */
+.sheet-quantity-cell {
+  background: #fbfffd;
+  box-shadow: inset 0 0 0 1px #a7b5b0;
+}
+
+.sheet-quantity-cell:hover,
+.sheet-quantity-cell:focus-within {
+  background: #eef8f4;
+  box-shadow: inset 0 0 0 2px #5f7e74;
+}
+
+.sheet-blocked-cell {
+  background: #a3a6a5;
+  box-shadow: none;
+}
+
+.quantity-input {
+  width: 50px;
+  min-width: 50px;
+  max-width: 50px;
+  height: 30px;
+  min-height: 30px;
+  padding: 2px 16px 2px 6px;
+  border: 1.5px solid #6f817b;
+  border-radius: 4px;
+  background: #fff;
+  color: #101816;
+  font-size: 11px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.quantity-input:hover {
+  border-color: #3e6257;
+}
+
+.quantity-input:focus {
+  border-color: var(--bell-green);
+  box-shadow: 0 0 0 2px rgba(0, 101, 87, 0.16);
+}
+
+/*
+ * Multi 4 and Multi 3 use grouped axis labels so 1350/1200 cannot
+ * be mistaken for board thickness.
+ */
+.multi-board-table thead tr:first-child th {
+  background: #e7ecea;
+  font-size: 8px;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.multi-board-table .multi-thickness-heading {
+  width: 44%;
+}
+
+.multi-board-table .multi-width-heading {
+  text-align: center;
+}
+
+.multi-board-table thead tr:nth-child(2) th {
+  background: #fff;
+  font-size: 9px;
+}
+
+.multi-board-table tbody th {
+  font-weight: 700;
+}
+
+@media (max-width: 760px) {
+  .draft-status {
+    margin-bottom: 4px;
+  }
+
+  .quantity-input {
+    width: 48px;
+    min-width: 48px;
+    max-width: 48px;
+  }
+}

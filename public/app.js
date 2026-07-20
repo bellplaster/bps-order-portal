@@ -3,7 +3,14 @@ const state = {
   layout: null,
   isSubmitting: false,
   editingOrder: null,
+  activeFloor: "ground",
+  draftSaveTimer: null,
+  isRestoringDraft: false,
+  suppressDraftUntilInput: false,
 };
+
+const DRAFT_STORAGE_KEY = "bps-standard-order-form-draft-v3";
+const DRAFT_VERSION = 3;
 
 const floorLabels = {
   ground: "Ground Floor",
@@ -16,6 +23,7 @@ async function initialise() {
   bindTabs();
   bindSubmission();
   bindLogout();
+  bindDraftPersistence();
 
   document
     .getElementById("refreshHistoryButton")
@@ -49,6 +57,12 @@ function activateFloorTab(floor) {
     panel.classList.toggle("is-active", active);
     panel.hidden = !active;
   });
+
+  state.activeFloor = floor;
+
+  if (!state.isRestoringDraft) {
+    scheduleDraftSave();
+  }
 }
 
 function bindSubmission() {
@@ -104,6 +118,7 @@ async function loadCatalog() {
 
     renderFloorSheet("ground");
     renderFloorSheet("first");
+    restoreDraft();
     updateAllFloorCounts();
   } catch (error) {
     showMessage(
@@ -132,7 +147,11 @@ function renderFloorSheet(floor) {
       const section = state.layout.sections[sectionId];
 
       if (section) {
-        lane.append(renderLowerSection(floor, section));
+        lane.append(
+          ["multi4", "multi3"].includes(section.id)
+            ? renderMultiBoardSection(floor, section)
+            : renderLowerSection(floor, section),
+        );
       }
     });
 
@@ -161,7 +180,6 @@ function renderMainMatrix(floor, matrix) {
 
   const lengthHeading = document.createElement("th");
   lengthHeading.className = "matrix-length-heading";
-  lengthHeading.rowSpan = 2;
   lengthHeading.textContent = "LENGTH";
   groupRow.append(lengthHeading);
 
@@ -173,6 +191,11 @@ function renderMainMatrix(floor, matrix) {
   });
 
   const variantRow = document.createElement("tr");
+
+  const unitHeading = document.createElement("th");
+  unitHeading.className = "matrix-unit-heading";
+  unitHeading.textContent = "mm";
+  variantRow.append(unitHeading);
 
   matrix.columns.forEach((column) => {
     const heading = document.createElement("th");
@@ -192,6 +215,79 @@ function renderMainMatrix(floor, matrix) {
     lengthCell.className = "matrix-length-cell";
     lengthCell.textContent = row.length;
     tableRow.append(lengthCell);
+
+    row.cells.forEach((productKey) => {
+      tableRow.append(
+        createSheetQuantityCell(floor, productKey),
+      );
+    });
+
+    tbody.append(tableRow);
+  });
+
+  table.append(tbody);
+  scroller.append(table);
+  section.append(title, scroller);
+
+  return section;
+}
+
+function renderMultiBoardSection(
+  floor,
+  sectionDefinition,
+) {
+  const section = document.createElement("section");
+  section.className =
+    "sheet-section lower-sheet-section multi-board-section";
+
+  const title = document.createElement("div");
+  title.className = "sheet-section-title";
+  title.textContent = sectionDefinition.title;
+
+  const scroller = document.createElement("div");
+  scroller.className = "lower-table-scroller";
+
+  const table = document.createElement("table");
+  table.className = "lower-sheet-table multi-board-table";
+
+  const thead = document.createElement("thead");
+
+  const axisRow = document.createElement("tr");
+
+  const thicknessHeading = document.createElement("th");
+  thicknessHeading.className = "multi-thickness-heading";
+  thicknessHeading.textContent = "BOARD THICKNESS";
+
+  const widthHeading = document.createElement("th");
+  widthHeading.className = "multi-width-heading";
+  widthHeading.colSpan = sectionDefinition.columns.length;
+  widthHeading.textContent = "BOARD WIDTH";
+
+  axisRow.append(thicknessHeading, widthHeading);
+
+  const unitRow = document.createElement("tr");
+
+  const thicknessUnit = document.createElement("th");
+  thicknessUnit.textContent = "mm";
+  unitRow.append(thicknessUnit);
+
+  sectionDefinition.columns.forEach((column) => {
+    const heading = document.createElement("th");
+    heading.textContent = `${column} mm`;
+    unitRow.append(heading);
+  });
+
+  thead.append(axisRow, unitRow);
+  table.append(thead);
+
+  const tbody = document.createElement("tbody");
+
+  sectionDefinition.rows.forEach((row) => {
+    const tableRow = document.createElement("tr");
+
+    const labelCell = document.createElement("th");
+    labelCell.textContent = row.label;
+    tableRow.append(labelCell);
 
     row.cells.forEach((productKey) => {
       tableRow.append(
@@ -311,6 +407,24 @@ function createSheetQuantityCell(floor, productKey) {
   quantity.addEventListener("input", () => {
     normaliseQuantityField(quantity);
     updateFloorCount(floor);
+    markDraftChanged();
+  });
+
+  quantity.addEventListener("focus", () => {
+    quantity.select();
+  });
+
+  quantity.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    event.preventDefault();
+    focusNextQuantityField(
+      floor,
+      quantity,
+      event.shiftKey ? -1 : 1,
+    );
   });
 
   cell.append(quantity);
@@ -442,9 +556,16 @@ async function submitOrder(event) {
 
     showSuccess(result);
     await loadOrderHistory();
+    clearSavedDraft({
+      statusText: result.updated
+        ? "Revision saved. Local draft cleared."
+        : "Order submitted. Local draft cleared.",
+    });
 
     if (editing) {
       resetOrderForm();
+    } else {
+      state.suppressDraftUntilInput = true;
     }
   } catch (error) {
     showMessage(error.message || String(error), "error");
@@ -927,6 +1048,8 @@ function populateOrderForEditing(result) {
     : "first";
 
   activateFloorTab(firstIncluded);
+  state.suppressDraftUntilInput = false;
+  saveDraftNow();
 
   window.scrollTo({
     top: 0,
@@ -948,6 +1071,10 @@ function resetOrderForm() {
   document.getElementById("editOrderNumber").textContent = "";
   document.getElementById("editRevisionText").textContent = "";
   document.getElementById("submitButton").textContent = "Submit order";
+  clearSavedDraft({
+    statusText: "Form cleared.",
+  });
+  state.suppressDraftUntilInput = true;
 }
 
 function clearProductSelections() {
@@ -1073,6 +1200,322 @@ async function deleteOrder(
   } catch (error) {
     showMessage(error.message || String(error), "error");
   }
+}
+
+function bindDraftPersistence() {
+  ["ground", "first"].forEach((floor) => {
+    document
+      .getElementById(`${floor}OtherProducts`)
+      .addEventListener("input", markDraftChanged);
+  });
+
+  window.addEventListener("beforeunload", () => {
+    saveDraftNow({
+      silent: true,
+    });
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      saveDraftNow({
+        silent: true,
+      });
+    }
+  });
+}
+
+function markDraftChanged() {
+  state.suppressDraftUntilInput = false;
+  scheduleDraftSave();
+}
+
+function scheduleDraftSave() {
+  if (
+    state.isRestoringDraft ||
+    state.suppressDraftUntilInput
+  ) {
+    return;
+  }
+
+  setDraftStatus("Saving draft…", "saving");
+
+  window.clearTimeout(state.draftSaveTimer);
+
+  state.draftSaveTimer = window.setTimeout(() => {
+    saveDraftNow();
+  }, 180);
+}
+
+function saveDraftNow(options = {}) {
+  if (
+    state.isRestoringDraft ||
+    state.suppressDraftUntilInput ||
+    !state.layout
+  ) {
+    return;
+  }
+
+  window.clearTimeout(state.draftSaveTimer);
+
+  const draft = collectDraft();
+
+  if (!draftHasContent(draft)) {
+    try {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+    } catch (_error) {
+      // Local storage may be disabled by the browser.
+    }
+
+    if (!options.silent) {
+      setDraftStatus(
+        "Changes save automatically on this device.",
+        "idle",
+      );
+    }
+
+    return;
+  }
+
+  try {
+    localStorage.setItem(
+      DRAFT_STORAGE_KEY,
+      JSON.stringify(draft),
+    );
+
+    if (!options.silent) {
+      setDraftStatus(
+        `Draft saved ${formatDraftTime(draft.updatedAt)}.`,
+        "saved",
+      );
+    }
+  } catch (_error) {
+    if (!options.silent) {
+      setDraftStatus(
+        "Draft saving is unavailable in this browser.",
+        "error",
+      );
+    }
+  }
+}
+
+function collectDraft() {
+  const floors = {};
+
+  ["ground", "first"].forEach((floor) => {
+    const quantities = {};
+
+    document
+      .querySelectorAll(
+        `.quantity-input[data-floor="${floor}"]`,
+      )
+      .forEach((field) => {
+        const value = Number(field.value || 0);
+
+        if (
+          Number.isInteger(value) &&
+          value > 0 &&
+          value <= 999
+        ) {
+          quantities[field.dataset.productKey] = value;
+        }
+      });
+
+    floors[floor] = {
+      quantities,
+      note:
+        document
+          .getElementById(`${floor}OtherProducts`)
+          .value,
+    };
+  });
+
+  return {
+    version: DRAFT_VERSION,
+    updatedAt: new Date().toISOString(),
+    activeFloor: state.activeFloor,
+    editingOrder: state.editingOrder,
+    floors,
+  };
+}
+
+function draftHasContent(draft) {
+  if (draft.editingOrder) {
+    return true;
+  }
+
+  return Object.values(draft.floors || {}).some((floor) => {
+    return (
+      Object.keys(floor.quantities || {}).length > 0 ||
+      String(floor.note || "").trim().length > 0
+    );
+  });
+}
+
+function restoreDraft() {
+  let draft;
+
+  try {
+    const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+
+    if (!raw) {
+      setDraftStatus(
+        "Changes save automatically on this device.",
+        "idle",
+      );
+      return;
+    }
+
+    draft = JSON.parse(raw);
+  } catch (_error) {
+    setDraftStatus(
+      "The previous browser draft could not be read.",
+      "error",
+    );
+    return;
+  }
+
+  if (
+    !draft ||
+    draft.version !== DRAFT_VERSION
+  ) {
+    clearSavedDraft();
+    return;
+  }
+
+  state.isRestoringDraft = true;
+
+  try {
+    ["ground", "first"].forEach((floor) => {
+      const floorDraft = draft.floors?.[floor] || {};
+
+      Object.entries(
+        floorDraft.quantities || {},
+      ).forEach(([productKey, quantity]) => {
+        const field = document.querySelector(
+          `.quantity-input[data-floor="${floor}"][data-product-key="${cssEscape(productKey)}"]`,
+        );
+
+        if (field) {
+          field.value = String(quantity);
+        }
+      });
+
+      document.getElementById(`${floor}OtherProducts`).value =
+        floorDraft.note || "";
+    });
+
+    state.editingOrder =
+      draft.editingOrder || null;
+
+    if (state.editingOrder) {
+      document.getElementById("editOrderNumber").textContent =
+        state.editingOrder.orderNumber || "";
+
+      document.getElementById("editRevisionText").textContent =
+        `Saving will create Revision ${(state.editingOrder.latestRevision || 0) + 1}. Earlier files will remain available.`;
+
+      document.getElementById("editModeBanner").hidden = false;
+      document.getElementById("submitButton").textContent =
+        "Save changes";
+    }
+
+    activateFloorTab(
+      ["ground", "first"].includes(draft.activeFloor)
+        ? draft.activeFloor
+        : "ground",
+    );
+
+    updateAllFloorCounts();
+    state.suppressDraftUntilInput = false;
+
+    setDraftStatus(
+      `Draft restored from ${formatDraftTime(draft.updatedAt)}.`,
+      "restored",
+    );
+  } finally {
+    state.isRestoringDraft = false;
+  }
+}
+
+function clearSavedDraft(options = {}) {
+  window.clearTimeout(state.draftSaveTimer);
+
+  try {
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+  } catch (_error) {
+    // Local storage may be disabled by the browser.
+  }
+
+  if (options.statusText) {
+    setDraftStatus(
+      options.statusText,
+      "saved",
+    );
+  }
+}
+
+function setDraftStatus(text, status) {
+  const element =
+    document.getElementById("draftStatus");
+
+  if (!element) {
+    return;
+  }
+
+  element.textContent = text;
+  element.dataset.status = status || "idle";
+}
+
+function formatDraftTime(value) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "recently";
+  }
+
+  return new Intl.DateTimeFormat(
+    "en-AU",
+    {
+      hour: "numeric",
+      minute: "2-digit",
+    },
+  ).format(date);
+}
+
+function focusNextQuantityField(
+  floor,
+  currentField,
+  direction,
+) {
+  const fields = Array.from(
+    document.querySelectorAll(
+      `[data-floor-panel="${floor}"] .quantity-input`,
+    ),
+  );
+
+  const currentIndex =
+    fields.indexOf(currentField);
+
+  if (currentIndex < 0) {
+    return;
+  }
+
+  const nextIndex =
+    currentIndex + direction;
+
+  const nextField =
+    fields[nextIndex];
+
+  if (!nextField) {
+    return;
+  }
+
+  nextField.focus();
+  nextField.select();
+  nextField.scrollIntoView({
+    block: "nearest",
+    inline: "nearest",
+  });
 }
 
 function formatHistoryDate(value) {
