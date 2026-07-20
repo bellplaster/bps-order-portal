@@ -1,4 +1,5 @@
 import {
+  ORDER_FORM_LAYOUT,
   PRODUCT_CATALOG,
 } from "./catalog.js";
 
@@ -35,6 +36,7 @@ export function getCatalogResponse() {
     service: "BPS Order Portal",
     productCount: Object.keys(PRODUCT_CATALOG).length,
     products: PRODUCT_CATALOG,
+    layout: ORDER_FORM_LAYOUT,
   };
 }
 
@@ -363,20 +365,50 @@ async function generateAndSaveRevision(
 
       if (floor.otherProducts) {
         manualReview.push({
+          kind: "order-note",
           floor: floorKey,
           floorLabel: definition.label,
           details: floor.otherProducts,
         });
       }
 
-      if (floor.items.length === 0) {
+      const mappedItems = [];
+      const unmappedItems = [];
+
+      floor.items.forEach((item) => {
+        const product = PRODUCT_CATALOG[item.key];
+
+        if (String(product?.sku || "").trim()) {
+          mappedItems.push(item);
+        } else {
+          unmappedItems.push({
+            key: item.key,
+            label: product?.label || item.key,
+            quantity: item.quantity,
+          });
+        }
+      });
+
+      if (unmappedItems.length > 0) {
+        manualReview.push({
+          kind: "sku-mapping",
+          floor: floorKey,
+          floorLabel: definition.label,
+          details: unmappedItems
+            .map((item) => `${item.label} × ${item.quantity}`)
+            .join("\n"),
+          items: unmappedItems,
+        });
+      }
+
+      if (mappedItems.length === 0) {
         continue;
       }
 
       stage = `Generating ${definition.label} revision ${revisionNo}`;
       await addEvent(env, submissionId, stage);
 
-      const productRows = floor.items.map((item) => {
+      const productRows = mappedItems.map((item) => {
         const product = PRODUCT_CATALOG[item.key];
 
         return [

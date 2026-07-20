@@ -1,3 +1,5 @@
+import { PRODUCT_CATALOG } from "../_shared/catalog.js";
+
 export async function onRequestGet(context) {
   const requestId = crypto.randomUUID();
 
@@ -60,6 +62,38 @@ export async function onRequestGet(context) {
         }))
         .filter((item) => item.details);
 
+      const pendingMapping = [];
+
+      Object.entries(payload?.floors || {}).forEach(([floor, details]) => {
+        const items = Array.isArray(details?.items)
+          ? details.items
+          : [];
+
+        const pendingItems = items
+          .map((item) => {
+            const product = PRODUCT_CATALOG[item?.key];
+
+            if (!product || String(product.sku || "").trim()) {
+              return null;
+            }
+
+            return {
+              key: item.key,
+              label: product.label,
+              quantity: Number(item.quantity || 0),
+            };
+          })
+          .filter(Boolean);
+
+        if (pendingItems.length > 0) {
+          pendingMapping.push({
+            floor,
+            floor_label: floor === "first" ? "1st Floor" : "Ground Floor",
+            items: pendingItems,
+          });
+        }
+      });
+
       const {
         payload_json: _payloadJson,
         ...orderSummary
@@ -72,6 +106,7 @@ export async function onRequestGet(context) {
         can_restore: order.status === "archived",
         can_delete: true,
         other_products: otherProducts,
+        pending_mapping: pendingMapping,
         latest_revision: files.reduce(
           (highest, file) => Math.max(highest, file.revision),
           1,

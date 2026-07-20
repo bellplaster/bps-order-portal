@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <title>BPS Order Portal | Bell Plaster</title>
+  <title>BPS Standard Order Form | Bell Plaster</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -27,8 +27,7 @@
 
   <main class="page-shell">
     <form id="orderForm" novalidate>
-      <!-- Retained in code for future use, but intentionally hidden. -->
-      <section class="form-card future-order-details" hidden>
+      <section class="future-order-details" hidden>
         <input id="customerReference">
         <input id="jobName" value="BPS Brunswick Plastering Services">
         <input id="siteAddress1" value="125 Sussex Street">
@@ -52,13 +51,14 @@
         </button>
       </div>
 
-      <section class="form-card">
-        <div class="section-heading floor-heading">
+      <section class="form-card order-sheet-card">
+        <div class="section-heading sheet-heading">
           <div>
-            <h2>Place your order</h2>
+            <p class="sheet-kicker">BPS Brunswick Plastering Services</p>
+            <h1>Standard Order Form</h1>
           </div>
 
-          <div class="floor-tabs" role="tablist" aria-label="Floor order">
+          <div class="floor-tabs" role="tablist" aria-label="Order floor">
             <button class="floor-tab is-active" type="button" role="tab" aria-selected="true" data-floor-tab="ground">
               Ground Floor
               <span id="groundTabCount" class="tab-count">0</span>
@@ -72,63 +72,31 @@
         </div>
 
         <article class="floor-panel is-active" data-floor-panel="ground">
-          <div class="floor-toolbar">
-            <label class="toggle-line">
-              <input type="checkbox" id="groundEnabled" checked>
-              <span><strong>Ground Floor</strong></span>
-            </label>
+          <div id="groundOrderSheet" class="excel-order-sheet" aria-live="polite"></div>
 
-            <div class="floor-summary" id="groundSummary">No products selected</div>
-          </div>
-
-          <div class="floor-content" data-floor-content="ground">
-            <div class="product-heading">
-              <h3>Products</h3>
-
-              <label class="search-field">
-                <span class="visually-hidden">Search Ground Floor products</span>
-                <input type="search" id="groundProductSearch" placeholder="Search product or code">
-              </label>
-            </div>
-
-            <div id="groundProductList" class="product-groups" aria-live="polite"></div>
-
-            <label class="field manual-review-field">
-              <span>Order note</span>
-              <textarea id="groundOtherProducts" maxlength="3000" rows="3"
-                placeholder="Add a message, special request, or any products not listed above."></textarea>
-            </label>
-          </div>
+          <label class="field order-note-field">
+            <span>Order note</span>
+            <textarea
+              id="groundOtherProducts"
+              maxlength="3000"
+              rows="3"
+              placeholder="Add a message or special request for Bell Plaster."
+            ></textarea>
+          </label>
         </article>
 
         <article class="floor-panel" data-floor-panel="first" hidden>
-          <div class="floor-toolbar">
-            <label class="toggle-line">
-              <input type="checkbox" id="firstEnabled">
-              <span><strong>1st Floor</strong></span>
-            </label>
+          <div id="firstOrderSheet" class="excel-order-sheet" aria-live="polite"></div>
 
-            <div class="floor-summary" id="firstSummary">Floor not included</div>
-          </div>
-
-          <div class="floor-content is-disabled" data-floor-content="first">
-            <div class="product-heading">
-              <h3>Products</h3>
-
-              <label class="search-field">
-                <span class="visually-hidden">Search 1st Floor products</span>
-                <input type="search" id="firstProductSearch" placeholder="Search product or code" disabled>
-              </label>
-            </div>
-
-            <div id="firstProductList" class="product-groups" aria-live="polite"></div>
-
-            <label class="field manual-review-field">
-              <span>Order note</span>
-              <textarea id="firstOtherProducts" maxlength="3000" rows="3" disabled
-                placeholder="Add a message, special request, or any products not listed above."></textarea>
-            </label>
-          </div>
+          <label class="field order-note-field">
+            <span>Order note</span>
+            <textarea
+              id="firstOtherProducts"
+              maxlength="3000"
+              rows="3"
+              placeholder="Add a message or special request for Bell Plaster."
+            ></textarea>
+          </label>
         </article>
       </section>
 
@@ -136,9 +104,9 @@
         <div id="formMessage" class="message" hidden role="alert"></div>
 
         <div class="submit-row">
-          <div>
-            <p class="submit-note">A separate Accrivia file will be generated for each included floor.</p>
-          </div>
+          <p class="submit-note">
+            Ground Floor and 1st Floor files are generated separately.
+          </p>
 
           <button id="submitButton" class="button button-primary" type="submit">
             Submit order
@@ -174,7 +142,7 @@
 
   <footer class="site-footer">
     <span>Bell Plaster</span>
-    <span>BPS Order Portal</span>
+    <span>BPS Standard Order Form</span>
   </footer>
 
   <script src="/app.js" defer></script>

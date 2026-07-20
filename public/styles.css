@@ -1259,3 +1259,320 @@ code {
     max-width: 88px;
   }
 }
+
+
+/* ================================================================
+   Excel-style standard order form
+   ================================================================ */
+.page-shell {
+  width: min(1540px, calc(100% - 32px));
+}
+
+.order-sheet-card {
+  padding: clamp(18px, 2.5vw, 30px);
+}
+
+.sheet-heading {
+  align-items: center;
+}
+
+.sheet-heading h1 {
+  margin: 3px 0 0;
+  font-size: clamp(25px, 2.4vw, 34px);
+  line-height: 1.15;
+}
+
+.sheet-kicker {
+  margin: 0;
+  color: var(--bell-green);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.excel-order-sheet {
+  display: grid;
+  gap: 18px;
+}
+
+.sheet-section {
+  overflow: hidden;
+  border: 1px solid #aeb9b5;
+  border-radius: 3px;
+  background: #fff;
+}
+
+.sheet-section-title {
+  padding: 8px 10px;
+  border-bottom: 1px solid #8d9995;
+  background: #e7ecea;
+  color: #16211f;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.025em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.matrix-scroller,
+.lower-table-scroller {
+  overflow: auto;
+  scrollbar-color: #aab6b2 #eef2f1;
+  scrollbar-width: thin;
+}
+
+.excel-matrix {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-size: 10px;
+}
+
+.excel-matrix th,
+.excel-matrix td {
+  width: 58px;
+  min-width: 58px;
+  height: 38px;
+  padding: 3px;
+  border-right: 1px solid #a9b2af;
+  border-bottom: 1px solid #a9b2af;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.excel-matrix thead th {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: #f8faf9;
+  color: #1c2825;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.15;
+  white-space: normal;
+}
+
+.excel-matrix thead tr:nth-child(2) th {
+  top: 38px;
+  background: #fff;
+  font-weight: 700;
+}
+
+.excel-matrix .matrix-length-heading,
+.excel-matrix .matrix-length-cell {
+  position: sticky;
+  left: 0;
+  z-index: 6;
+  width: 66px;
+  min-width: 66px;
+  background: #fff;
+  font-weight: 800;
+}
+
+.excel-matrix .matrix-length-heading {
+  z-index: 8;
+  background: #f8faf9;
+}
+
+.sheet-quantity-cell {
+  background: #fff;
+}
+
+.sheet-blocked-cell {
+  background: #969696;
+}
+
+.quantity-input {
+  display: block;
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  height: 29px;
+  min-height: 29px;
+  margin: 0 auto;
+  padding: 2px 16px 2px 5px;
+  border: 1px solid #b6c0bd;
+  border-radius: 4px;
+  background: #fff;
+  color: #17211f;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  box-shadow: none;
+}
+
+.quantity-input:focus {
+  border-color: var(--bell-green);
+  box-shadow: 0 0 0 2px rgba(0, 101, 87, 0.12);
+}
+
+.lower-sheet-grid {
+  display: grid;
+  grid-template-columns:
+    minmax(210px, 0.8fr)
+    minmax(260px, 1fr)
+    minmax(430px, 1.55fr)
+    minmax(250px, 0.95fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.lower-sheet-lane {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.lower-sheet-table {
+  width: 100%;
+  min-width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 10px;
+}
+
+.lower-sheet-table th,
+.lower-sheet-table td {
+  height: 36px;
+  padding: 4px 5px;
+  border-right: 1px solid #a9b2af;
+  border-bottom: 1px solid #a9b2af;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.lower-sheet-table thead th {
+  background: #f8faf9;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.lower-sheet-table tbody th {
+  width: 48%;
+  background: #fff;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.lower-sheet-table tbody th span,
+.lower-sheet-table tbody th small {
+  display: block;
+}
+
+.lower-sheet-table tbody th small {
+  margin-top: 2px;
+  color: #6b7773;
+  font-size: 8px;
+  font-weight: 500;
+}
+
+.lower-sheet-table .sheet-blocked-cell {
+  background: #969696;
+}
+
+.order-note-field {
+  margin-top: 18px;
+  padding: 13px;
+  border: 1px solid #c9b27a;
+  border-left: 4px solid #c77600;
+  border-radius: 4px;
+  background: #fff8e9;
+}
+
+.order-note-field textarea {
+  min-height: 84px;
+  border-radius: 4px;
+}
+
+.review-card {
+  padding-block: 22px;
+}
+
+.submit-row {
+  align-items: center;
+}
+
+.mapping-warning {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-left: 3px solid #8b6a13;
+  border-radius: 6px;
+  background: #fff8dc;
+  color: #72540d;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.history-note-block,
+.history-mapping-block {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 7px;
+  font-size: 12px;
+}
+
+.history-note-block {
+  display: grid;
+  gap: 3px;
+  border-left: 3px solid #c77600;
+  background: #fff6e7;
+  color: #6e4a16;
+}
+
+.history-mapping-block {
+  border-left: 3px solid #8b6a13;
+  background: #fff8dc;
+  color: #604a0d;
+}
+
+.history-mapping-block summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.history-mapping-block span {
+  display: block;
+  margin-top: 4px;
+}
+
+@media (max-width: 1260px) {
+  .lower-sheet-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .page-shell {
+    width: min(100% - 16px, 1540px);
+    margin-top: 16px;
+  }
+
+  .sheet-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .floor-tabs {
+    width: 100%;
+  }
+
+  .floor-tab {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .lower-sheet-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .excel-matrix th,
+  .excel-matrix td {
+    width: 55px;
+    min-width: 55px;
+  }
+}

@@ -1,17 +1,9 @@
 const state = {
   catalog: {},
+  layout: null,
   isSubmitting: false,
   editingOrder: null,
 };
-
-const sectionOrder = [
-  "Knauf board matrix",
-  "Specialty boards",
-  "Compounds",
-  "Cornice",
-  "Partiwall",
-  "Accessories",
-];
 
 const floorLabels = {
   ground: "Ground Floor",
@@ -22,8 +14,6 @@ document.addEventListener("DOMContentLoaded", initialise);
 
 async function initialise() {
   bindTabs();
-  bindFloorToggles();
-  bindSearch();
   bindSubmission();
   bindLogout();
 
@@ -61,46 +51,6 @@ function activateFloorTab(floor) {
   });
 }
 
-function bindFloorToggles() {
-  ["ground", "first"].forEach((floor) => {
-    document
-      .getElementById(`${floor}Enabled`)
-      .addEventListener("change", () => {
-        applyFloorEnabledState(floor);
-      });
-  });
-}
-
-function applyFloorEnabledState(floor) {
-  const enabled = document.getElementById(`${floor}Enabled`).checked;
-  const content = document.querySelector(
-    `[data-floor-content="${floor}"]`,
-  );
-
-  content.classList.toggle("is-disabled", !enabled);
-
-  content.querySelectorAll("input, textarea, button").forEach((field) => {
-    field.disabled = !enabled;
-  });
-
-  updateFloorSummary(floor);
-}
-
-function setFloorEnabled(floor, enabled) {
-  document.getElementById(`${floor}Enabled`).checked = enabled;
-  applyFloorEnabledState(floor);
-}
-
-function bindSearch() {
-  ["ground", "first"].forEach((floor) => {
-    document
-      .getElementById(`${floor}ProductSearch`)
-      .addEventListener("input", (event) => {
-        filterProducts(floor, event.target.value);
-      });
-  });
-}
-
 function bindSubmission() {
   document
     .getElementById("orderForm")
@@ -134,125 +84,212 @@ async function loadCatalog() {
 
     const result = await response.json().catch(() => ({
       ok: false,
-      error: "The catalogue service returned an unreadable response.",
+      error: "The order form service returned an unreadable response.",
     }));
 
     if (!response.ok || !result.ok) {
       throw new Error(
         result.error ||
         result.message ||
-        "The product catalogue could not be loaded.",
+        "The order form could not be loaded.",
       );
     }
 
     state.catalog = result.products || {};
+    state.layout = result.layout || null;
 
-    ["ground", "first"].forEach((floor) => {
-      renderCatalog(floor);
-      applyFloorEnabledState(floor);
-    });
+    if (!state.layout) {
+      throw new Error("The standard order-form layout is missing.");
+    }
+
+    renderFloorSheet("ground");
+    renderFloorSheet("first");
+    updateAllFloorCounts();
   } catch (error) {
     showMessage(
-      `The product catalogue could not be loaded. ${error.message || String(error)}`,
+      `The order form could not be loaded. ${error.message || String(error)}`,
       "error",
     );
   }
 }
 
-function renderCatalog(floor) {
-  const container = document.getElementById(`${floor}ProductList`);
+function renderFloorSheet(floor) {
+  const container = document.getElementById(`${floor}OrderSheet`);
   container.replaceChildren();
 
-  const grouped = {};
+  container.append(
+    renderMainMatrix(floor, state.layout.mainMatrix),
+  );
 
-  Object.entries(state.catalog).forEach(([key, product]) => {
-    if (!Array.isArray(product.floors) || !product.floors.includes(floor)) {
-      return;
-    }
+  const lowerGrid = document.createElement("div");
+  lowerGrid.className = "lower-sheet-grid";
 
-    const section = product.section || "Other";
-    grouped[section] ||= [];
-    grouped[section].push({
-      key,
-      ...product,
-    });
-  });
+  state.layout.lowerColumns.forEach((sectionIds) => {
+    const lane = document.createElement("div");
+    lane.className = "lower-sheet-lane";
 
-  const sections = Object.keys(grouped).sort((left, right) => {
-    const leftIndex = sectionOrder.indexOf(left);
-    const rightIndex = sectionOrder.indexOf(right);
+    sectionIds.forEach((sectionId) => {
+      const section = state.layout.sections[sectionId];
 
-    if (leftIndex === -1 && rightIndex === -1) {
-      return left.localeCompare(right);
-    }
-
-    if (leftIndex === -1) {
-      return 1;
-    }
-
-    if (rightIndex === -1) {
-      return -1;
-    }
-
-    return leftIndex - rightIndex;
-  });
-
-  sections.forEach((section, sectionIndex) => {
-    const products = grouped[section].sort((left, right) =>
-      left.label.localeCompare(right.label),
-    );
-
-    const details = document.createElement("details");
-    details.className = "product-section";
-    details.open = sectionIndex === 0;
-
-    const summary = document.createElement("summary");
-
-    const title = document.createElement("span");
-    title.textContent = section;
-
-    const count = document.createElement("span");
-    count.className = "section-count";
-    count.textContent = String(products.length);
-
-    summary.append(title, count);
-    details.append(summary);
-
-    const grid = document.createElement("div");
-    grid.className = "product-list";
-
-    products.forEach((product) => {
-      grid.append(createProductRow(floor, product));
+      if (section) {
+        lane.append(renderLowerSection(floor, section));
+      }
     });
 
-    details.append(grid);
-    container.append(details);
+    lowerGrid.append(lane);
   });
+
+  container.append(lowerGrid);
 }
 
-function createProductRow(floor, product) {
-  const row = document.createElement("label");
-  row.className = "product-row";
-  row.dataset.searchText = [
-    product.label,
-    product.sku,
-    product.description,
-    product.section,
-  ]
-    .join(" ")
-    .toLowerCase();
+function renderMainMatrix(floor, matrix) {
+  const section = document.createElement("section");
+  section.className = "sheet-section main-matrix-section";
 
-  const info = document.createElement("span");
-  info.className = "product-info";
+  const title = document.createElement("div");
+  title.className = "sheet-section-title";
+  title.textContent = matrix.title;
 
-  const label = document.createElement("strong");
-  label.textContent = product.label;
+  const scroller = document.createElement("div");
+  scroller.className = "matrix-scroller";
 
-  const meta = document.createElement("span");
-  meta.className = "product-meta";
-  meta.textContent = product.sku;
+  const table = document.createElement("table");
+  table.className = "excel-matrix";
 
-  info.append(label, meta);
+  const thead = document.createElement("thead");
+  const groupRow = document.createElement("tr");
+
+  const lengthHeading = document.createElement("th");
+  lengthHeading.className = "matrix-length-heading";
+  lengthHeading.rowSpan = 2;
+  lengthHeading.textContent = "LENGTH";
+  groupRow.append(lengthHeading);
+
+  matrix.groups.forEach((group) => {
+    const heading = document.createElement("th");
+    heading.colSpan = group.span;
+    heading.textContent = group.label;
+    groupRow.append(heading);
+  });
+
+  const variantRow = document.createElement("tr");
+
+  matrix.columns.forEach((column) => {
+    const heading = document.createElement("th");
+    heading.textContent = column.variant || "Qty";
+    variantRow.append(heading);
+  });
+
+  thead.append(groupRow, variantRow);
+  table.append(thead);
+
+  const tbody = document.createElement("tbody");
+
+  matrix.rows.forEach((row) => {
+    const tableRow = document.createElement("tr");
+
+    const lengthCell = document.createElement("th");
+    lengthCell.className = "matrix-length-cell";
+    lengthCell.textContent = row.length;
+    tableRow.append(lengthCell);
+
+    row.cells.forEach((productKey) => {
+      tableRow.append(
+        createSheetQuantityCell(floor, productKey),
+      );
+    });
+
+    tbody.append(tableRow);
+  });
+
+  table.append(tbody);
+  scroller.append(table);
+  section.append(title, scroller);
+
+  return section;
+}
+
+function renderLowerSection(floor, sectionDefinition) {
+  const section = document.createElement("section");
+  section.className = "sheet-section lower-sheet-section";
+
+  const title = document.createElement("div");
+  title.className = "sheet-section-title";
+  title.textContent = sectionDefinition.title;
+
+  const scroller = document.createElement("div");
+  scroller.className = "lower-table-scroller";
+
+  const table = document.createElement("table");
+  table.className = "lower-sheet-table";
+
+  const thead = document.createElement("thead");
+  const headingRow = document.createElement("tr");
+
+  const rowHeader = document.createElement("th");
+  rowHeader.textContent = sectionDefinition.rowHeader || "Product";
+  headingRow.append(rowHeader);
+
+  sectionDefinition.columns.forEach((column) => {
+    const heading = document.createElement("th");
+    heading.textContent = column;
+    headingRow.append(heading);
+  });
+
+  thead.append(headingRow);
+  table.append(thead);
+
+  const tbody = document.createElement("tbody");
+
+  sectionDefinition.rows.forEach((row) => {
+    const tableRow = document.createElement("tr");
+
+    const labelCell = document.createElement("th");
+    const label = document.createElement("span");
+    label.textContent = row.label;
+    labelCell.append(label);
+
+    if (row.detail) {
+      const detail = document.createElement("small");
+      detail.textContent = row.detail;
+      labelCell.append(detail);
+    }
+
+    tableRow.append(labelCell);
+
+    row.cells.forEach((productKey) => {
+      tableRow.append(
+        createSheetQuantityCell(floor, productKey),
+      );
+    });
+
+    tbody.append(tableRow);
+  });
+
+  table.append(tbody);
+  scroller.append(table);
+  section.append(title, scroller);
+
+  return section;
+}
+
+function createSheetQuantityCell(floor, productKey) {
+  const cell = document.createElement("td");
+
+  if (!productKey) {
+    cell.className = "sheet-blocked-cell";
+    cell.setAttribute("aria-hidden", "true");
+    return cell;
+  }
+
+  cell.className = "sheet-quantity-cell";
+
+  const product = state.catalog[productKey];
+
+  if (!product) {
+    cell.classList.add("sheet-blocked-cell");
+    return cell;
+  }
 
   const quantity = document.createElement("input");
   quantity.className = "quantity-input";
@@ -263,62 +300,41 @@ function createProductRow(floor, product) {
   quantity.inputMode = "numeric";
   quantity.autocomplete = "off";
   quantity.placeholder = "0";
-  quantity.setAttribute("aria-label", `${product.label} quantity`);
-  quantity.dataset.productKey = product.key;
+  quantity.dataset.productKey = productKey;
   quantity.dataset.floor = floor;
-  quantity.disabled = !document.getElementById(`${floor}Enabled`).checked;
+  quantity.setAttribute(
+    "aria-label",
+    `${product.label} quantity for ${floorLabels[floor]}`,
+  );
+  quantity.title = product.label;
 
   quantity.addEventListener("input", () => {
     normaliseQuantityField(quantity);
-    updateFloorSummary(floor);
+    updateFloorCount(floor);
   });
 
-  row.append(info, quantity);
-  return row;
+  cell.append(quantity);
+  return cell;
 }
 
 function normaliseQuantityField(field) {
-  const digits = String(field.value || "")
-    .replace(/\D/g, "")
-    .slice(0, 3);
+  if (field.value === "") {
+    return;
+  }
 
-  if (!digits) {
+  const quantity = Number(field.value);
+
+  if (!Number.isFinite(quantity) || quantity < 0) {
     field.value = "";
     return;
   }
 
-  const quantity = Math.min(
-    999,
-    Number.parseInt(digits, 10),
+  field.value = String(
+    Math.min(
+      999,
+      Math.floor(quantity),
+    ),
   );
-
-  field.value = Number.isFinite(quantity)
-    ? String(quantity)
-    : "";
-}
-
-function filterProducts(floor, rawQuery) {
-  const query = String(rawQuery || "").trim().toLowerCase();
-  const container = document.getElementById(`${floor}ProductList`);
-
-  container.querySelectorAll(".product-section").forEach((section) => {
-    let visibleRows = 0;
-
-    section.querySelectorAll(".product-row").forEach((row) => {
-      const visible = !query || row.dataset.searchText.includes(query);
-      row.hidden = !visible;
-
-      if (visible) {
-        visibleRows += 1;
-      }
-    });
-
-    section.hidden = visibleRows === 0;
-
-    if (query && visibleRows > 0) {
-      section.open = true;
-    }
-  });
 }
 
 function getFloorItems(floor) {
@@ -331,22 +347,29 @@ function getFloorItems(floor) {
       key: field.dataset.productKey,
       quantity: Number(field.value || 0),
     }))
-    .filter((item) => Number.isInteger(item.quantity) && item.quantity > 0);
+    .filter((item) =>
+      Number.isInteger(item.quantity) &&
+      item.quantity > 0 &&
+      item.quantity <= 999
+    );
 }
 
-function updateFloorSummary(floor) {
-  const enabled = document.getElementById(`${floor}Enabled`).checked;
-  const items = enabled ? getFloorItems(floor) : [];
-  const totalUnits = items.reduce((sum, item) => sum + item.quantity, 0);
+function getFloorNote(floor) {
+  return document
+    .getElementById(`${floor}OtherProducts`)
+    .value
+    .trim();
+}
 
-  const text = !enabled
-    ? "Floor not included"
-    : items.length === 0
-      ? "No products selected"
-      : `${items.length} line${items.length === 1 ? "" : "s"} · ${totalUnits} total`;
+function updateFloorCount(floor) {
+  const lineCount = getFloorItems(floor).length;
+  document.getElementById(`${floor}TabCount`).textContent =
+    String(lineCount);
+}
 
-  document.getElementById(`${floor}Summary`).textContent = text;
-  document.getElementById(`${floor}TabCount`).textContent = String(items.length);
+function updateAllFloorCounts() {
+  updateFloorCount("ground");
+  updateFloorCount("first");
 }
 
 async function submitOrder(event) {
@@ -418,8 +441,11 @@ async function submitOrder(event) {
     }
 
     showSuccess(result);
-    resetOrderForm();
     await loadOrderHistory();
+
+    if (editing) {
+      resetOrderForm();
+    }
   } catch (error) {
     showMessage(error.message || String(error), "error");
   } finally {
@@ -434,40 +460,28 @@ async function submitOrder(event) {
 }
 
 function validateOrder() {
-  const enabledFloors = ["ground", "first"].filter(
-    (floor) => document.getElementById(`${floor}Enabled`).checked,
-  );
+  const itemCount =
+    getFloorItems("ground").length +
+    getFloorItems("first").length;
 
-  if (enabledFloors.length === 0) {
-    throw new Error("Include at least one floor.");
+  if (itemCount === 0) {
+    throw new Error("Enter a quantity for at least one product.");
   }
-
-  enabledFloors.forEach((floor) => {
-    const items = getFloorItems(floor);
-    const otherProducts = document
-      .getElementById(`${floor}OtherProducts`)
-      .value.trim();
-
-    if (items.length === 0 && !otherProducts) {
-      activateFloorTab(floor);
-      throw new Error(
-        `${floorLabels[floor]} requires at least one product.`,
-      );
-    }
-  });
 }
 
 function buildPayload() {
-  const submissionId = state.editingOrder?.submissionId || (
+  const submissionId =
     typeof crypto.randomUUID === "function"
       ? `BPS-${crypto.randomUUID()}`
-      : `BPS-${Date.now()}-${Math.random().toString(16).slice(2)}`
-  );
+      : `BPS-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
   const floors = {};
 
   ["ground", "first"].forEach((floor) => {
-    if (!document.getElementById(`${floor}Enabled`).checked) {
+    const items = getFloorItems(floor);
+    const otherProducts = getFloorNote(floor);
+
+    if (items.length === 0 && !otherProducts) {
       return;
     }
 
@@ -483,16 +497,14 @@ function buildPayload() {
       areaSetAside: false,
       plasticWrap: false,
       deliveryNotes: "",
-      items: getFloorItems(floor),
-      otherProducts: document
-        .getElementById(`${floor}OtherProducts`)
-        .value.trim(),
+      items,
+      otherProducts,
     };
   });
 
   return {
     submissionId,
-    customerReference: state.editingOrder?.orderNumber || "",
+    customerReference: "",
     jobName: "BPS Brunswick Plastering Services",
     siteAddress1: "125 Sussex Street",
     siteAddress2: "Pascoe Vale VIC 3044",
@@ -503,253 +515,6 @@ function buildPayload() {
     comments: "",
     floors,
   };
-}
-
-async function changeOrderArchiveStatus(
-  submissionId,
-  orderNumber,
-  action,
-) {
-  const verb = action === "archive"
-    ? "archive"
-    : "restore";
-
-  if (
-    action === "archive" &&
-    !window.confirm(
-      `Archive ${orderNumber}? The order and files will remain available.`,
-    )
-  ) {
-    return;
-  }
-
-  try {
-    const response = await fetch(
-      `/api/orders/${encodeURIComponent(submissionId)}`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          action,
-        }),
-      },
-    );
-
-    const result = await response.json().catch(() => ({
-      ok: false,
-      error: `The order could not be ${verb}d.`,
-    }));
-
-    if (!response.ok || !result.ok) {
-      throw new Error(
-        result.error ||
-        `The order could not be ${verb}d.`,
-      );
-    }
-
-    if (
-      state.editingOrder?.submissionId === submissionId &&
-      action === "archive"
-    ) {
-      cancelEdit();
-    }
-
-    await loadOrderHistory();
-  } catch (error) {
-    showMessage(error.message || String(error), "error");
-  }
-}
-
-async function deleteOrder(
-  submissionId,
-  orderNumber,
-) {
-  const confirmed = window.confirm(
-    `Permanently delete ${orderNumber}? This removes its D1 history and every XLSX and metadata file from R2. This cannot be undone.`,
-  );
-
-  if (!confirmed) {
-    return;
-  }
-
-  const typed = window.prompt(
-    `Type ${orderNumber} to confirm permanent deletion.`,
-  );
-
-  if (typed !== orderNumber) {
-    showMessage("Deletion cancelled because the order number did not match.", "error");
-    return;
-  }
-
-  try {
-    const response = await fetch(
-      `/api/orders/${encodeURIComponent(submissionId)}`,
-      {
-        method: "DELETE",
-        headers: {
-          Accept: "application/json",
-        },
-      },
-    );
-
-    const result = await response.json().catch(() => ({
-      ok: false,
-      error: "The order could not be deleted.",
-    }));
-
-    if (!response.ok || !result.ok) {
-      throw new Error(
-        result.error ||
-        "The order could not be deleted.",
-      );
-    }
-
-    if (state.editingOrder?.submissionId === submissionId) {
-      cancelEdit();
-    }
-
-    document.getElementById("successPanel").hidden = true;
-    clearMessage();
-    await loadOrderHistory();
-  } catch (error) {
-    showMessage(error.message || String(error), "error");
-  }
-}
-
-async function editOrder(submissionId) {
-  clearMessage();
-  document.getElementById("successPanel").hidden = true;
-
-  try {
-    const response = await fetch(
-      `/api/orders/${encodeURIComponent(submissionId)}`,
-      {
-        headers: {
-          Accept: "application/json",
-        },
-      },
-    );
-
-    if (response.status === 401) {
-      window.location.replace("/signin/");
-      return;
-    }
-
-    const result = await response.json().catch(() => ({
-      ok: false,
-      error: "The order could not be loaded for editing.",
-    }));
-
-    if (!response.ok || !result.ok) {
-      throw new Error(result.error || "The order could not be loaded for editing.");
-    }
-
-    populateOrderForEditing(result);
-  } catch (error) {
-    showMessage(error.message || String(error), "error");
-  }
-}
-
-function populateOrderForEditing(result) {
-  clearProductSelections();
-
-  const payload = result.payload || {};
-  const floors = payload.floors || {};
-
-  ["ground", "first"].forEach((floor) => {
-    const floorPayload = floors[floor];
-    setFloorEnabled(floor, Boolean(floorPayload));
-
-    if (!floorPayload) {
-      return;
-    }
-
-    for (const item of floorPayload.items || []) {
-      const field = document.querySelector(
-        `.quantity-input[data-floor="${floor}"][data-product-key="${cssEscape(item.key)}"]`,
-      );
-
-      if (!field) {
-        continue;
-      }
-
-      field.value = String(item.quantity);
-      field.closest("details").open = true;
-    }
-
-    document.getElementById(`${floor}OtherProducts`).value =
-      floorPayload.otherProducts || "";
-
-    updateFloorSummary(floor);
-  });
-
-  state.editingOrder = {
-    submissionId: result.order.submissionId,
-    orderNumber: result.order.orderNumber,
-    latestRevision: result.order.latestRevision,
-  };
-
-  document.getElementById("editOrderNumber").textContent =
-    result.order.orderNumber;
-
-  document.getElementById("editRevisionText").textContent =
-    `Saving will create Revision ${result.order.latestRevision + 1}. Earlier files will remain available.`;
-
-  document.getElementById("editModeBanner").hidden = false;
-  document.getElementById("submitButton").textContent = "Save changes";
-
-  const firstIncluded = Boolean(floors.ground)
-    ? "ground"
-    : "first";
-
-  activateFloorTab(firstIncluded);
-
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth",
-  });
-}
-
-function cancelEdit() {
-  resetOrderForm();
-  clearMessage();
-  document.getElementById("successPanel").hidden = true;
-}
-
-function resetOrderForm() {
-  state.editingOrder = null;
-  clearProductSelections();
-  setFloorEnabled("ground", true);
-  setFloorEnabled("first", false);
-  activateFloorTab("ground");
-  document.getElementById("editModeBanner").hidden = true;
-  document.getElementById("editOrderNumber").textContent = "";
-  document.getElementById("editRevisionText").textContent = "";
-  document.getElementById("submitButton").textContent = "Submit order";
-}
-
-function clearProductSelections() {
-  document.querySelectorAll(".quantity-input").forEach((field) => {
-    field.value = "";
-  });
-
-  ["ground", "first"].forEach((floor) => {
-    document.getElementById(`${floor}OtherProducts`).value = "";
-    document.getElementById(`${floor}ProductSearch`).value = "";
-    filterProducts(floor, "");
-    updateFloorSummary(floor);
-  });
-}
-
-function cssEscape(value) {
-  if (window.CSS?.escape) {
-    return window.CSS.escape(String(value));
-  }
-
-  return String(value).replace(/(["\\])/g, "\\$1");
 }
 
 function showSuccess(result) {
@@ -770,11 +535,14 @@ function showSuccess(result) {
     ? "Order updated"
     : "Order created";
 
-  summary.textContent = result.duplicate
-    ? "This order was already processed."
-    : result.updated
+  if (generated.length > 0) {
+    summary.textContent = result.updated
       ? `${generated.length} replacement file${generated.length === 1 ? " was" : "s were"} generated for Revision ${result.revisionNo}.`
       : `${generated.length} Accrivia file${generated.length === 1 ? " was" : "s were"} generated and saved.`;
+  } else {
+    summary.textContent =
+      "The order was saved. No Accrivia file was generated because the selected lines still require SKU mapping.";
+  }
 
   generated.forEach((file) => {
     const item = document.createElement("div");
@@ -793,22 +561,45 @@ function showSuccess(result) {
     item.append(info);
 
     if (file.downloadUrl) {
-      const download = createDownloadLink(
-        file.downloadUrl,
-        file.filename,
+      item.append(
+        createDownloadLink(
+          file.downloadUrl,
+          file.filename,
+        ),
       );
-      item.append(download);
     }
 
     files.append(item);
   });
 
-  if (Array.isArray(result.manualReview) && result.manualReview.length > 0) {
-    const warning = document.createElement("div");
-    warning.className = "manual-review-warning";
-    warning.textContent =
-      "Your order note has been saved with this order.";
-    files.append(warning);
+  const manualReview = Array.isArray(result.manualReview)
+    ? result.manualReview
+    : [];
+
+  const noteCount = manualReview.filter(
+    (item) => item.kind === "order-note",
+  ).length;
+
+  const mappingCount = manualReview
+    .filter((item) => item.kind === "sku-mapping")
+    .reduce(
+      (total, item) => total + (Array.isArray(item.items) ? item.items.length : 0),
+      0,
+    );
+
+  if (noteCount > 0) {
+    const notice = document.createElement("div");
+    notice.className = "manual-review-warning";
+    notice.textContent = "Your order note has been saved with this order.";
+    files.append(notice);
+  }
+
+  if (mappingCount > 0) {
+    const notice = document.createElement("div");
+    notice.className = "mapping-warning";
+    notice.textContent =
+      `${mappingCount} selected product line${mappingCount === 1 ? " is" : "s are"} saved but awaiting Accrivia SKU mapping.`;
+    files.append(notice);
   }
 
   document.getElementById("orderNumberDisplay").textContent =
@@ -955,29 +746,57 @@ function createHistoryOrderCard(order) {
     Array.isArray(order.other_products) &&
     order.other_products.length > 0
   ) {
-    const otherProducts = document.createElement("div");
-    otherProducts.className = "history-other-products";
+    const noteBlock = document.createElement("div");
+    noteBlock.className = "history-note-block";
 
     const heading = document.createElement("strong");
     heading.textContent = "Order note";
-    otherProducts.append(heading);
+    noteBlock.append(heading);
 
     order.other_products.forEach((item) => {
       const line = document.createElement("span");
       line.textContent = `${item.floor_label}: ${item.details}`;
-      otherProducts.append(line);
+      noteBlock.append(line);
     });
 
-    card.append(otherProducts);
+    card.append(noteBlock);
+  }
+
+  if (
+    Array.isArray(order.pending_mapping) &&
+    order.pending_mapping.length > 0
+  ) {
+    const mappingBlock = document.createElement("details");
+    mappingBlock.className = "history-mapping-block";
+
+    const summary = document.createElement("summary");
+    const pendingCount = order.pending_mapping.reduce(
+      (total, floor) => total + (floor.items?.length || 0),
+      0,
+    );
+    summary.textContent =
+      `${pendingCount} line${pendingCount === 1 ? "" : "s"} awaiting SKU mapping`;
+    mappingBlock.append(summary);
+
+    order.pending_mapping.forEach((floor) => {
+      floor.items.forEach((item) => {
+        const line = document.createElement("span");
+        line.textContent =
+          `${floor.floor_label}: ${item.label} × ${item.quantity}`;
+        mappingBlock.append(line);
+      });
+    });
+
+    card.append(mappingBlock);
   }
 
   if (Array.isArray(order.files) && order.files.length > 0) {
-    const fileList = document.createElement("div");
-    fileList.className = "history-files";
+    const files = document.createElement("div");
+    files.className = "history-files";
 
     order.files.forEach((file) => {
-      const fileRow = document.createElement("div");
-      fileRow.className = "history-file-row";
+      const row = document.createElement("div");
+      row.className = "history-file-row";
 
       const info = document.createElement("div");
       info.className = "history-file-info";
@@ -986,20 +805,28 @@ function createHistoryOrderCard(order) {
       name.textContent = file.filename;
 
       const detail = document.createElement("span");
-      detail.textContent = `Revision ${file.revision} · ${file.floor_label} · ${file.item_count} line${Number(file.item_count) === 1 ? "" : "s"}`;
+      detail.textContent = [
+        `Revision ${file.revision || 1}`,
+        file.floor_label,
+        `${file.item_count} line${file.item_count === 1 ? "" : "s"}`,
+      ].join(" · ");
 
       info.append(name, detail);
-      fileRow.append(info);
-      fileRow.append(
-        createDownloadLink(
-          file.download_url,
-          file.filename,
-        ),
-      );
-      fileList.append(fileRow);
+      row.append(info);
+
+      if (file.download_url) {
+        row.append(
+          createDownloadLink(
+            file.download_url,
+            file.filename,
+          ),
+        );
+      }
+
+      files.append(row);
     });
 
-    card.append(fileList);
+    card.append(files);
   }
 
   return card;
@@ -1009,9 +836,243 @@ function createDownloadLink(url, filename) {
   const link = document.createElement("a");
   link.className = "button button-secondary button-small download-button";
   link.href = url;
-  link.download = filename;
   link.textContent = "Download XLSX";
+  link.setAttribute("download", filename || "");
+
   return link;
+}
+
+async function editOrder(submissionId) {
+  clearMessage();
+  document.getElementById("successPanel").hidden = true;
+
+  try {
+    const response = await fetch(
+      `/api/orders/${encodeURIComponent(submissionId)}`,
+      {
+        headers: {
+          Accept: "application/json",
+        },
+      },
+    );
+
+    if (response.status === 401) {
+      window.location.replace("/signin/");
+      return;
+    }
+
+    const result = await response.json().catch(() => ({
+      ok: false,
+      error: "The order could not be loaded for editing.",
+    }));
+
+    if (!response.ok || !result.ok) {
+      throw new Error(result.error || "The order could not be loaded for editing.");
+    }
+
+    populateOrderForEditing(result);
+  } catch (error) {
+    showMessage(error.message || String(error), "error");
+  }
+}
+
+function populateOrderForEditing(result) {
+  clearProductSelections();
+
+  const payload = result.payload || {};
+  const floors = payload.floors || {};
+
+  ["ground", "first"].forEach((floor) => {
+    const floorPayload = floors[floor];
+
+    if (!floorPayload) {
+      return;
+    }
+
+    for (const item of floorPayload.items || []) {
+      const field = document.querySelector(
+        `.quantity-input[data-floor="${floor}"][data-product-key="${cssEscape(item.key)}"]`,
+      );
+
+      if (!field) {
+        continue;
+      }
+
+      field.value = String(item.quantity);
+    }
+
+    document.getElementById(`${floor}OtherProducts`).value =
+      floorPayload.otherProducts || "";
+
+    updateFloorCount(floor);
+  });
+
+  state.editingOrder = {
+    submissionId: result.order.submissionId,
+    orderNumber: result.order.orderNumber,
+    latestRevision: result.order.latestRevision,
+  };
+
+  document.getElementById("editOrderNumber").textContent =
+    result.order.orderNumber;
+
+  document.getElementById("editRevisionText").textContent =
+    `Saving will create Revision ${result.order.latestRevision + 1}. Earlier files will remain available.`;
+
+  document.getElementById("editModeBanner").hidden = false;
+  document.getElementById("submitButton").textContent = "Save changes";
+
+  const firstIncluded = floors.ground
+    ? "ground"
+    : "first";
+
+  activateFloorTab(firstIncluded);
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth",
+  });
+}
+
+function cancelEdit() {
+  resetOrderForm();
+  clearMessage();
+  document.getElementById("successPanel").hidden = true;
+}
+
+function resetOrderForm() {
+  state.editingOrder = null;
+  clearProductSelections();
+  activateFloorTab("ground");
+  document.getElementById("editModeBanner").hidden = true;
+  document.getElementById("editOrderNumber").textContent = "";
+  document.getElementById("editRevisionText").textContent = "";
+  document.getElementById("submitButton").textContent = "Submit order";
+}
+
+function clearProductSelections() {
+  document.querySelectorAll(".quantity-input").forEach((field) => {
+    field.value = "";
+  });
+
+  ["ground", "first"].forEach((floor) => {
+    document.getElementById(`${floor}OtherProducts`).value = "";
+    updateFloorCount(floor);
+  });
+}
+
+async function changeOrderArchiveStatus(
+  submissionId,
+  orderNumber,
+  action,
+) {
+  const verb = action === "archive"
+    ? "archive"
+    : "restore";
+
+  if (
+    action === "archive" &&
+    !window.confirm(
+      `Archive ${orderNumber}? The order and files will remain available.`,
+    )
+  ) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `/api/orders/${encodeURIComponent(submissionId)}`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          action,
+        }),
+      },
+    );
+
+    const result = await response.json().catch(() => ({
+      ok: false,
+      error: `The order could not be ${verb}d.`,
+    }));
+
+    if (!response.ok || !result.ok) {
+      throw new Error(
+        result.error ||
+        `The order could not be ${verb}d.`,
+      );
+    }
+
+    if (
+      state.editingOrder?.submissionId === submissionId &&
+      action === "archive"
+    ) {
+      cancelEdit();
+    }
+
+    await loadOrderHistory();
+  } catch (error) {
+    showMessage(error.message || String(error), "error");
+  }
+}
+
+async function deleteOrder(
+  submissionId,
+  orderNumber,
+) {
+  const confirmed = window.confirm(
+    `Permanently delete ${orderNumber}? This removes its order history and every generated file. This cannot be undone.`,
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  const typed = window.prompt(
+    `Type ${orderNumber} to confirm permanent deletion.`,
+  );
+
+  if (typed !== orderNumber) {
+    showMessage("Deletion cancelled because the order number did not match.", "error");
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `/api/orders/${encodeURIComponent(submissionId)}`,
+      {
+        method: "DELETE",
+        headers: {
+          Accept: "application/json",
+        },
+      },
+    );
+
+    const result = await response.json().catch(() => ({
+      ok: false,
+      error: "The order could not be deleted.",
+    }));
+
+    if (!response.ok || !result.ok) {
+      throw new Error(
+        result.error ||
+        "The order could not be deleted.",
+      );
+    }
+
+    if (state.editingOrder?.submissionId === submissionId) {
+      cancelEdit();
+    }
+
+    document.getElementById("successPanel").hidden = true;
+    clearMessage();
+    await loadOrderHistory();
+  } catch (error) {
+    showMessage(error.message || String(error), "error");
+  }
 }
 
 function formatHistoryDate(value) {
@@ -1025,6 +1086,14 @@ function formatHistoryDate(value) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
+}
+
+function cssEscape(value) {
+  if (window.CSS?.escape) {
+    return window.CSS.escape(String(value));
+  }
+
+  return String(value).replace(/(["\\])/g, "\\$1");
 }
 
 function showMessage(text, type) {
