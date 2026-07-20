@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <title>BPS Standard Order Form | Bell Plaster</title>
+  <title>BPS Order Form | Bell Plaster</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,141 +13,87 @@
 <body>
   <header class="site-header">
     <div class="brand-block">
-      <img
-        class="brand-logo"
-        src="https://bellplastersupplies.com.au/cdn/shop/files/bell_logo_black.png?v=1781229976"
-        alt="Bell Plaster"
-      >
+      <img class="brand-logo" src="https://bellplastersupplies.com.au/cdn/shop/files/bell_logo_black.png?v=1781229976" alt="Bell Plaster">
     </div>
-
-    <button id="logoutButton" class="button button-secondary button-small" type="button">
-      Sign out
-    </button>
+    <button id="logoutButton" class="button button-secondary button-small" type="button">Sign out</button>
   </header>
 
   <main class="page-shell">
     <form id="orderForm" novalidate>
-      <section class="future-order-details" hidden>
-        <input id="customerReference">
-        <input id="jobName" value="BPS Brunswick Plastering Services">
-        <input id="siteAddress1" value="125 Sussex Street">
-        <input id="siteAddress2" value="Pascoe Vale VIC 3044">
-        <input id="siteContact">
-        <input id="siteContactPhone">
-        <input id="requesterName" value="BPS">
-        <input id="requesterPhone">
-        <textarea id="comments"></textarea>
-      </section>
-
       <div id="editModeBanner" class="edit-mode-banner" hidden>
-        <div>
-          <span>Editing order</span>
-          <strong id="editOrderNumber"></strong>
-          <small id="editRevisionText"></small>
-        </div>
-
-        <button id="cancelEditButton" class="button button-secondary button-small" type="button">
-          Cancel edit
-        </button>
+        <div><span>Editing order</span><strong id="editOrderNumber"></strong><small id="editRevisionText"></small></div>
+        <button id="cancelEditButton" class="button button-secondary button-small" type="button">Cancel edit</button>
       </div>
 
-      <section class="form-card order-sheet-card">
-        <div class="section-heading sheet-heading">
-          <div class="sheet-title-block">
-            <p class="sheet-kicker">BPS Brunswick Plastering Services</p>
-            <h1>Standard Order Form</h1>
-            <p id="draftStatus" class="draft-status" aria-live="polite">
-              Changes save automatically on this device.
-            </p>
+      <section class="form-card order-card">
+        <div class="form-title-row">
+          <div>
+            <p class="form-eyebrow">BPS Brunswick Plastering Services</p>
+            <h1>Order Form</h1>
+            <p id="draftStatus" class="draft-status" aria-live="polite">Changes save automatically on this device.</p>
           </div>
-
           <div class="floor-tabs" role="tablist" aria-label="Order floor">
-            <button class="floor-tab is-active" type="button" role="tab" aria-selected="true" data-floor-tab="ground">
-              Ground Floor
-              <span id="groundTabCount" class="tab-count">0</span>
-            </button>
-
-            <button class="floor-tab" type="button" role="tab" aria-selected="false" data-floor-tab="first">
-              1st Floor
-              <span id="firstTabCount" class="tab-count">0</span>
-            </button>
+            <button class="floor-tab is-active" type="button" role="tab" aria-selected="true" data-floor-tab="ground">Ground Floor <span id="groundTabCount" class="tab-count">0</span></button>
+            <button class="floor-tab" type="button" role="tab" aria-selected="false" data-floor-tab="first">1st Floor <span id="firstTabCount" class="tab-count">0</span></button>
           </div>
         </div>
 
-        <article class="floor-panel is-active" data-floor-panel="ground">
-          <div id="groundOrderSheet" class="excel-order-sheet" aria-live="polite"></div>
+        <section class="order-details-panel" aria-labelledby="orderDetailsHeading">
+          <h2 id="orderDetailsHeading" class="visually-hidden">Order and delivery details</h2>
+          <div class="details-fields">
+            <label class="compact-field"><span>Order Date</span><input id="orderDate" type="date" readonly></label>
+            <label class="compact-field"><span>Reference</span><input id="accountReference" value="BPS BRUNSW17" readonly></label>
+            <label class="compact-field"><span>Required Date *</span><input id="requiredDate" type="date" required></label>
+            <label class="compact-field"><span>Time *</span><input id="requiredTime" type="time" required></label>
+            <label class="compact-field field-wide"><span>Customer</span><input id="customerName" value="BPS Brunswick Plastering Services" readonly></label>
+            <label class="compact-field"><span>Contact *</span><input id="contactName" maxlength="120" autocomplete="name" required></label>
+            <label class="compact-field"><span>Mobile *</span><input id="contactMobile" maxlength="30" inputmode="tel" autocomplete="tel" required></label>
+            <label class="compact-field field-full"><span>Delivery Address *</span><textarea id="deliveryAddress" rows="2" maxlength="500" required></textarea></label>
+            <label class="compact-field field-full"><span>Delivery Instructions</span><textarea id="deliveryInstructions" rows="3" maxlength="1500"></textarea></label>
+          </div>
 
-          <label class="field order-note-field">
-            <span>Order note</span>
-            <textarea
-              id="groundOtherProducts"
-              maxlength="3000"
-              rows="3"
-              placeholder="Add a message or special request for Bell Plaster."
-            ></textarea>
-          </label>
-        </article>
+          <div class="delivery-options">
+            <fieldset class="choice-panel"><legend>Time Slot *</legend><div class="choice-grid choice-grid-five">
+              <label><input type="radio" name="timeSlot" value="1ST"><span>1st</span></label>
+              <label><input type="radio" name="timeSlot" value="2ND"><span>2nd</span></label>
+              <label><input type="radio" name="timeSlot" value="AM"><span>AM</span></label>
+              <label><input type="radio" name="timeSlot" value="PM"><span>PM</span></label>
+              <label><input type="radio" name="timeSlot" value="ANY" checked><span>Any</span></label>
+            </div></fieldset>
+            <fieldset class="choice-panel"><legend>Delivery Type *</legend><div class="choice-list">
+              <label><input type="radio" name="deliveryType" value="Manual Unload (Knauf Labour)"><span>Manual Unload (Knauf Labour)</span></label>
+              <label><input type="radio" name="deliveryType" value="Mechanical (Forklift/Crane/Own)"><span>Mechanical (Forklift/Crane/Own)</span></label>
+              <label><input type="radio" name="deliveryType" value="Mixed Unload (Hand + Machine)"><span>Mixed Unload (Hand + Machine)</span></label>
+              <label><input type="radio" name="deliveryType" value="Return Delivery (Collect from site)"><span>Return Delivery (Collect from site)</span></label>
+              <label><input type="radio" name="deliveryType" value="Pickup (Customer to collect)"><span>Pickup (Customer to collect)</span></label>
+            </div></fieldset>
+            <fieldset class="choice-panel"><legend>Extras</legend><div class="choice-list choice-list-two">
+              <label><input type="checkbox" name="deliveryExtra" value="Downstairs"><span>Downstairs</span></label>
+              <label><input type="checkbox" name="deliveryExtra" value="Upstairs"><span>Upstairs</span></label>
+              <label><input type="checkbox" name="deliveryExtra" value="Wrap"><span>Wrap</span></label>
+              <label><input type="checkbox" name="deliveryExtra" value="Strap"><span>Strap</span></label>
+              <label><input type="checkbox" name="deliveryExtra" value="Extra Labour"><span>Extra Labour</span></label>
+            </div></fieldset>
+          </div>
+        </section>
 
-        <article class="floor-panel" data-floor-panel="first" hidden>
-          <div id="firstOrderSheet" class="excel-order-sheet" aria-live="polite"></div>
-
-          <label class="field order-note-field">
-            <span>Order note</span>
-            <textarea
-              id="firstOtherProducts"
-              maxlength="3000"
-              rows="3"
-              placeholder="Add a message or special request for Bell Plaster."
-            ></textarea>
-          </label>
-        </article>
+        <article class="floor-panel is-active" data-floor-panel="ground"><div id="groundOrderSheet" class="pdf-order-sheet"></div></article>
+        <article class="floor-panel" data-floor-panel="first" hidden><div id="firstOrderSheet" class="pdf-order-sheet"></div></article>
       </section>
 
       <section class="form-card review-card">
         <div id="formMessage" class="message" hidden role="alert"></div>
-
-        <div class="submit-row">
-          <p class="submit-note">
-            Ground Floor and 1st Floor files are generated separately.
-          </p>
-
-          <button id="submitButton" class="button button-primary" type="submit">
-            Submit order
-          </button>
-        </div>
-
-        <div id="successPanel" class="success-panel" hidden>
-          <h3 id="successTitle">Order created</h3>
-          <p id="successSummary"></p>
-          <div id="generatedFiles" class="generated-files"></div>
-          <p class="submission-reference">
-            Order number: <code id="orderNumberDisplay"></code>
-          </p>
-        </div>
+        <div class="submit-row"><p class="submit-note">Ground Floor and 1st Floor files are generated separately.</p><button id="submitButton" class="button button-primary" type="submit">Submit order</button></div>
+        <div id="successPanel" class="success-panel" hidden><h3 id="successTitle">Order created</h3><p id="successSummary"></p><div id="generatedFiles" class="generated-files"></div><p class="submission-reference">Order number: <code id="orderNumberDisplay"></code></p></div>
       </section>
     </form>
 
     <section class="form-card order-history-card">
-      <div class="section-heading">
-        <div>
-          <h2>Order history</h2>
-        </div>
-
-        <button id="refreshHistoryButton" class="button button-secondary button-small" type="button">
-          Refresh
-        </button>
-      </div>
-
-      <div id="orderHistoryStatus" class="history-status">Loading orders…</div>
-      <div id="orderHistoryList" class="order-history-list"></div>
+      <div class="section-heading"><h2>Order history</h2><button id="refreshHistoryButton" class="button button-secondary button-small" type="button">Refresh</button></div>
+      <div id="orderHistoryStatus" class="history-status">Loading orders…</div><div id="orderHistoryList" class="order-history-list"></div>
     </section>
   </main>
-
-  <footer class="site-footer">
-    <span>Bell Plaster</span>
-    <span>BPS Standard Order Form</span>
-  </footer>
-
+  <footer class="site-footer"><span>Bell Plaster</span><span>BPS Order Form</span></footer>
   <script src="/app.js" defer></script>
 </body>
 </html>

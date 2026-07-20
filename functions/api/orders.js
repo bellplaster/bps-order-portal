@@ -62,6 +62,28 @@ export async function onRequestGet(context) {
         }))
         .filter((item) => item.details);
 
+      const otherMaterials = Object.entries(payload?.floors || {})
+        .map(([floor, details]) => ({
+          floor,
+          floor_label: floor === "first" ? "1st Floor" : "Ground Floor",
+          items: Array.isArray(details?.otherMaterials) ? details.otherMaterials : [],
+        }))
+        .filter((item) => item.items.length > 0);
+
+      const orderDetails = {
+        reference: payload.reference || payload.customerReference || "BPS BRUNSW17",
+        customer: payload.customer || payload.jobName || "BPS Brunswick Plastering Services",
+        contact: payload.contact || payload.siteContact || "",
+        mobile: payload.mobile || payload.siteContactPhone || "",
+        delivery_address: payload.deliveryAddress || payload.siteAddress1 || "",
+        delivery_instructions: payload.deliveryInstructions || payload.comments || "",
+        required_date: payload.requiredDate || "",
+        required_time: payload.requiredTime || "",
+        time_slot: payload.timeSlot || "",
+        delivery_type: payload.deliveryType || "",
+        extras: Array.isArray(payload.extras) ? payload.extras : [],
+      };
+
       const pendingMapping = [];
 
       Object.entries(payload?.floors || {}).forEach(([floor, details]) => {
@@ -106,6 +128,8 @@ export async function onRequestGet(context) {
         can_restore: order.status === "archived",
         can_delete: true,
         other_products: otherProducts,
+        other_materials: otherMaterials,
+        order_details: orderDetails,
         pending_mapping: pendingMapping,
         latest_revision: files.reduce(
           (highest, file) => Math.max(highest, file.revision),

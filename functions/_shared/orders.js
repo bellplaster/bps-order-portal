@@ -350,6 +350,7 @@ async function generateAndSaveRevision(
 
     await addEvent(env, submissionId, stage);
 
+    const orderDetails = normaliseOrderDetails(rawPayload);
     const floors = normaliseFloors(rawPayload?.floors);
 
     if (Object.keys(floors).length === 0) {
@@ -364,11 +365,16 @@ async function generateAndSaveRevision(
       const definition = FLOORS[floorKey];
 
       if (floor.otherProducts) {
+        manualReview.push({ kind: "order-note", floor: floorKey, floorLabel: definition.label, details: floor.otherProducts });
+      }
+
+      if (floor.otherMaterials.length > 0) {
         manualReview.push({
-          kind: "order-note",
+          kind: "other-materials",
           floor: floorKey,
           floorLabel: definition.label,
-          details: floor.otherProducts,
+          details: floor.otherMaterials.map((item) => `${item.description} × ${item.quantity}`).join("\n"),
+          items: floor.otherMaterials,
         });
       }
 
@@ -426,13 +432,12 @@ async function generateAndSaveRevision(
       const workbook = createAccriviaXlsx({
         debtorCode: CONFIG.debtorCode,
         orderDate: dateOrdered,
-        requiredDate: dateOrdered,
+        requiredDate: orderDetails.requiredDate,
         orderNumber,
-        jobName:
-          `${CONFIG.companyName} - ${definition.label}`,
-        addressLine1: CONFIG.addressLine1,
-        addressLine2: CONFIG.addressLine2,
-        addressLine3: CONFIG.addressLine3,
+        jobName: `${orderDetails.customer} - ${definition.label}`,
+        addressLine1: orderDetails.addressLine1,
+        addressLine2: orderDetails.addressLine2,
+        addressLine3: [orderDetails.contact, orderDetails.mobile].filter(Boolean).join(" "),
         salesRepCode: CONFIG.salesRepCode,
         productRows,
       });
@@ -547,6 +552,7 @@ async function generateAndSaveRevision(
           addressLine1: CONFIG.addressLine1,
           addressLine2: CONFIG.addressLine2,
           addressLine3: CONFIG.addressLine3,
+          orderDetails,
           floors,
           generatedFiles,
           manualReview,
@@ -564,11 +570,27 @@ async function generateAndSaveRevision(
     await env.DB.prepare(
       `UPDATE orders
        SET status = 'completed',
+           project_name = ?,
+           site_address = ?,
+           suburb_state_postcode = ?,
+           site_contact = ?,
+           site_contact_phone = ?,
+           order_contact = ?,
+           order_contact_phone = ?,
+           general_comments = ?,
            payload_json = ?,
            updated_at = ?
        WHERE submission_id = ?`,
     )
       .bind(
+        orderDetails.customer,
+        orderDetails.deliveryAddress,
+        "",
+        orderDetails.contact,
+        orderDetails.mobile,
+        orderDetails.contact,
+        orderDetails.mobile,
+        buildDeliverySummary(orderDetails),
         JSON.stringify(rawPayload),
         nowIso(),
         submissionId,
@@ -797,6 +819,76 @@ function inferRevisionFromFilename(filename) {
     : 1;
 }
 
+function normaliseOrderDetails(rawPayload) {
+  const deliveryType = cleanRequiredText(rawPayload?.deliveryType, "Delivery Type", 120);
+  const pickup = deliveryType === "Pickup (Customer to collect)";
+  const deliveryAddress = cleanOptionalText(rawPayload?.deliveryAddress || rawPayload?.siteAddress1, 500);
+
+  if (!pickup && !deliveryAddress) {
+    throw new Error("Delivery Address is required unless the order is pickup.");
+  }
+
+  const requiredDate = cleanRequiredText(rawPayload?.requiredDate, "Required Date", 20);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(requiredDate)) {
+    throw new Error("Required Date is invalid.");
+  }
+
+  const requiredTime = cleanRequiredText(rawPayload?.requiredTime, "Required Time", 20);
+  const timeSlot = cleanRequiredText(rawPayload?.timeSlot, "Time Slot", 10).toUpperCase();
+  if (!["1ST", "2ND", "AM", "PM", "ANY"].includes(timeSlot)) {
+    throw new Error("Time Slot is invalid.");
+  }
+
+  const extras = Array.isArray(rawPayload?.extras)
+    ? [...new Set(rawPayload.extras.map((value) => cleanOptionalText(value, 40)).filter(Boolean))]
+    : [];
+  const allowedExtras = new Set(["Downstairs", "Upstairs", "Wrap", "Strap", "Extra Labour"]);
+  if (extras.some((value) => !allowedExtras.has(value))) {
+    throw new Error("A delivery extra is invalid.");
+  }
+
+  const addressLines = deliveryAddress.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+
+  return {
+    orderDate: cleanOptionalText(rawPayload?.orderDate, 20) || todayInMelbourne(),
+    reference: cleanOptionalText(rawPayload?.reference || rawPayload?.customerReference, 80) || CONFIG.debtorCode,
+    customer: CONFIG.companyName,
+    contact: cleanRequiredText(rawPayload?.contact || rawPayload?.siteContact, "Contact", 120),
+    mobile: cleanRequiredText(rawPayload?.mobile || rawPayload?.siteContactPhone, "Mobile", 40),
+    deliveryAddress,
+    deliveryInstructions: cleanOptionalText(rawPayload?.deliveryInstructions || rawPayload?.comments, 1500),
+    requiredDate,
+    requiredTime,
+    timeSlot,
+    deliveryType,
+    extras,
+    addressLine1: addressLines[0] || (pickup ? "Pickup" : CONFIG.addressLine1),
+    addressLine2: addressLines.slice(1).join(", ").slice(0, 240),
+  };
+}
+
+function normaliseOtherMaterials(floorKey, rawItems) {
+  const rows = Array.isArray(rawItems) ? rawItems : [];
+  if (rows.length > 20) throw new Error(`${FLOORS[floorKey].label}: Too many Other Materials rows.`);
+  return rows.map((item, index) => {
+    const description = cleanRequiredText(item?.description, `${FLOORS[floorKey].label} Other Materials row ${index + 1}`, 200);
+    const quantity = Number(item?.quantity);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) {
+      throw new Error(`${FLOORS[floorKey].label}: ${description} requires a quantity from 1 to 999.`);
+    }
+    return { description, quantity };
+  });
+}
+
+function buildDeliverySummary(details) {
+  return [
+    `Required: ${details.requiredDate} ${details.requiredTime} ${details.timeSlot}`,
+    `Delivery: ${details.deliveryType}`,
+    details.extras.length ? `Extras: ${details.extras.join(", ")}` : "",
+    details.deliveryInstructions ? `Instructions: ${details.deliveryInstructions}` : "",
+  ].filter(Boolean).join(" | ");
+}
+
 function normaliseFloors(rawFloors) {
   const floors = {};
 
@@ -812,22 +904,17 @@ function normaliseFloors(rawFloors) {
       rawFloor.items,
     );
 
-    const otherProducts = cleanOptionalText(
-      rawFloor.otherProducts,
-      3000,
-    );
+    const otherProducts = cleanOptionalText(rawFloor.otherProducts, 3000);
+    const otherMaterials = normaliseOtherMaterials(floorKey, rawFloor.otherMaterials);
+    const acousticFormat = ["Roll", "Batt"].includes(String(rawFloor.acousticFormat || ""))
+      ? String(rawFloor.acousticFormat)
+      : "Roll";
 
-    if (
-      items.length === 0 &&
-      !otherProducts
-    ) {
+    if (items.length === 0 && !otherProducts && otherMaterials.length === 0) {
       continue;
     }
 
-    floors[floorKey] = {
-      items,
-      otherProducts,
-    };
+    floors[floorKey] = { items, otherProducts, otherMaterials, acousticFormat };
   }
 
   return floors;
