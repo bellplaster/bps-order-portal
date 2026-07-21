@@ -398,6 +398,7 @@ async function generateAndSaveRevision(
         });
       }
 
+      const deliveryItem = buildDeliveryItem(orderDetails);
       const productRows = combineProductRows([
         ...mappedItems.map((item) => {
           const product = PRODUCT_CATALOG[item.key];
@@ -408,6 +409,7 @@ async function generateAndSaveRevision(
           };
         }),
         ...floor.otherMaterials,
+        ...(deliveryItem ? [deliveryItem] : []),
       ], definition.label);
 
       if (productRows.length === 0) {
@@ -576,8 +578,8 @@ async function generateAndSaveRevision(
     )
       .bind(
         orderDetails.customer,
-        orderDetails.deliveryAddress,
-        "",
+        orderDetails.addressLine1,
+        orderDetails.addressLine2,
         orderDetails.contact,
         orderDetails.mobile,
         orderDetails.contact,
@@ -818,31 +820,21 @@ function normaliseOrderDetails(rawPayload) {
     120,
   );
   const pickup = deliveryType === "Pickup (Customer to collect)";
-  const deliveryAddress = cleanOptionalText(
-    rawPayload?.deliveryAddress || rawPayload?.siteAddress1,
-    500,
-  );
+  const parsedAddress = normaliseDeliveryAddress(rawPayload, pickup);
+  const deliveryAddress = parsedAddress.full;
 
-  if (!pickup && !deliveryAddress) {
+  if (!pickup && (!parsedAddress.line1 || !parsedAddress.line2)) {
     throw new Error(
-      "Delivery Address is required unless the order is pickup.",
+      "Choose a complete Victorian delivery address with street, suburb and postcode.",
     );
   }
 
-  if (
-    !pickup &&
-    !/\b(?:VIC|VICTORIA)\b/i.test(deliveryAddress)
-  ) {
-    throw new Error("Delivery Address must be located in Victoria.");
+  if (!pickup && !/\b(?:VIC|VICTORIA)\b/i.test(parsedAddress.line2)) {
+    throw new Error("The delivery suburb must be located in Victoria.");
   }
 
-  if (
-    !pickup &&
-    !/\b(?:3\d{3}|8\d{3})\b/.test(deliveryAddress)
-  ) {
-    throw new Error(
-      "Delivery Address must contain a valid Victorian postcode.",
-    );
+  if (!pickup && !/\b(?:3\d{3}|8\d{3})\b/.test(parsedAddress.line2)) {
+    throw new Error("The delivery suburb must include a valid Victorian postcode.");
   }
 
   const orderDate =
@@ -962,11 +954,6 @@ function normaliseOrderDetails(rawPayload) {
     );
   }
 
-  const addressLines = deliveryAddress
-    .split(/\n+/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-
   return {
     orderDate,
     reference:
@@ -987,10 +974,53 @@ function normaliseOrderDetails(rawPayload) {
     timeSlot,
     deliveryType,
     extras,
-    addressLine1:
-      addressLines[0] || (pickup ? "Pickup" : CONFIG.addressLine1),
-    addressLine2: addressLines.slice(1).join(", ").slice(0, 240),
+    addressLine1: parsedAddress.line1 || (pickup ? "Pickup" : CONFIG.addressLine1),
+    addressLine2: parsedAddress.line2.slice(0, 240),
   };
+}
+
+function normaliseDeliveryAddress(rawPayload, pickup) {
+  if (pickup) {
+    return { full: "Pickup", line1: "Pickup", line2: "" };
+  }
+
+  const suppliedLine1 = cleanOptionalText(
+    rawPayload?.addressLine1 || rawPayload?.siteAddress1,
+    240,
+  );
+  const suppliedLine2 = cleanOptionalText(
+    rawPayload?.addressLine2 || rawPayload?.siteAddress2,
+    240,
+  );
+  const suppliedFull = cleanOptionalText(rawPayload?.deliveryAddress, 500);
+
+  if (suppliedLine1 && suppliedLine2) {
+    const line2 = suppliedLine2
+      .replace(/\bVICTORIA\b/i, "VIC")
+      .replace(/\s+/g, " ")
+      .trim();
+    return {
+      full: suppliedFull || `${suppliedLine1}, ${line2}`,
+      line1: suppliedLine1,
+      line2,
+    };
+  }
+
+  const text = suppliedFull || [suppliedLine1, suppliedLine2].filter(Boolean).join(", ");
+  const parts = text.split(/\n+|,(?=\s*[^,]+\b(?:VIC|VICTORIA)\b)/i)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length >= 2) {
+    const line1 = parts.slice(0, -1).join(", ");
+    const line2 = parts.at(-1)
+      .replace(/\bVICTORIA\b/i, "VIC")
+      .replace(/\s+/g, " ")
+      .trim();
+    return { full: `${line1}, ${line2}`, line1, line2 };
+  }
+
+  return { full: text, line1: suppliedLine1, line2: suppliedLine2 };
 }
 
 function isValidIsoDate(value) {
@@ -1155,6 +1185,23 @@ function combineProductRows(items, floorLabel) {
     item.quantity,
     "",
   ]);
+}
+
+function buildDeliveryItem(details) {
+  if (details?.deliveryType === "Pickup (Customer to collect)") {
+    return null;
+  }
+
+  const description = String(details?.deliveryType || "Delivery")
+    .replace(/\s*\([^)]*\)\s*/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return {
+    sku: "DEL",
+    description: description || "Delivery",
+    quantity: 1,
+  };
 }
 
 function buildDeliverySummary(details) {

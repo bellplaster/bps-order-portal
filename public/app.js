@@ -15,10 +15,16 @@ const state = {
   addressAutocompleteReady: false,
   manualAddressMode: true,
   selectedAddressSource: "manual",
+  addressAutocompleteApi: null,
+  addressSessionToken: null,
+  addressSearchTimer: null,
+  addressRequestId: 0,
+  addressPredictions: [],
+  addressPredictionIndex: -1,
 };
 
-const DRAFT_STORAGE_KEY = "bps-knauf-order-form-draft-v8";
-const DRAFT_VERSION = 8;
+const DRAFT_STORAGE_KEY = "bps-knauf-order-form-draft-v9";
+const DRAFT_VERSION = 9;
 const floorLabels = { ground: "Ground Floor", first: "1st Floor" };
 
 document.addEventListener("DOMContentLoaded", initialise);
@@ -123,11 +129,13 @@ function updatePickupAddressRequirement() {
     selectedRadioValue("deliveryType") === "Pickup (Customer to collect)";
   const field = document.getElementById("deliveryAddressField");
   const manual = document.getElementById("deliveryAddressManual");
+  const search = document.getElementById("deliveryAddressSearch");
   const toggle = document.getElementById("toggleManualAddressButton");
 
   field?.classList.toggle("is-pickup", isPickup);
   manual.required = !isPickup && state.manualAddressMode;
   manual.disabled = isPickup;
+  if (search) search.disabled = isPickup;
   toggle.disabled = isPickup;
 
   if (isPickup) {
@@ -171,7 +179,7 @@ async function loadProductDirectory() {
     }));
 
     if (!response.ok || !result.ok) {
-      throw new Error(result.error || "The Accrivia product catalogue could not be loaded.");
+      throw new Error(result.error || "The product catalogue could not be loaded.");
     }
 
     state.productDirectory = (result.products || []).map((product) => ({
@@ -458,7 +466,7 @@ function renderOtherMaterialsSection(floor, def) {
   const intro = document.createElement("p");
   intro.className = "other-materials-intro";
   intro.textContent =
-    `Use the search bar above to add any Accrivia product to ${floorLabels[floor]}.`;
+    `Use the search bar above to add any product to ${floorLabels[floor]}.`;
 
   const selected = document.createElement("div");
   selected.className = "selected-materials";
@@ -483,7 +491,7 @@ function renderProductSearchResults(floor, query, search, results) {
   if (!matches.length) {
     const empty = document.createElement("div");
     empty.className = "catalogue-no-results";
-    empty.textContent = "No matching Accrivia product.";
+    empty.textContent = "No matching product.";
     results.append(empty);
     results.hidden = false;
     return;
@@ -499,7 +507,7 @@ function renderProductSearchResults(floor, query, search, results) {
     const sku = document.createElement("strong");
     sku.textContent = product.sku;
     const description = document.createElement("span");
-    description.textContent = product.description;
+    description.textContent = humaniseProductDescription(product.description);
 
     const addLabel = document.createElement("em");
     addLabel.textContent = "Add";
@@ -611,7 +619,7 @@ function renderSelectedOtherMaterials(floor) {
     sku.textContent = item.sku;
     const description = document.createElement("span");
     description.className = "selected-material-description";
-    description.textContent = item.description;
+    description.textContent = humaniseProductDescription(item.description);
 
     const quantity = document.createElement("input");
     quantity.type = "number";
@@ -704,6 +712,18 @@ function levenshteinDistance(left, right, maximum) {
   return previous[right.length];
 }
 
+function humaniseProductDescription(value) {
+  return String(value || "")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/([A-Za-z])(?=\d)/g, "$1 ")
+    .replace(/(\d)(?=[A-Za-z])/g, "$1 ")
+    .replace(/(\d)\s*[xX×]\s*(\d)/g, "$1 × $2")
+    .replace(/\bmm\b/gi, "mm")
+    .replace(/\bkg\b/gi, "kg")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function normaliseSearch(value) {
   return String(value || "")
     .normalize("NFKD")
@@ -724,7 +744,7 @@ function compactSearch(value) {
 function createSectionShell(className,title){const root=document.createElement("section");root.className=`product-section ${className}`;const heading=document.createElement("h3");heading.textContent=title;const body=document.createElement("div");body.className="product-section-body";root.append(heading,body);return{root,body};}
 
 function createQuantityCell(floor,key){const td=document.createElement("td");if(!key){td.className="unavailable-cell";return td;}td.className="quantity-cell";td.append(createQuantityInput(floor,key));return td;}
-function createStandaloneQuantity(floor,key){const wrap=document.createElement("div");wrap.className="standalone-quantity";wrap.append(createQuantityInput(floor,key));return wrap;}
+function createStandaloneQuantity(floor,key){const wrap=document.createElement("div");wrap.className="standalone-quantity quantity-cell";wrap.append(createQuantityInput(floor,key));return wrap;}
 function createQuantityInput(floor,key){
   const product=state.catalog[key]; const input=document.createElement("input");input.className="quantity-input";input.type="number";input.min="0";input.max="999";input.step="1";input.inputMode="numeric";input.autocomplete="off";input.placeholder="0";input.dataset.productKey=key;input.dataset.floor=floor;input.title=product?.label||key;input.setAttribute("aria-label",`${product?.label||key} quantity for ${floorLabels[floor]}`);
   input.addEventListener("input",()=>{
@@ -753,28 +773,40 @@ function getOtherMaterials(floor) {
 function updateFloorCount(floor) {
   const standard = getFloorItems(floor).length;
   const other = getOtherMaterials(floor).length;
-  document.getElementById(`${floor}TabCount`).textContent = String(standard + other);
+  const count = standard + other;
+  const badge = document.getElementById(`${floor}TabCount`);
+  if (badge) {
+    badge.textContent = String(count);
+    badge.hidden = count === 0;
+  }
   updateCategoryBadges();
 }
 function updateAllFloorCounts(){updateFloorCount("ground");updateFloorCount("first");}
 
-function getOrderDetails(){return{
-  orderDate:document.getElementById("orderDateIso").value||todayLocal(),
-  reference:document.getElementById("accountReference").value.trim(),
-  customer:document.getElementById("customerName").value.trim(),
-  contact:document.getElementById("contactName").value.trim(),
-  mobile:normaliseAustralianContactNumber(document.getElementById("contactMobile").value)||document.getElementById("contactMobile").value.trim(),
-  deliveryAddress:document.getElementById("deliveryAddress").value.trim(),
-  addressSource:state.selectedAddressSource,
-  deliveryInstructions:document.getElementById("deliveryInstructions").value.trim(),
-  requiredDate:parseAustralianDate(document.getElementById("requiredDate").value)||"",
-  requiredTime:document.getElementById("requiredTime").value,
-  futureDateConfirmed:document.getElementById("confirmFutureRequiredDate").checked,
-  unusualTimeConfirmed:document.getElementById("confirmUnusualRequiredTime").checked,
-  timeSlot:selectedRadioValue("timeSlot"),
-  deliveryType:selectedRadioValue("deliveryType"),
-  extras:Array.from(document.querySelectorAll('input[name="deliveryExtra"]:checked')).map((f)=>f.value),
-};}
+function getOrderDetails(){
+  const deliveryAddress=document.getElementById("deliveryAddress").value.trim();
+  const addressLine1=document.getElementById("deliveryAddressLine1").value.trim();
+  const addressLine2=document.getElementById("deliveryAddressLine2").value.trim();
+  return{
+    orderDate:document.getElementById("orderDateIso").value||todayLocal(),
+    reference:document.getElementById("accountReference").value.trim(),
+    customer:document.getElementById("customerName").value.trim(),
+    contact:document.getElementById("contactName").value.trim(),
+    mobile:normaliseAustralianContactNumber(document.getElementById("contactMobile").value)||document.getElementById("contactMobile").value.trim(),
+    deliveryAddress,
+    addressLine1,
+    addressLine2,
+    addressSource:state.selectedAddressSource,
+    deliveryInstructions:document.getElementById("deliveryInstructions").value.trim(),
+    requiredDate:parseAustralianDate(document.getElementById("requiredDate").value)||"",
+    requiredTime:document.getElementById("requiredTime").value,
+    futureDateConfirmed:document.getElementById("confirmFutureRequiredDate").checked,
+    unusualTimeConfirmed:document.getElementById("confirmUnusualRequiredTime").checked,
+    timeSlot:selectedRadioValue("timeSlot"),
+    deliveryType:selectedRadioValue("deliveryType"),
+    extras:Array.from(document.querySelectorAll('input[name="deliveryExtra"]:checked')).map((f)=>f.value),
+  };
+}
 function selectedRadioValue(name){return document.querySelector(`input[name="${name}"]:checked`)?.value||"";}
 
 async function submitOrder(event){
@@ -862,22 +894,22 @@ function validateOrderDetails() {
 
   if (
     details.deliveryType !== "Pickup (Customer to collect)" &&
-    !details.deliveryAddress
+    (!details.addressLine1 || !details.addressLine2)
   ) {
     const message =
       state.manualAddressMode
-        ? "Enter a Victorian delivery address."
-        : "Search for and select a Victorian delivery address.";
+        ? "Enter the street address and suburb, VIC postcode."
+        : "Choose a complete address from the suggestions.";
     setFieldError("deliveryAddress", message);
     throw new Error(message);
   }
 
   if (
     details.deliveryType !== "Pickup (Customer to collect)" &&
-    !looksLikeVictorianAddress(details.deliveryAddress)
+    !looksLikeVictorianAddress(details.addressLine2)
   ) {
     const message =
-      "Delivery address must contain VIC and a valid Victorian postcode.";
+      "Choose a complete Victorian address with suburb and postcode.";
     setFieldError("deliveryAddress", message);
     throw new Error(message);
   }
@@ -920,13 +952,13 @@ function buildPayload(){
   const submissionId=typeof crypto.randomUUID==="function"?`BPS-${crypto.randomUUID()}`:`BPS-${Date.now()}-${Math.random().toString(16).slice(2)}`;
   const details=getOrderDetails();const floors={};
   ["ground","first"].forEach((floor)=>{const items=getFloorItems(floor);const otherMaterials=getOtherMaterials(floor);if(items.length===0&&otherMaterials.length===0)return;floors[floor]={items,otherProducts:"",otherMaterials,acousticFormat:selectedRadioValue(`${floor}AcousticFormat`)||"Roll"};});
-  return{submissionId,...details,customerReference:details.reference,jobName:details.customer,siteAddress1:details.deliveryAddress,siteAddress2:"",siteContact:details.contact,siteContactPhone:details.mobile,requesterName:details.contact,requesterPhone:details.mobile,comments:details.deliveryInstructions,floors};
+  return{submissionId,...details,customerReference:details.reference,jobName:details.customer,siteAddress1:details.addressLine1,siteAddress2:details.addressLine2,siteContact:details.contact,siteContactPhone:details.mobile,requesterName:details.contact,requesterPhone:details.mobile,comments:details.deliveryInstructions,floors};
 }
 
 function showSuccess(result){
   setActiveStep("review", { skipValidation: true, silent: true });
   clearMessage();const panel=document.getElementById("successPanel");const title=document.getElementById("successTitle");const summary=document.getElementById("successSummary");const files=document.getElementById("generatedFiles");files.replaceChildren();const generated=Array.isArray(result.generatedFiles)?result.generatedFiles:[];title.textContent=result.updated?"Order updated":"Order created";
-  summary.textContent=generated.length>0?(result.updated?`${generated.length} replacement file${generated.length===1?" was":"s were"} generated for Revision ${result.revisionNo}.`:`${generated.length} Accrivia file${generated.length===1?" was":"s were"} generated and saved.`):"The order was saved successfully. Bell Plaster will process the selected lines.";
+  summary.textContent=generated.length>0?(result.updated?`${generated.length} replacement file${generated.length===1?" was":"s were"} generated for Revision ${result.revisionNo}.`:`${generated.length} order file${generated.length===1?" was":"s were"} generated and saved.`):"The order was saved successfully. Bell Plaster will process the selected lines.";
   generated.forEach((file)=>{const item=document.createElement("div");item.className="generated-file";const info=document.createElement("div");info.className="generated-file-info";const name=document.createElement("strong");name.textContent=file.filename;const detail=document.createElement("span");detail.textContent=`${file.floorLabel} · ${file.itemCount} line${file.itemCount===1?"":"s"}`;info.append(name,detail);item.append(info);if(file.downloadUrl)item.append(createDownloadLink(file.downloadUrl,file.filename));files.append(item);});
   document.getElementById("orderNumberDisplay").textContent=result.customerReference||result.submissionId||"Not returned";panel.hidden=false;panel.scrollIntoView({behavior:"smooth",block:"center"});
 }
@@ -982,11 +1014,11 @@ function setOrderDetails(p){
   document.getElementById("confirmFutureRequiredDate").checked=Boolean(p.futureDateConfirmed);
   document.getElementById("confirmUnusualRequiredTime").checked=Boolean(p.unusualTimeConfirmed);
 
-  setSelectedDeliveryAddress(
-    p.deliveryAddress||p.siteAddress1||"",
-    p.addressSource||"saved",
-    {silent:true},
-  );
+  setSelectedDeliveryAddress({
+    full:p.deliveryAddress||[p.addressLine1||p.siteAddress1,p.addressLine2||p.siteAddress2].filter(Boolean).join(", "),
+    line1:p.addressLine1||p.siteAddress1||"",
+    line2:p.addressLine2||p.siteAddress2||"",
+  },p.addressSource||"saved",{silent:true});
 
   setRadio("timeSlot",p.timeSlot||"ANY");
   setRadio("deliveryType",p.deliveryType||"");
@@ -1122,11 +1154,8 @@ function initialiseDeliveryDetails() {
   const manualAddress = document.getElementById("deliveryAddressManual");
   manualAddress.addEventListener("input", () => {
     if (!state.manualAddressMode) return;
-    setSelectedDeliveryAddress(
-      manualAddress.value,
-      "manual",
-      {silent:true, preserveManual:true},
-    );
+    const parsed = parseVictorianAddress(manualAddress.value);
+    setSelectedDeliveryAddress(parsed || {full:manualAddress.value,line1:"",line2:""},"manual",{silent:true,preserveManual:true});
     clearFieldError("deliveryAddress");
   });
 
@@ -1422,6 +1451,8 @@ function clearDeliveryDetailErrors() {
 }
 
 async function initialiseAddressAutocomplete() {
+  bindAddressSearchInteractions();
+
   const response = await fetch("/api/address-config", {
     headers: { Accept: "application/json" },
     cache: "no-store",
@@ -1438,79 +1469,21 @@ async function initialiseAddressAutocomplete() {
   }));
 
   if (!response.ok || !config.ok || !config.configured || !config.apiKey) {
-    enableManualAddressMode({
-      reason:
-        "Victorian address search is not configured yet. Manual entry is available.",
-    });
+    enableManualAddressMode({ silent: true });
     return;
   }
 
   await loadGoogleMapsJavaScript(config.apiKey);
-
-  const { PlaceAutocompleteElement } =
+  const { AutocompleteSessionToken, AutocompleteSuggestion } =
     await google.maps.importLibrary("places");
 
-  const autocomplete = new PlaceAutocompleteElement();
-  autocomplete.placeholder = "Start typing a Victorian delivery address";
-  autocomplete.includedRegionCodes = ["au"];
-  autocomplete.locationRestriction = {
-    west: 140.90,
-    south: -39.25,
-    east: 150.10,
-    north: -33.80,
+  state.addressAutocompleteApi = {
+    AutocompleteSessionToken,
+    AutocompleteSuggestion,
   };
-
-  autocomplete.addEventListener(
-    "gmp-select",
-    async ({ placePrediction }) => {
-      clearFieldError("deliveryAddress");
-
-      const place = placePrediction.toPlace();
-      await place.fetchFields({
-        fields: ["formattedAddress", "addressComponents"],
-      });
-
-      const stateComponent = (place.addressComponents || []).find(
-        (component) =>
-          component.types?.includes("administrative_area_level_1"),
-      );
-      const selectedState = String(
-        stateComponent?.shortText || stateComponent?.longText || "",
-      ).toUpperCase();
-
-      if (!["VIC", "VICTORIA"].includes(selectedState)) {
-        setSelectedDeliveryAddress("", "google", { silent: true });
-        setFieldError(
-          "deliveryAddress",
-          "Select an address located in Victoria.",
-        );
-        return;
-      }
-
-      const formattedAddress = String(place.formattedAddress || "")
-        .replace(/,\s*Australia$/i, "")
-        .trim();
-
-      if (!formattedAddress) {
-        setFieldError(
-          "deliveryAddress",
-          "The selected address could not be read. Select another result.",
-        );
-        return;
-      }
-
-      setSelectedDeliveryAddress(formattedAddress, "google");
-      markDraftChanged();
-    },
-  );
-
-  const mount = document.getElementById("addressAutocompleteMount");
-  mount.replaceChildren(autocomplete);
-  mount.hidden = false;
-
   state.addressAutocompleteReady = true;
+  refreshAddressSessionToken();
   enableAddressSearchMode({ silent: true });
-  updateAddressSearchStatus();
 }
 
 function loadGoogleMapsJavaScript(apiKey) {
@@ -1532,89 +1505,378 @@ function loadGoogleMapsJavaScript(apiKey) {
     const script = document.createElement("script");
     script.src =
       `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}` +
-      `&v=weekly&loading=async&callback=${callbackName}`;
+      `&v=weekly&loading=async&libraries=places&region=AU&language=en&callback=${callbackName}`;
     script.async = true;
     script.onerror = () => {
       delete window[callbackName];
       reject(new Error("Google address search could not be loaded."));
     };
-
     document.head.append(script);
   });
 
   return loadGoogleMapsJavaScript.promise;
 }
 
+function bindAddressSearchInteractions() {
+  const search = document.getElementById("deliveryAddressSearch");
+  const results = document.getElementById("addressSearchResults");
+  const clear = document.getElementById("clearAddressSearchButton");
+
+  search.addEventListener("input", () => {
+    clearFieldError("deliveryAddress");
+    clear.hidden = !search.value;
+    clearSelectedAddress({ preserveSearch: true, silent: true });
+    queueAddressSuggestions(search.value);
+  });
+
+  search.addEventListener("keydown", (event) => {
+    const predictions = state.addressPredictions;
+    if (!predictions.length) {
+      if (event.key === "Escape") closeAddressSuggestions();
+      return;
+    }
+
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const direction = event.key === "ArrowDown" ? 1 : -1;
+      state.addressPredictionIndex = Math.max(
+        0,
+        Math.min(
+          predictions.length - 1,
+          (state.addressPredictionIndex < 0 ? 0 : state.addressPredictionIndex) + direction,
+        ),
+      );
+      updateActiveAddressSuggestion();
+      return;
+    }
+
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const prediction = predictions[state.addressPredictionIndex < 0 ? 0 : state.addressPredictionIndex];
+      if (prediction) void selectAddressPrediction(prediction);
+      return;
+    }
+
+    if (event.key === "Escape") closeAddressSuggestions();
+  });
+
+  search.addEventListener("blur", () => {
+    window.setTimeout(closeAddressSuggestions, 140);
+  });
+
+  clear.addEventListener("click", () => {
+    clearSelectedAddress();
+    search.value = "";
+    clear.hidden = true;
+    search.focus();
+  });
+
+  results.addEventListener("mousedown", (event) => event.preventDefault());
+}
+
+function queueAddressSuggestions(value) {
+  window.clearTimeout(state.addressSearchTimer);
+  const input = String(value || "").trim();
+
+  if (!state.addressAutocompleteReady || input.length < 3) {
+    closeAddressSuggestions();
+    return;
+  }
+
+  state.addressSearchTimer = window.setTimeout(
+    () => requestAddressSuggestions(input),
+    220,
+  );
+}
+
+async function requestAddressSuggestions(input) {
+  const requestId = ++state.addressRequestId;
+  const api = state.addressAutocompleteApi;
+  if (!api) return;
+
+  if (!state.addressSessionToken) refreshAddressSessionToken();
+
+  try {
+    const { suggestions } =
+      await api.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+        input,
+        sessionToken: state.addressSessionToken,
+        includedRegionCodes: ["au"],
+        locationRestriction: {
+          west: 140.90,
+          south: -39.25,
+          east: 150.10,
+          north: -33.80,
+        },
+        language: "en-AU",
+        region: "au",
+      });
+
+    if (requestId !== state.addressRequestId) return;
+
+    state.addressPredictions = suggestions
+      .map((suggestion) => suggestion.placePrediction)
+      .filter(Boolean)
+      .slice(0, 6);
+    state.addressPredictionIndex = state.addressPredictions.length ? 0 : -1;
+    renderAddressSuggestions();
+  } catch (error) {
+    console.error("Address suggestions failed", error);
+    closeAddressSuggestions();
+    showAddressSearchStatus("Address search is temporarily unavailable. Use manual entry.", "error");
+  }
+}
+
+function appendGoogleMapsAttribution(container) {
+  const attribution = document.createElement("div");
+  attribution.className = "google-maps-attribution";
+  attribution.setAttribute("aria-hidden", "true");
+  attribution.textContent = "Google Maps";
+  container.append(attribution);
+}
+
+function renderAddressSuggestions() {
+  const results = document.getElementById("addressSearchResults");
+  const search = document.getElementById("deliveryAddressSearch");
+  results.replaceChildren();
+
+  if (!state.addressPredictions.length) {
+    const empty = document.createElement("div");
+    empty.className = "address-no-results";
+    empty.textContent = "No matching Victorian address.";
+    results.append(empty);
+    results.hidden = false;
+    search.setAttribute("aria-expanded", "true");
+    return;
+  }
+
+  state.addressPredictions.forEach((prediction, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "address-result";
+    button.classList.toggle("is-active", index === state.addressPredictionIndex);
+    button.setAttribute("role", "option");
+    button.setAttribute("aria-selected", index === state.addressPredictionIndex ? "true" : "false");
+
+    const text = String(prediction.text || "");
+    const [primary, ...rest] = text.split(",");
+    const title = document.createElement("strong");
+    title.textContent = primary.trim() || text;
+    const secondary = document.createElement("span");
+    secondary.textContent = rest.join(",").trim();
+    button.append(title);
+    if (secondary.textContent) button.append(secondary);
+
+    button.addEventListener("click", () => void selectAddressPrediction(prediction));
+    results.append(button);
+  });
+
+  appendGoogleMapsAttribution(results);
+  results.hidden = false;
+  search.setAttribute("aria-expanded", "true");
+}
+
+function updateActiveAddressSuggestion() {
+  document.querySelectorAll(".address-result").forEach((button, index) => {
+    const active = index === state.addressPredictionIndex;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-selected", active ? "true" : "false");
+    if (active) button.scrollIntoView({ block: "nearest" });
+  });
+}
+
+async function selectAddressPrediction(prediction) {
+  clearFieldError("deliveryAddress");
+
+  try {
+    const place = prediction.toPlace();
+    await place.fetchFields({
+      fields: ["formattedAddress", "addressComponents"],
+    });
+
+    const parsed = parseGoogleAddress(place);
+    if (!parsed || !looksLikeVictorianAddress(parsed.line2)) {
+      setFieldError("deliveryAddress", "Choose a complete Victorian street address.");
+      return;
+    }
+
+    setSelectedDeliveryAddress(parsed, "google");
+    document.getElementById("deliveryAddressSearch").value = parsed.full;
+    document.getElementById("clearAddressSearchButton").hidden = false;
+    closeAddressSuggestions();
+    refreshAddressSessionToken();
+  } catch (error) {
+    console.error("Address selection failed", error);
+    setFieldError("deliveryAddress", "That address could not be confirmed. Choose another result.");
+  }
+}
+
+function parseGoogleAddress(place) {
+  const components = Array.isArray(place.addressComponents)
+    ? place.addressComponents
+    : [];
+
+  const component = (...types) => {
+    const match = components.find((entry) =>
+      types.some((type) => entry.types?.includes(type)),
+    );
+    return String(match?.shortText || match?.longText || "").trim();
+  };
+
+  const unit = component("subpremise");
+  const streetNumber = component("street_number");
+  const route = component("route");
+  const premise = component("premise");
+  const suburb = component("locality", "postal_town", "sublocality_level_1", "sublocality");
+  const stateCode = component("administrative_area_level_1").toUpperCase();
+  const postcode = component("postal_code");
+
+  let line1 = [streetNumber, route].filter(Boolean).join(" ");
+  if (unit && line1) line1 = `${unit}/${line1}`;
+  if (!line1) line1 = premise;
+
+  const formatted = String(place.formattedAddress || "")
+    .replace(/,\s*Australia$/i, "")
+    .trim();
+  const formattedParts = formatted.split(",").map((part) => part.trim()).filter(Boolean);
+
+  if (!line1 && formattedParts.length > 1) line1 = formattedParts[0];
+  const line2 = [suburb, stateCode, postcode].filter(Boolean).join(" ");
+
+  if (!line1 || !suburb || !["VIC", "VICTORIA"].includes(stateCode) || !/^(?:3|8)\d{3}$/.test(postcode)) {
+    return null;
+  }
+
+  return {
+    full: `${line1}, ${line2}`,
+    line1,
+    line2,
+  };
+}
+
+function parseVictorianAddress(value) {
+  const text = String(value || "")
+    .replace(/,?\s*Australia\s*$/i, "")
+    .trim();
+  if (!text) return null;
+
+  const parts = text
+    .split(/\n+|,\s*/)
+    .map((part) => part.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+
+  if (parts.length < 2) return null;
+
+  const line1 = parts.slice(0, -1).join(", ");
+  const line2 = parts.at(-1)
+    .replace(/\bVICTORIA\b/i, "VIC")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!line1 || !looksLikeVictorianAddress(line2)) return null;
+  return { full: `${line1}, ${line2}`, line1, line2 };
+}
+
+function refreshAddressSessionToken() {
+  const Token = state.addressAutocompleteApi?.AutocompleteSessionToken;
+  state.addressSessionToken = Token ? new Token() : null;
+}
+
+function closeAddressSuggestions() {
+  const results = document.getElementById("addressSearchResults");
+  const search = document.getElementById("deliveryAddressSearch");
+  results.hidden = true;
+  results.replaceChildren();
+  search.setAttribute("aria-expanded", "false");
+  state.addressPredictions = [];
+  state.addressPredictionIndex = -1;
+}
+
 function enableAddressSearchMode(options = {}) {
   if (!state.addressAutocompleteReady) {
-    enableManualAddressMode({
-      reason: "Victorian address search is not configured yet.",
-    });
+    enableManualAddressMode({ silent: true });
     return;
   }
 
   state.manualAddressMode = false;
-  state.selectedAddressSource =
-    state.selectedAddressSource === "manual"
-      ? "google"
-      : state.selectedAddressSource;
-
-  document.getElementById("addressAutocompleteMount").hidden = false;
-  document.getElementById("deliveryAddressManual").hidden = true;
-  document.getElementById("toggleManualAddressButton").textContent =
-    "Enter manually";
-
+  const searchShell = document.getElementById("addressSearchShell");
+  const manual = document.getElementById("deliveryAddressManual");
+  searchShell.hidden = false;
+  manual.hidden = true;
+  manual.required = false;
+  document.getElementById("toggleManualAddressButton").textContent = "Enter manually";
+  hideAddressSearchStatus();
   updatePickupAddressRequirement();
-  updateAddressSearchStatus();
-
   if (!options.silent) markDraftChanged();
 }
 
 function enableManualAddressMode(options = {}) {
   state.manualAddressMode = true;
   state.selectedAddressSource = "manual";
-
-  document.getElementById("addressAutocompleteMount").hidden = true;
-  document.getElementById("deliveryAddressManual").hidden = false;
+  closeAddressSuggestions();
+  document.getElementById("addressSearchShell").hidden = true;
+  const manual = document.getElementById("deliveryAddressManual");
+  manual.hidden = false;
   document.getElementById("toggleManualAddressButton").textContent =
-    state.addressAutocompleteReady
-      ? "Use address search"
-      : "Manual entry";
-
+    state.addressAutocompleteReady ? "Use address search" : "Manual entry";
+  hideAddressSearchStatus();
   updatePickupAddressRequirement();
-
   if (!options.silent) markDraftChanged();
 }
 
 function setSelectedDeliveryAddress(address, source, options = {}) {
-  const value = String(address || "").trim();
-  const hidden = document.getElementById("deliveryAddress");
-  const manual = document.getElementById("deliveryAddressManual");
-  const summary = document.getElementById("addressSelectedSummary");
-  const summaryText = document.getElementById("addressSelectedText");
+  const parsed = typeof address === "string"
+    ? parseVictorianAddress(address) || { full: String(address || "").trim(), line1: "", line2: "" }
+    : {
+        full: String(address?.full || "").trim(),
+        line1: String(address?.line1 || "").trim(),
+        line2: String(address?.line2 || "").trim(),
+      };
 
-  hidden.value = value;
+  document.getElementById("deliveryAddress").value = parsed.full;
+  document.getElementById("deliveryAddressLine1").value = parsed.line1;
+  document.getElementById("deliveryAddressLine2").value = parsed.line2;
   state.selectedAddressSource = source || "manual";
 
-  if (!options.preserveManual) {
-    manual.value = value;
+  const manual = document.getElementById("deliveryAddressManual");
+  const search = document.getElementById("deliveryAddressSearch");
+  if (!options.preserveManual) manual.value = parsed.full;
+  if (source !== "manual" && parsed.full && !options.preserveSearch) {
+    search.value = parsed.full;
+    document.getElementById("clearAddressSearchButton").hidden = false;
   }
 
-  summaryText.textContent = value;
-  summary.hidden = !value;
+  const summary = document.getElementById("addressSelectedSummary");
+  document.getElementById("addressSelectedLine1").textContent = parsed.line1;
+  document.getElementById("addressSelectedLine2").textContent = parsed.line2;
+  summary.hidden = !(parsed.line1 && parsed.line2 && source !== "manual");
 
   clearFieldError("deliveryAddress");
-  updateAddressSearchStatus();
-
   if (!options.silent) markDraftChanged();
 }
 
-function updateAddressSearchStatus() {
-  const status = document.getElementById("addressSearchStatus");
-  if (!status) return;
+function clearSelectedAddress(options = {}) {
+  setSelectedDeliveryAddress({ full: "", line1: "", line2: "" }, state.manualAddressMode ? "manual" : "google", { silent: true, preserveManual: state.manualAddressMode });
+  document.getElementById("addressSelectedSummary").hidden = true;
+  if (!options.preserveSearch) document.getElementById("deliveryAddressSearch").value = "";
+  if (!options.silent) markDraftChanged();
+}
 
+function showAddressSearchStatus(message, type = "info") {
+  const status = document.getElementById("addressSearchStatus");
+  status.textContent = message;
+  status.dataset.type = type;
+  status.hidden = false;
+}
+
+function hideAddressSearchStatus() {
+  const status = document.getElementById("addressSearchStatus");
   status.textContent = "";
   status.hidden = true;
+}
+
+function updateAddressSearchStatus() {
+  hideAddressSearchStatus();
 }
 
 function bindKioskNavigation() {
@@ -1974,10 +2236,11 @@ function createBasketLine(floor, item) {
   info.className = "basket-line-info";
 
   const name = document.createElement("strong");
-  name.textContent = item.description;
+  name.textContent = humaniseProductDescription(item.description);
   const sku = document.createElement("span");
-  sku.textContent = item.sku || "Standard form product";
-  info.append(name, sku);
+  sku.textContent = item.sku || "";
+  info.append(name);
+  if (sku.textContent) info.append(sku);
 
   info.addEventListener("click", () => {
     activateFloorTab(floor);
@@ -2124,7 +2387,7 @@ function renderReviewStep() {
     ["Contact", [details.contact, details.mobile].filter(Boolean).join(" · ")],
     ["Required", [formatIsoDateForAustralia(details.requiredDate),formatTimeForDisplay(details.requiredTime),details.timeSlot].filter(Boolean).join(" · ")],
     ["Delivery", details.deliveryType],
-    ["Address", details.deliveryAddress || "Pickup from Bell Plaster"],
+    ["Address", details.deliveryType === "Pickup (Customer to collect)" ? "Pickup from Bell Plaster" : [details.addressLine1, details.addressLine2].filter(Boolean).join(", ")],
     ["Extras", details.extras.join(", ")],
     ["Instructions", details.deliveryInstructions],
   ];
@@ -2143,6 +2406,7 @@ function renderReviewStep() {
 
   const productsContainer = document.getElementById("reviewOrderLines");
   productsContainer.replaceChildren();
+  productsContainer.scrollTop = 0;
 
   let lineTotal = 0;
   let unitTotal = 0;
@@ -2165,10 +2429,11 @@ function renderReviewStep() {
 
       const info = document.createElement("div");
       const name = document.createElement("strong");
-      name.textContent = item.description;
+      name.textContent = humaniseProductDescription(item.description);
       const sku = document.createElement("span");
-      sku.textContent = item.sku || "Standard form product";
-      info.append(name, sku);
+      sku.textContent = item.sku || "";
+      info.append(name);
+      if (sku.textContent) info.append(sku);
 
       const quantity = document.createElement("strong");
       quantity.textContent = `× ${item.quantity}`;

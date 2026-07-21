@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/refinement.css">
 </head>
 <body class="kiosk-body">
   <header class="kiosk-header">
@@ -93,9 +94,8 @@
             <section class="details-card account-card">
               <div class="account-mark">BPS</div>
               <div>
-                <span>Customer account</span>
+                <span>Trade account</span>
                 <strong>BPS Brunswick Plastering Services</strong>
-                <small>Debtor code: BPS BRUNSW17</small>
               </div>
             </section>
 
@@ -204,27 +204,47 @@
                 </div>
 
                 <div class="kiosk-field field-span-2 delivery-address-field" id="deliveryAddressField">
-                  <label for="deliveryAddressManual">Delivery address *</label>
+                  <label for="deliveryAddressSearch">Delivery address *</label>
 
                   <div class="address-entry-area">
-                    <div id="addressAutocompleteMount" class="address-autocomplete-mount" hidden></div>
+                    <div id="addressSearchShell" class="address-search-shell">
+                      <span class="address-search-icon" aria-hidden="true">⌕</span>
+                      <input
+                        id="deliveryAddressSearch"
+                        type="text"
+                        maxlength="220"
+                        autocomplete="off"
+                        placeholder="Start typing the street address"
+                        role="combobox"
+                        aria-autocomplete="list"
+                        aria-expanded="false"
+                        aria-controls="addressSearchResults"
+                        aria-describedby="deliveryAddressError"
+                      >
+                      <button id="clearAddressSearchButton" class="address-clear-button" type="button" aria-label="Clear address" hidden>×</button>
+                      <div id="addressSearchResults" class="address-search-results" role="listbox" hidden></div>
+                    </div>
 
                     <textarea
                       id="deliveryAddressManual"
                       rows="2"
                       maxlength="500"
                       autocomplete="street-address"
-                      placeholder="Street, suburb, VIC and postcode"
+                      placeholder="Street address, suburb VIC postcode"
                       aria-describedby="deliveryAddressError"
+                      hidden
                     ></textarea>
 
                     <input id="deliveryAddress" type="hidden">
+                    <input id="deliveryAddressLine1" type="hidden">
+                    <input id="deliveryAddressLine2" type="hidden">
 
                     <div id="addressSelectedSummary" class="address-selected-summary" hidden>
                       <span class="address-selected-icon" aria-hidden="true">✓</span>
                       <span>
-                        <small>Selected Victorian address</small>
-                        <strong id="addressSelectedText"></strong>
+                        <small>Address confirmed</small>
+                        <strong id="addressSelectedLine1"></strong>
+                        <span id="addressSelectedLine2" class="address-selected-line2"></span>
                       </span>
                     </div>
                   </div>
@@ -254,8 +274,8 @@
               </div>
 
               <div class="delivery-choice-grid">
-                <fieldset class="kiosk-choice-card">
-                  <legend>Time slot *</legend>
+                <div class="kiosk-choice-card" role="group" aria-labelledby="timeSlotHeading">
+                  <div id="timeSlotHeading" class="choice-heading">Time slot <span>*</span></div>
                   <div class="segmented-options">
                     <label><input type="radio" name="timeSlot" value="1ST"><span>1st</span></label>
                     <label><input type="radio" name="timeSlot" value="2ND"><span>2nd</span></label>
@@ -263,10 +283,10 @@
                     <label><input type="radio" name="timeSlot" value="PM"><span>PM</span></label>
                     <label><input type="radio" name="timeSlot" value="ANY" checked><span>Any</span></label>
                   </div>
-                </fieldset>
+                </div>
 
-                <fieldset class="kiosk-choice-card">
-                  <legend>Delivery type *</legend>
+                <div class="kiosk-choice-card" role="group" aria-labelledby="deliveryTypeHeading">
+                  <div id="deliveryTypeHeading" class="choice-heading">Delivery type <span>*</span></div>
                   <div class="tile-options">
                     <label><input type="radio" name="deliveryType" value="Manual Unload (Knauf Labour)"><span>Manual unload</span></label>
                     <label><input type="radio" name="deliveryType" value="Mechanical (Forklift/Crane/Own)"><span>Mechanical</span></label>
@@ -274,10 +294,10 @@
                     <label><input type="radio" name="deliveryType" value="Return Delivery (Collect from site)"><span>Return delivery</span></label>
                     <label><input type="radio" name="deliveryType" value="Pickup (Customer to collect)"><span>Pickup</span></label>
                   </div>
-                </fieldset>
+                </div>
 
-                <fieldset class="kiosk-choice-card">
-                  <legend>Extras</legend>
+                <div class="kiosk-choice-card" role="group" aria-labelledby="extrasHeading">
+                  <div id="extrasHeading" class="choice-heading">Extras</div>
                   <div class="chip-options">
                     <label><input type="checkbox" name="deliveryExtra" value="Downstairs"><span>Downstairs</span></label>
                     <label><input type="checkbox" name="deliveryExtra" value="Upstairs"><span>Upstairs</span></label>
@@ -285,7 +305,7 @@
                     <label><input type="checkbox" name="deliveryExtra" value="Strap"><span>Strap</span></label>
                     <label><input type="checkbox" name="deliveryExtra" value="Extra Labour"><span>Extra labour</span></label>
                   </div>
-                </fieldset>
+                </div>
               </div>
             </section>
           </div>
@@ -307,11 +327,11 @@
             <div class="floor-tabs kiosk-floor-tabs" role="tablist" aria-label="Order floor">
               <button class="floor-tab is-active" type="button" role="tab" aria-selected="true" data-floor-tab="ground">
                 Ground Floor
-                <span id="groundTabCount" class="tab-count">0</span>
+                <span id="groundTabCount" class="tab-count" hidden>0</span>
               </button>
               <button class="floor-tab" type="button" role="tab" aria-selected="false" data-floor-tab="first">
                 1st Floor
-                <span id="firstTabCount" class="tab-count">0</span>
+                <span id="firstTabCount" class="tab-count" hidden>0</span>
               </button>
             </div>
           </div>
@@ -323,7 +343,7 @@
               type="search"
               autocomplete="off"
               placeholder="Search stock code, product or size"
-              aria-label="Search all Accrivia products"
+              aria-label="Search all products"
               disabled
             >
             <div id="globalProductResults" class="catalogue-search-results global-search-results" hidden></div>
@@ -373,9 +393,9 @@
               <span class="category-icon">∟</span>
               <span>Rondo & PVC</span>
             </button>
-            <button class="category-button category-search-button" type="button" data-category-target="all_products" data-category-title="Added from search" data-category-description="Products selected from the complete Accrivia catalogue">
+            <button class="category-button category-search-button" type="button" data-category-target="all_products" data-category-title="Additional products" data-category-description="Products selected from the full product catalogue">
               <span class="category-icon">＋</span>
-              <span>Search additions</span>
+              <span>Additional products</span>
             </button>
           </aside>
 
@@ -397,10 +417,10 @@
             </article>
           </section>
 
-          <aside class="current-order-panel" aria-label="Current order">
+          <aside class="current-order-panel" aria-label="Order summary">
             <header class="current-order-header">
               <div>
-                <span>Current order</span>
+                <span>Order summary</span>
                 <strong id="currentOrderSummary">0 products</strong>
               </div>
               <button id="clearOrderButton" class="text-button" type="button">Clear</button>

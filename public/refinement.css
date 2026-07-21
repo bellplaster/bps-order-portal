@@ -1,0 +1,579 @@
+/* BPS Order Portal — focused UI refinement layer
+   Loaded after the legacy stylesheet to consolidate the current kiosk design. */
+
+:root {
+  --bps-maroon: #A62B45;
+  --bps-maroon-dark: #842037;
+  --bps-maroon-soft: #F8EDEF;
+  --bps-green: #006557;
+  --bps-green-soft: #EAF5F2;
+  --bps-text: #17201E;
+  --bps-muted: #66716E;
+  --bps-line: #D9E0DE;
+  --bps-line-strong: #B8C4C1;
+  --bps-surface: #FFFFFF;
+  --bps-page: #F4F7F6;
+}
+
+/* Messages should occupy layout space; never float over a heading. */
+#globalMessage.kiosk-message {
+  position: relative !important;
+  z-index: 1 !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  width: min(900px, calc(100% - 32px)) !important;
+  margin: 16px auto 0 !important;
+  transform: none !important;
+}
+
+/* Delivery account and option groups */
+.account-card > div:last-child span { color: var(--bps-muted); }
+.account-card > div:last-child strong { margin-top: 3px; }
+
+.delivery-choice-grid {
+  align-items: stretch;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.kiosk-choice-card {
+  min-width: 0;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid var(--bps-line);
+  border-radius: 14px;
+  background: #FBFCFC;
+}
+
+.kiosk-choice-card .choice-heading {
+  position: static;
+  display: block;
+  width: auto;
+  margin: 0 0 10px;
+  padding: 0;
+  color: #4B5552;
+  background: transparent;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.kiosk-choice-card .choice-heading span { color: var(--bps-maroon); }
+
+/* Address search */
+.address-entry-area { position: relative; gap: 10px; }
+.address-search-shell { position: relative; }
+.address-search-shell[hidden] { display: none !important; }
+.address-search-icon {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 15px;
+  color: var(--bps-maroon);
+  font-size: 18px;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+#deliveryAddressSearch {
+  width: 100%;
+  min-height: 50px;
+  padding: 0 46px 0 43px;
+  border: 1px solid var(--bps-line-strong);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--bps-text);
+}
+
+#deliveryAddressSearch:focus {
+  border-color: var(--bps-maroon);
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(166,43,69,.11);
+}
+
+.address-clear-button {
+  position: absolute;
+  z-index: 3;
+  top: 50%;
+  right: 9px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--bps-muted);
+  font-size: 20px;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.address-search-results {
+  position: absolute;
+  z-index: 90;
+  top: calc(100% + 7px);
+  right: 0;
+  left: 0;
+  max-height: 310px;
+  overflow-y: auto;
+  border: 1px solid var(--bps-line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 18px 42px rgba(20,31,27,.17);
+}
+
+.address-result {
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 1px solid #EDF1F0;
+  background: #fff;
+  color: var(--bps-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.address-result:last-child { border-bottom: 0; }
+.address-result:hover,
+.address-result.is-active { background: var(--bps-maroon-soft); }
+.address-result strong,
+.address-result span { display: block; }
+.address-result strong { font-size: 12px; line-height: 1.35; }
+.address-result span { margin-top: 3px; color: var(--bps-muted); font-size: 10px; line-height: 1.4; }
+.address-no-results { padding: 16px; color: var(--bps-muted); font-size: 11px; }
+
+.address-selected-summary { padding: 10px 12px; }
+.address-selected-summary > span:last-child { min-width: 0; }
+.address-selected-summary strong,
+.address-selected-line2 { overflow-wrap: anywhere; }
+.address-selected-line2 { display: block; margin-top: 2px; color: #53605C; font-size: 10px; line-height: 1.4; }
+.address-search-status[data-type="error"] { color: #A31F2B; }
+
+/* Floor selector: hide zero badges and make active counts legible. */
+.floor-tab .tab-count[hidden] { display: none !important; }
+.floor-tab .tab-count {
+  min-width: 21px;
+  height: 21px;
+  margin-left: 6px;
+  padding: 0 6px;
+  border: 1px solid rgba(0,0,0,.08);
+  background: #fff;
+  color: var(--bps-maroon);
+  box-shadow: 0 1px 3px rgba(0,0,0,.09);
+  font-size: 10px;
+  line-height: 19px;
+  text-align: center;
+}
+.floor-tab.is-active .tab-count {
+  border-color: #fff;
+  background: #fff;
+  color: var(--bps-maroon);
+}
+
+/* Product workspace proportions */
+.product-stage-grid { grid-template-columns: 172px minmax(640px, 1fr) 390px; }
+.category-rail { padding-inline: 10px; }
+.product-workspace { min-width: 0; }
+.category-product-canvas { padding: 16px; }
+.current-order-panel { min-width: 0; }
+
+.table-scroller {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+.product-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.main-board-table { min-width: 980px; }
+.main-board-table th:first-child,
+.main-board-table td:first-child { width: 76px; min-width: 76px; }
+.main-board-table .quantity-cell,
+.main-board-table th:not(:first-child) { min-width: 64px; }
+
+.compact-table th:first-child,
+.compact-table td:first-child { width: 62%; }
+.compact-table th:last-child,
+.compact-table td:last-child { width: 76px; }
+
+.product-table th,
+.product-table td {
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  vertical-align: middle;
+}
+
+/* A single focus border, aligned to the table cell. */
+.quantity-cell,
+.standalone-quantity.quantity-cell {
+  position: relative;
+  box-sizing: border-box;
+  min-width: 64px;
+  height: 42px;
+  padding: 4px !important;
+  background: #F3F5FF;
+  outline: 0;
+}
+
+.quantity-cell:focus-within,
+.standalone-quantity.quantity-cell:focus-within {
+  z-index: 4;
+  box-shadow: inset 0 0 0 2px var(--bps-maroon) !important;
+}
+
+.quantity-cell .quantity-input,
+.standalone-quantity.quantity-cell .quantity-input {
+  display: block;
+  box-sizing: border-box;
+  width: 100% !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  margin: 0 !important;
+  padding: 0 18px 0 8px !important;
+  border: 0 !important;
+  border-radius: 7px !important;
+  outline: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: #24302D;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 34px;
+  text-align: center;
+}
+
+.quantity-cell .quantity-input:focus,
+.standalone-quantity.quantity-cell .quantity-input:focus {
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+.quantity-cell .quantity-input.has-value { background: var(--bps-maroon-soft) !important; color: var(--bps-maroon); }
+
+/* Search dropdown and long descriptions */
+.global-search-results .catalogue-result {
+  grid-template-columns: 100px minmax(0, 1fr) 44px;
+  align-items: start;
+  gap: 12px;
+  min-height: 52px;
+  padding: 10px 12px;
+}
+.global-search-results .catalogue-result strong { overflow-wrap: anywhere; }
+.global-search-results .catalogue-result span {
+  display: -webkit-box;
+  overflow: hidden;
+  white-space: normal;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.global-search-results .catalogue-result em { align-self: center; }
+
+.selected-materials-header,
+.selected-material-row { grid-template-columns: 110px minmax(0,1fr) 78px 70px; }
+.selected-material-description { white-space: normal; overflow-wrap: anywhere; line-height: 1.4; }
+.other-material-quantity { text-align: center; }
+
+/* Order summary: show the full name and keep controls stable. */
+.basket-line { align-items: center; }
+.basket-line-info strong {
+  display: -webkit-box;
+  overflow: hidden;
+  white-space: normal;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+.basket-line-info span { overflow-wrap: anywhere; }
+.basket-line-controls { flex: 0 0 auto; grid-template-columns: 28px 48px 28px; }
+.basket-line-controls input:focus { outline: 0; box-shadow: inset 0 0 0 2px var(--bps-maroon); }
+
+/* Review page: no nested mystery scroll, clear floors, cleaner hierarchy. */
+.review-layout {
+  width: min(1120px, 100%);
+  grid-template-columns: minmax(300px, .75fr) minmax(520px, 1.55fr);
+  gap: 20px;
+}
+.review-summary-card { border-radius: 16px; box-shadow: 0 14px 38px rgba(22,34,30,.08); }
+.review-details-grid { gap: 0; padding: 8px 18px 18px; }
+.review-details-grid > div { padding: 12px 0; border-bottom: 1px solid #EDF1F0; }
+.review-details-grid > div:last-child { border-bottom: 0; }
+.review-order-lines { max-height: none !important; overflow: visible !important; padding: 12px 16px 6px; }
+.review-floor-group {
+  margin-bottom: 14px;
+  overflow: hidden;
+  border: 1px solid var(--bps-line);
+  border-radius: 12px;
+  background: #fff;
+}
+.review-floor-group > header {
+  padding: 10px 12px;
+  background: var(--bps-green-soft);
+  color: var(--bps-green);
+}
+.review-product-line {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  gap: 16px;
+  padding: 11px 12px;
+}
+.review-product-line > div strong {
+  color: #25302D;
+  font-size: 11px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+.review-product-line > div span { overflow-wrap: anywhere; }
+.review-product-line > strong {
+  align-self: center;
+  min-width: 42px;
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: var(--bps-maroon-soft);
+  color: var(--bps-maroon);
+  text-align: center;
+}
+.review-actions { width: min(1120px, 100%); }
+
+@media (max-width: 1280px) {
+  .product-stage-grid { grid-template-columns: 154px minmax(560px, 1fr) 330px; }
+}
+
+@media (max-width: 1020px) {
+  .product-stage-grid { grid-template-columns: 138px minmax(520px, 1fr); }
+  .current-order-panel { position: fixed; z-index: 110; right: 0; bottom: 0; width: min(390px, 92vw); height: 72vh; border: 1px solid var(--bps-line); box-shadow: -16px -10px 40px rgba(20,31,27,.16); }
+  .review-layout { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 720px) {
+  .delivery-choice-grid { grid-template-columns: 1fr; }
+  .product-stage-grid { display: block; }
+  .category-rail { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--bps-line); }
+  .category-rail-heading { display: none; }
+  .category-button { flex: 0 0 auto; }
+  .product-workspace { border-right: 0; }
+  .review-layout { grid-template-columns: 1fr; }
+}
+
+
+/* ================================================================
+   FINAL PRODUCT WORKSPACE + GOOGLE AUTOCOMPLETE REFINEMENT
+   ================================================================ */
+
+.google-maps-attribution {
+  position: sticky;
+  bottom: 0;
+  padding: 7px 12px;
+  border-top: 1px solid #E7ECEA;
+  background: #FAFBFB;
+  color: #5F6368;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .01em;
+  text-align: right;
+}
+
+/* Prevent the option-group headings from sitting on the card border. */
+.delivery-choice-grid {
+  align-items: start !important;
+}
+
+.kiosk-choice-card {
+  position: relative;
+  padding-top: 16px !important;
+}
+
+.kiosk-choice-card .choice-heading {
+  position: static !important;
+  float: none !important;
+  width: auto !important;
+  margin: 0 0 10px !important;
+  padding: 0 !important;
+  transform: none !important;
+}
+
+/* Solid, high-contrast floor counts. A zero count remains hidden. */
+.floor-tab .tab-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border: 0 !important;
+  border-radius: 999px;
+  background: #FFFFFF !important;
+  color: var(--bps-maroon) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,.14);
+  line-height: 20px;
+  opacity: 1 !important;
+}
+
+.floor-tab:not(.is-active) .tab-count {
+  background: #E6ECEA !important;
+  color: #43504C !important;
+  box-shadow: none;
+}
+
+/* Give every product table a predictable structure. Tables scroll rather
+   than compressing some quantity columns into unusable widths. */
+.product-table {
+  width: max-content !important;
+  min-width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: collapse;
+}
+
+.main-board-table {
+  min-width: 1080px !important;
+}
+
+.main-board-table th:first-child,
+.main-board-table td:first-child {
+  width: 80px !important;
+  min-width: 80px !important;
+}
+
+.main-board-table th:not(:first-child),
+.main-board-table td:not(:first-child) {
+  width: 70px !important;
+  min-width: 70px !important;
+}
+
+.compact-table {
+  width: 100% !important;
+  min-width: 420px !important;
+}
+
+.compact-table th:first-child,
+.compact-table td:first-child {
+  width: auto !important;
+  min-width: 190px !important;
+}
+
+.compact-table th:not(:first-child),
+.compact-table td:not(:first-child) {
+  width: 76px !important;
+  min-width: 76px !important;
+}
+
+.product-table th,
+.product-table td {
+  line-height: 1.3;
+}
+
+/* One aligned focus treatment. The input itself never draws a second black
+   outline inside the table cell. */
+.quantity-cell,
+.standalone-quantity.quantity-cell {
+  min-width: 70px !important;
+  width: 70px !important;
+  height: 42px !important;
+  padding: 4px !important;
+  border: 1px solid #CFD8D5 !important;
+  background: #F4F6FF !important;
+  box-shadow: none !important;
+}
+
+.quantity-cell:focus-within,
+.standalone-quantity.quantity-cell:focus-within {
+  z-index: 5;
+  border-color: var(--bps-maroon) !important;
+  box-shadow: inset 0 0 0 1px var(--bps-maroon) !important;
+}
+
+.quantity-cell .quantity-input,
+.standalone-quantity.quantity-cell .quantity-input {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 32px !important;
+  padding: 0 18px 0 8px !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  outline: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  appearance: auto;
+  text-align: center !important;
+}
+
+.quantity-cell .quantity-input:focus,
+.standalone-quantity.quantity-cell .quantity-input:focus {
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Search results and the order basket must show enough of long Accrivia
+   descriptions to identify the item. */
+.global-search-results .catalogue-result span {
+  -webkit-line-clamp: 3 !important;
+}
+
+.basket-line-info strong {
+  -webkit-line-clamp: unset !important;
+  display: block !important;
+  max-height: none !important;
+}
+
+.basket-line-info,
+.basket-line-info strong,
+.basket-line-info span {
+  min-width: 0;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word;
+}
+
+/* Wider and calmer review cards; the page scrolls normally and product
+   lines are visually grouped by floor. */
+.review-layout {
+  align-items: start;
+  grid-template-columns: minmax(310px, .8fr) minmax(560px, 1.5fr) !important;
+}
+
+.review-summary-card {
+  overflow: hidden;
+}
+
+.review-order-lines {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.review-product-line {
+  min-height: 54px;
+}
+
+.review-product-line > div strong {
+  display: block;
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.review-product-line > div span:empty {
+  display: none;
+}
+
+@media (max-width: 1280px) {
+  .product-stage-grid {
+    grid-template-columns: 150px minmax(650px, 1fr) 350px !important;
+  }
+}
+
+@media (max-width: 980px) {
+  .review-layout {
+    grid-template-columns: 1fr !important;
+  }
+}
