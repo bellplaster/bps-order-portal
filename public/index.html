@@ -8,17 +8,12 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css">
-  <link rel="stylesheet" href="/refinement.css">
+  <link rel="stylesheet" href="/styles.css?v=20260721-3">
+  <link rel="stylesheet" href="/refinement.css?v=20260721-3">
 </head>
 <body class="kiosk-body">
   <header class="kiosk-header">
-    <div class="header-left">
-      <button id="openHistoryButton" class="header-action" type="button">
-        <span class="header-action-icon" aria-hidden="true">↺</span>
-        Orders
-      </button>
-    </div>
+    <div class="header-left"></div>
 
     <img
       class="kiosk-logo"
@@ -30,6 +25,22 @@
       <p id="draftStatus" class="header-save-status visually-hidden" aria-live="polite">
         Changes save automatically
       </p>
+
+      <button id="openHistoryButton" class="header-action header-history" type="button">
+        <span class="header-action-icon" aria-hidden="true">↺</span>
+        <span>History</span>
+      </button>
+
+      <button id="openCartButton" class="header-action header-order" type="button" aria-label="Open order summary" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3.5 5h2l1.7 9.2a1.5 1.5 0 0 0 1.5 1.2h8.8a1.5 1.5 0 0 0 1.4-1l1.6-6.2H7"/>
+          <circle cx="9.5" cy="19" r="1.2"/>
+          <circle cx="17.5" cy="19" r="1.2"/>
+        </svg>
+        <span>Order</span>
+        <span id="cartCountBadge" class="cart-count-badge is-empty">0</span>
+      </button>
+
       <button id="logoutButton" class="header-action header-signout" type="button">
         Sign out
       </button>
@@ -81,10 +92,6 @@
       <!-- STEP 1: DELIVERY -->
       <section class="kiosk-step-panel is-active" data-kiosk-step="details">
         <div class="details-stage">
-          <div class="stage-intro">
-            <h1>Where is this order going?</h1>
-          </div>
-
           <div class="details-layout">
             <section class="details-card delivery-card">
               <div class="details-grid">
@@ -322,16 +329,6 @@
               >
               <div id="globalProductResults" class="catalogue-search-results global-search-results" hidden></div>
             </div>
-
-            <button id="openCartButton" class="cart-button" type="button" aria-label="Open order summary">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M3.5 5h2l1.7 9.2a1.5 1.5 0 0 0 1.5 1.2h8.8a1.5 1.5 0 0 0 1.4-1l1.6-6.2H7"/>
-                <circle cx="9.5" cy="19" r="1.2"/>
-                <circle cx="17.5" cy="19" r="1.2"/>
-              </svg>
-              <span>Order</span>
-              <span id="cartCountBadge" class="cart-count-badge">0</span>
-            </button>
           </div>
         </div>
 
@@ -513,6 +510,6 @@
     <div id="orderHistoryList" class="order-history-list history-drawer-list"></div>
   </aside>
 
-  <script src="/app.js" defer></script>
+  <script src="/app.js?v=20260721-3" defer></script>
 </body>
 </html>

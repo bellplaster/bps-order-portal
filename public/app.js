@@ -62,6 +62,7 @@ async function initialise() {
   setActiveStep(state.activeStep, { skipValidation: true, silent: true });
   renderCurrentOrder();
   await loadOrderHistory();
+  requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
 }
 
 function bindTabs() {
@@ -396,6 +397,10 @@ function renderSpecialtyBoards(floor, groups) {
 
     const variants = document.createElement("div");
     variants.className = "specialty-board-variants";
+    variants.style.setProperty(
+      "--specialty-variant-count",
+      String(Math.max(1, group.rows.length)),
+    );
 
     group.rows.forEach((row) => {
       const variant = document.createElement("div");
@@ -709,7 +714,7 @@ function renderSelectedOtherMaterials(floor) {
     const empty = document.createElement("div");
     empty.className = "selected-materials-empty";
     empty.innerHTML =
-      "<strong>No additional products yet</strong><span>Use the search above to add any product from the catalogue.</span>";
+      "<strong>No additional products</strong><span>Search the catalogue above to add an item.</span>";
     container.append(empty);
     return;
   }
@@ -721,14 +726,14 @@ function renderSelectedOtherMaterials(floor) {
     const row = document.createElement("article");
     row.className = "selected-material-row";
 
-    const copy = document.createElement("div");
-    copy.className = "selected-material-copy";
-
-    const description = document.createElement("strong");
-    description.textContent = humaniseProductDescription(item.description);
-    const sku = document.createElement("span");
+    const sku = document.createElement("strong");
+    sku.className = "selected-material-sku";
     sku.textContent = item.sku;
-    copy.append(description, sku);
+
+    const description = document.createElement("span");
+    description.className = "selected-material-description";
+    description.textContent = humaniseProductDescription(item.description);
+    description.title = description.textContent;
 
     const controls = document.createElement("div");
     controls.className = "selected-material-controls";
@@ -766,7 +771,7 @@ function renderSelectedOtherMaterials(floor) {
     });
 
     controls.append(quantity, remove);
-    row.append(copy, controls);
+    row.append(sku, description, controls);
     list.append(row);
   });
 
@@ -1214,22 +1219,164 @@ async function loadOrderHistory(){
   const status=document.getElementById("orderHistoryStatus");const list=document.getElementById("orderHistoryList");status.textContent="Loading orders…";list.replaceChildren();
   try{const response=await fetch("/api/orders",{headers:{Accept:"application/json"}});if(response.status===401){window.location.replace("/signin/");return;}const result=await response.json().catch(()=>({ok:false,error:"The order history service returned an unreadable response."}));if(!response.ok||!result.ok)throw new Error(result.error||"Order history could not be loaded.");const orders=Array.isArray(result.orders)?result.orders:[];if(orders.length===0){status.textContent="No orders yet.";return;}status.textContent=`${orders.length} order${orders.length===1?"":"s"}`;orders.forEach((order)=>list.append(createHistoryOrderCard(order)));}catch(error){status.textContent=error.message||String(error);}}
 
-function createHistoryOrderCard(order){
-  const card=document.createElement("article");card.className="history-order";const header=document.createElement("div");header.className="history-order-header";const identity=document.createElement("div");const title=document.createElement("strong");title.textContent=order.customer_reference||order.submission_id;const meta=document.createElement("span");meta.textContent=[formatHistoryDate(order.updated_at||order.created_at),`Revision ${order.latest_revision||1}`].join(" · ");identity.append(title,meta);const actions=document.createElement("div");actions.className="history-header-actions";const badge=document.createElement("span");badge.className=`history-badge history-badge-${order.status||"unknown"}`;badge.textContent=String(order.status||"unknown").replace(/_/g," ");actions.append(badge);
-  if(order.can_edit)actions.append(actionButton("Edit order",()=>editOrder(order.submission_id)));
-  if(order.can_archive)actions.append(actionButton("Archive",()=>changeOrderArchiveStatus(order.submission_id,order.customer_reference,"archive")));
-  if(order.can_restore)actions.append(actionButton("Restore",()=>changeOrderArchiveStatus(order.submission_id,order.customer_reference,"restore")));
-  if(order.can_delete)actions.append(actionButton("Delete",()=>deleteOrder(order.submission_id,order.customer_reference),"button-danger"));
-  header.append(identity,actions);card.append(header);
+function createHistoryOrderCard(order) {
+  const card = document.createElement("article");
+  card.className = "history-order history-order-card";
 
-  const d=order.order_details||{};const detailGrid=document.createElement("div");detailGrid.className="history-detail-grid";[
-    ["Contact",[d.contact,d.mobile].filter(Boolean).join(" · ")],["Required",[d.required_date,d.required_time,d.time_slot].filter(Boolean).join(" · ")],["Delivery",d.delivery_type],["Address",d.delivery_address],["Extras",Array.isArray(d.extras)?d.extras.join(", "):""]
-  ].forEach(([label,value])=>{if(!value)return;const item=document.createElement("div");item.innerHTML=`<span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong>`;detailGrid.append(item);});if(detailGrid.children.length)card.append(detailGrid);
-  if(d.delivery_instructions){const instructions=document.createElement("div");instructions.className="history-note-block";instructions.innerHTML=`<strong>Delivery instructions</strong><span>${escapeHtml(d.delivery_instructions)}</span>`;card.append(instructions);}
+  const header = document.createElement("header");
+  header.className = "history-order-header";
 
-  if(Array.isArray(order.other_materials)&&order.other_materials.length){const block=document.createElement("div");block.className="history-note-block";const h=document.createElement("strong");h.textContent="Additional products";block.append(h);order.other_materials.forEach((floor)=>floor.items.forEach((item)=>{const line=document.createElement("span");line.textContent=`${floor.floor_label}: ${item.sku ? `${item.sku} — ` : ""}${item.description || "Product"} × ${item.quantity}`;block.append(line);}));card.append(block);}
-  if(Array.isArray(order.pending_mapping)&&order.pending_mapping.length){const details=document.createElement("details");details.className="history-mapping-block";const count=order.pending_mapping.reduce((t,f)=>t+(f.items?.length||0),0);const summary=document.createElement("summary");summary.textContent=`${count} standard form product line${count===1?"":"s"} awaiting stock-code mapping`;details.append(summary);order.pending_mapping.forEach((floor)=>floor.items.forEach((item)=>{const line=document.createElement("span");line.textContent=`${floor.floor_label}: ${item.label} × ${item.quantity}`;details.append(line);}));card.append(details);}
-  if(Array.isArray(order.files)&&order.files.length){const files=document.createElement("div");files.className="history-files";order.files.forEach((file)=>{const row=document.createElement("div");row.className="history-file-row";const info=document.createElement("div");info.className="history-file-info";const name=document.createElement("strong");name.textContent=file.filename;const detail=document.createElement("span");detail.textContent=[`Revision ${file.revision||1}`,file.floor_label,`${file.item_count} line${file.item_count===1?"":"s"}`].join(" · ");info.append(name,detail);row.append(info);if(file.download_url)row.append(createDownloadLink(file.download_url,file.filename));files.append(row);});card.append(files);}
+  const identity = document.createElement("div");
+  identity.className = "history-order-identity";
+  const title = document.createElement("strong");
+  title.textContent = order.customer_reference || order.submission_id;
+  const meta = document.createElement("span");
+  meta.textContent = [
+    formatHistoryDate(order.updated_at || order.created_at),
+    `Revision ${order.latest_revision || 1}`,
+  ].join(" · ");
+  identity.append(title, meta);
+
+  const badge = document.createElement("span");
+  badge.className = `history-badge history-badge-${order.status || "unknown"}`;
+  badge.textContent = String(order.status || "unknown").replace(/_/g, " ");
+  header.append(identity, badge);
+  card.append(header);
+
+  const details = order.order_details || {};
+  const summary = document.createElement("div");
+  summary.className = "history-order-summary";
+
+  [
+    ["Required", [details.required_date, details.required_time, details.time_slot].filter(Boolean).join(" · ")],
+    ["Delivery", details.delivery_type],
+    ["Address", details.delivery_address],
+  ].forEach(([label, value]) => {
+    if (!value) return;
+    const item = document.createElement("div");
+    const heading = document.createElement("span");
+    heading.textContent = label;
+    const content = document.createElement("strong");
+    content.textContent = value;
+    item.append(heading, content);
+    summary.append(item);
+  });
+  if (summary.children.length) card.append(summary);
+
+  const expandable = document.createElement("details");
+  expandable.className = "history-order-details";
+  const expandableSummary = document.createElement("summary");
+  expandableSummary.textContent = "Order details";
+  expandable.append(expandableSummary);
+
+  const detailBody = document.createElement("div");
+  detailBody.className = "history-order-detail-body";
+
+  const secondaryGrid = document.createElement("div");
+  secondaryGrid.className = "history-detail-grid";
+  [
+    ["Contact", [details.contact, details.mobile].filter(Boolean).join(" · ")],
+    ["Extras", Array.isArray(details.extras) ? details.extras.join(", ") : ""],
+  ].forEach(([label, value]) => {
+    if (!value) return;
+    const item = document.createElement("div");
+    const heading = document.createElement("span");
+    heading.textContent = label;
+    const content = document.createElement("strong");
+    content.textContent = value;
+    item.append(heading, content);
+    secondaryGrid.append(item);
+  });
+  if (secondaryGrid.children.length) detailBody.append(secondaryGrid);
+
+  if (details.delivery_instructions) {
+    const instructions = document.createElement("div");
+    instructions.className = "history-note-block";
+    const heading = document.createElement("strong");
+    heading.textContent = "Delivery instructions";
+    const content = document.createElement("span");
+    content.textContent = details.delivery_instructions;
+    instructions.append(heading, content);
+    detailBody.append(instructions);
+  }
+
+  if (Array.isArray(order.other_materials) && order.other_materials.length) {
+    const block = document.createElement("div");
+    block.className = "history-note-block history-products-block";
+    const heading = document.createElement("strong");
+    heading.textContent = "Additional products";
+    block.append(heading);
+    order.other_materials.forEach((floor) => {
+      floor.items.forEach((item) => {
+        const line = document.createElement("span");
+        line.textContent = `${floor.floor_label}: ${item.sku ? `${item.sku} — ` : ""}${item.description || "Product"} × ${item.quantity}`;
+        block.append(line);
+      });
+    });
+    detailBody.append(block);
+  }
+
+  if (Array.isArray(order.pending_mapping) && order.pending_mapping.length) {
+    const mapping = document.createElement("details");
+    mapping.className = "history-mapping-block";
+    const count = order.pending_mapping.reduce(
+      (total, floor) => total + (floor.items?.length || 0),
+      0,
+    );
+    const mappingSummary = document.createElement("summary");
+    mappingSummary.textContent = `${count} standard product line${count === 1 ? "" : "s"} awaiting stock-code mapping`;
+    mapping.append(mappingSummary);
+    order.pending_mapping.forEach((floor) => {
+      floor.items.forEach((item) => {
+        const line = document.createElement("span");
+        line.textContent = `${floor.floor_label}: ${item.label} × ${item.quantity}`;
+        mapping.append(line);
+      });
+    });
+    detailBody.append(mapping);
+  }
+
+  expandable.append(detailBody);
+  card.append(expandable);
+
+  const footer = document.createElement("footer");
+  footer.className = "history-order-footer";
+
+  const files = document.createElement("div");
+  files.className = "history-files";
+  if (Array.isArray(order.files)) {
+    order.files.forEach((file) => {
+      const row = document.createElement("div");
+      row.className = "history-file-row";
+      const info = document.createElement("div");
+      info.className = "history-file-info";
+      const name = document.createElement("strong");
+      name.textContent = file.filename;
+      const detail = document.createElement("span");
+      detail.textContent = [
+        file.floor_label,
+        `${file.item_count} line${file.item_count === 1 ? "" : "s"}`,
+      ].filter(Boolean).join(" · ");
+      info.append(name, detail);
+      row.append(info);
+      if (file.download_url) {
+        row.append(createDownloadLink(file.download_url, file.filename));
+      }
+      files.append(row);
+    });
+  }
+
+  const actions = document.createElement("div");
+  actions.className = "history-header-actions";
+  if (order.can_edit) actions.append(actionButton("Edit", () => editOrder(order.submission_id)));
+  if (order.can_archive) actions.append(actionButton("Archive", () => changeOrderArchiveStatus(order.submission_id, order.customer_reference, "archive")));
+  if (order.can_restore) actions.append(actionButton("Restore", () => changeOrderArchiveStatus(order.submission_id, order.customer_reference, "restore")));
+  if (order.can_delete) actions.append(actionButton("Delete", () => deleteOrder(order.submission_id, order.customer_reference), "button-danger"));
+
+  if (files.children.length) footer.append(files);
+  if (actions.children.length) footer.append(actions);
+  if (footer.children.length) card.append(footer);
+
   return card;
 }
 
@@ -1872,7 +2019,7 @@ async function requestAddressSuggestions(input) {
 }
 
 function appendGoogleMapsAttribution(container) {
-  const attribution = document.createElement("span");
+  const attribution = document.createElement("div");
   attribution.className = "google-maps-attribution";
   attribution.setAttribute("aria-hidden", "true");
   attribution.textContent = "Google Maps";
@@ -1900,9 +2047,7 @@ async function getAddressPredictionPreview(prediction) {
     await place.fetchFields({
       fields: ["formattedAddress", "addressComponents"],
     });
-    const parsed = parseGoogleAddress(place);
-    refreshAddressSessionToken();
-    return parsed;
+    return parseGoogleAddress(place);
   })().catch((error) => {
     console.debug("Address preview could not be enriched", error);
     return null;
@@ -1964,28 +2109,6 @@ function renderAddressSuggestions() {
     button.append(line);
 
     button.addEventListener(
-      "mouseenter",
-      () => {
-        void enrichAddressSuggestion(
-          prediction,
-          index,
-          state.addressRequestId,
-        );
-      },
-      { once: true },
-    );
-    button.addEventListener(
-      "focus",
-      () => {
-        void enrichAddressSuggestion(
-          prediction,
-          index,
-          state.addressRequestId,
-        );
-      },
-      { once: true },
-    );
-    button.addEventListener(
       "click",
       () => void selectAddressPrediction(prediction),
     );
@@ -1993,14 +2116,13 @@ function renderAddressSuggestions() {
   });
 
   window.clearTimeout(state.addressPreviewTimer);
-  if (state.addressPredictions[0]) {
-    const requestId = state.addressRequestId;
-    const prediction = state.addressPredictions[0];
-    state.addressPreviewTimer = window.setTimeout(() => {
-      if (requestId !== state.addressRequestId) return;
-      void enrichAddressSuggestion(prediction, 0, requestId);
-    }, 240);
-  }
+  const requestId = state.addressRequestId;
+  state.addressPreviewTimer = window.setTimeout(() => {
+    if (requestId !== state.addressRequestId) return;
+    state.addressPredictions.forEach((prediction, index) => {
+      void enrichAddressSuggestion(prediction, index, requestId);
+    });
+  }, 40);
 
   appendGoogleMapsAttribution(results);
   results.hidden = false;
@@ -2416,6 +2538,9 @@ function setActiveStep(step, options = {}) {
 
   state.activeStep = step;
 
+  const headerOrderButton = document.getElementById("openCartButton");
+  if (headerOrderButton) headerOrderButton.hidden = step === "details";
+
   if (step !== "products" && state.cartOpen) {
     closeCartDrawer();
   }
@@ -2431,6 +2556,10 @@ function setActiveStep(step, options = {}) {
         `[data-floor-panel="${state.activeFloor}"] [data-category-panel="${state.activeCategory}"]`,
       )?.scrollTo?.({ top: 0 });
     });
+  }
+
+  if (!options.silent) {
+    requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: "auto" }));
   }
 
   if (!options.silent && !state.isRestoringDraft) {
