@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>Accrivia Catalogue Import | Bell Plaster</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/catalog-admin/admin.css">
+</head>
+<body>
+  <main class="admin-shell">
+    <a class="back-link" href="/">← Back to order portal</a>
+    <section class="admin-card">
+      <img class="logo" src="https://bellplastersupplies.com.au/cdn/shop/files/bell_logo_black.png?v=1781229976" alt="Bell Plaster">
+      <p class="eyebrow">BPS Order Portal</p>
+      <h1>Accrivia product catalogue</h1>
+      <p class="intro">Upload the latest semicolon-separated Accrivia warehouse CSV. Existing stock codes are updated, new stock codes are added, and products missing from the latest export are marked inactive.</p>
+
+      <div class="status-grid">
+        <div><span>Active products</span><strong id="activeCount">—</strong></div>
+        <div><span>Latest import</span><strong id="latestImport">—</strong></div>
+      </div>
+
+      <label class="file-field">
+        <span>Accrivia CSV</span>
+        <input id="csvFile" type="file" accept=".csv,text/csv">
+      </label>
+
+      <div id="fileSummary" class="file-summary">Select the exported zISOHWhse.csv file.</div>
+      <div class="progress-track" aria-hidden="true"><div id="progressBar"></div></div>
+      <div id="message" class="message" hidden role="alert"></div>
+
+      <button id="importButton" type="button" disabled>Import catalogue</button>
+    </section>
+  </main>
+  <script src="/catalog-admin/admin.js" defer></script>
+</body>
+</html>

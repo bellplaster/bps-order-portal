@@ -351,7 +351,7 @@ async function generateAndSaveRevision(
     await addEvent(env, submissionId, stage);
 
     const orderDetails = normaliseOrderDetails(rawPayload);
-    const floors = normaliseFloors(rawPayload?.floors);
+    const floors = await normaliseFloors(env, rawPayload?.floors);
 
     if (Object.keys(floors).length === 0) {
       throw new Error("The order contains no included floor.");
@@ -368,15 +368,6 @@ async function generateAndSaveRevision(
         manualReview.push({ kind: "order-note", floor: floorKey, floorLabel: definition.label, details: floor.otherProducts });
       }
 
-      if (floor.otherMaterials.length > 0) {
-        manualReview.push({
-          kind: "other-materials",
-          floor: floorKey,
-          floorLabel: definition.label,
-          details: floor.otherMaterials.map((item) => `${item.description} × ${item.quantity}`).join("\n"),
-          items: floor.otherMaterials,
-        });
-      }
 
       const mappedItems = [];
       const unmappedItems = [];
@@ -407,23 +398,24 @@ async function generateAndSaveRevision(
         });
       }
 
-      if (mappedItems.length === 0) {
+      const productRows = combineProductRows([
+        ...mappedItems.map((item) => {
+          const product = PRODUCT_CATALOG[item.key];
+          return {
+            sku: product.sku,
+            description: product.description,
+            quantity: item.quantity,
+          };
+        }),
+        ...floor.otherMaterials,
+      ], definition.label);
+
+      if (productRows.length === 0) {
         continue;
       }
 
       stage = `Generating ${definition.label} revision ${revisionNo}`;
       await addEvent(env, submissionId, stage);
-
-      const productRows = mappedItems.map((item) => {
-        const product = PRODUCT_CATALOG[item.key];
-
-        return [
-          product.sku,
-          product.description,
-          item.quantity,
-          "",
-        ];
-      });
 
       const filename = revisionNo === 1
         ? `${orderNumber}-${definition.shortCode}.xlsx`
@@ -591,7 +583,7 @@ async function generateAndSaveRevision(
         orderDetails.contact,
         orderDetails.mobile,
         buildDeliverySummary(orderDetails),
-        JSON.stringify(rawPayload),
+        JSON.stringify({ ...rawPayload, floors }),
         nowIso(),
         submissionId,
       )
@@ -867,17 +859,102 @@ function normaliseOrderDetails(rawPayload) {
   };
 }
 
-function normaliseOtherMaterials(floorKey, rawItems) {
+async function normaliseOtherMaterials(env, floorKey, rawItems) {
   const rows = Array.isArray(rawItems) ? rawItems : [];
-  if (rows.length > 20) throw new Error(`${FLOORS[floorKey].label}: Too many Other Materials rows.`);
-  return rows.map((item, index) => {
-    const description = cleanRequiredText(item?.description, `${FLOORS[floorKey].label} Other Materials row ${index + 1}`, 200);
+
+  if (rows.length > 100) {
+    throw new Error(`${FLOORS[floorKey].label}: Too many Other Materials lines.`);
+  }
+
+  const totals = new Map();
+
+  rows.forEach((item, index) => {
+    const sku = cleanRequiredText(
+      item?.sku,
+      `${FLOORS[floorKey].label} Other Materials line ${index + 1} stock code`,
+      80,
+    ).toUpperCase();
     const quantity = Number(item?.quantity);
+
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) {
-      throw new Error(`${FLOORS[floorKey].label}: ${description} requires a quantity from 1 to 999.`);
+      throw new Error(`${FLOORS[floorKey].label}: ${sku} requires a quantity from 1 to 999.`);
     }
-    return { description, quantity };
+
+    totals.set(sku, (totals.get(sku) || 0) + quantity);
   });
+
+  for (const [sku, quantity] of totals.entries()) {
+    if (quantity > 999) {
+      throw new Error(`${FLOORS[floorKey].label}: combined quantity for ${sku} exceeds 999.`);
+    }
+  }
+
+  const skus = [...totals.keys()];
+  if (skus.length === 0) return [];
+
+  const found = new Map();
+
+  for (let start = 0; start < skus.length; start += 50) {
+    const chunk = skus.slice(start, start + 50);
+    const placeholders = chunk.map(() => "?").join(", ");
+    const result = await env.DB.prepare(
+      `SELECT sku, description_raw
+       FROM products
+       WHERE active = 1
+         AND sku COLLATE NOCASE IN (${placeholders})`,
+    )
+      .bind(...chunk)
+      .all();
+
+    for (const product of result.results || []) {
+      found.set(String(product.sku || "").toUpperCase(), {
+        sku: String(product.sku || ""),
+        description: String(product.description_raw || ""),
+      });
+    }
+  }
+
+  const missing = skus.filter((sku) => !found.has(sku));
+  if (missing.length > 0) {
+    throw new Error(
+      `${FLOORS[floorKey].label}: unknown or inactive Accrivia stock code${missing.length === 1 ? "" : "s"}: ${missing.slice(0, 8).join(", ")}${missing.length > 8 ? "…" : ""}.`,
+    );
+  }
+
+  return skus.map((sku) => ({
+    sku: found.get(sku).sku,
+    description: found.get(sku).description,
+    quantity: totals.get(sku),
+  }));
+}
+
+function combineProductRows(items, floorLabel) {
+  const combined = new Map();
+
+  for (const item of items) {
+    const sku = String(item?.sku || "").trim();
+    if (!sku) continue;
+    const key = sku.toUpperCase();
+    const current = combined.get(key) || {
+      sku,
+      description: String(item?.description || "").trim(),
+      quantity: 0,
+    };
+    current.quantity += Number(item?.quantity || 0);
+
+    if (current.quantity > 999) {
+      throw new Error(`${floorLabel}: combined quantity for ${sku} exceeds 999.`);
+    }
+
+    combined.set(key, current);
+  }
+
+  return [...combined.values()].map((item) => [
+    item.sku,
+    item.description,
+    item.quantity,
+    "",
+  ]);
 }
 
 function buildDeliverySummary(details) {
@@ -889,7 +966,7 @@ function buildDeliverySummary(details) {
   ].filter(Boolean).join(" | ");
 }
 
-function normaliseFloors(rawFloors) {
+async function normaliseFloors(env, rawFloors) {
   const floors = {};
 
   for (const floorKey of Object.keys(FLOORS)) {
@@ -905,7 +982,7 @@ function normaliseFloors(rawFloors) {
     );
 
     const otherProducts = cleanOptionalText(rawFloor.otherProducts, 3000);
-    const otherMaterials = normaliseOtherMaterials(floorKey, rawFloor.otherMaterials);
+    const otherMaterials = await normaliseOtherMaterials(env, floorKey, rawFloor.otherMaterials);
     const acousticFormat = ["Roll", "Batt"].includes(String(rawFloor.acousticFormat || ""))
       ? String(rawFloor.acousticFormat)
       : "Roll";

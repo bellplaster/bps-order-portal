@@ -1,20 +1,34 @@
-# BPS Standard Order Form UX patch
+# Searchable Other Materials patch
 
-Replace only:
+Replace/add only the files in this ZIP.
 
-- public/index.html
-- public/app.js
-- public/styles.css
+## What changes
 
-Changes:
+- Stores the full Accrivia catalogue in the existing Cloudflare D1 database.
+- Replaces the six free-text Other Materials rows with a searchable product picker.
+- Search accepts stock code or imperfect descriptions, including missing spaces and minor typing errors.
+- Allows up to 100 additional products per floor.
+- Selected products autosave with the existing browser draft and restore during order editing.
+- Backend validates every selected SKU against D1 and uses the D1 description in the XLSX.
+- Duplicate stock codes are combined into one XLSX line.
 
-- adds a strong visible border to every fillable quantity position;
-- retains grey blocked positions;
-- separates LENGTH and mm into separate matrix header rows;
-- corrects Multi 4 and Multi 3 with explicit Board Thickness and Board Width axes;
-- automatically saves quantities, notes, active floor and edit mode in localStorage;
-- restores the browser draft after an accidental close or refresh;
-- clears the saved draft after successful submission;
-- Enter moves to the next quantity box and Shift+Enter moves backwards.
+## Initial setup
 
-Drafts are stored only in the current browser/device. No D1 migration is required.
+### Easiest method
+
+1. Upload/replace the files in GitHub and wait for Cloudflare deployment.
+2. Sign in to the portal.
+3. Open `/catalog-admin/`.
+4. Upload `zISOHWhse.csv` and click **Import catalogue**.
+5. Return to the order portal and refresh once.
+
+The import page creates the required tables automatically. The migration file is included as the canonical schema but does not need to be run separately when using the import page.
+
+### Command-line alternative
+
+```bash
+npx wrangler d1 execute bps-order-portal --remote --file=./migrations/0002_products.sql
+npx wrangler d1 execute bps-order-portal --remote --file=./data/products_import.sql
+```
+
+`data/products_import.sql` was generated from the supplied CSV and contains 2,736 unique stock codes.

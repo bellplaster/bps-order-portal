@@ -1809,3 +1809,142 @@ code {
 
 @media(max-width:1200px){.order-details-panel{grid-template-columns:1fr}.delivery-options{border-top:1px solid var(--grid)}.product-top-layout{grid-template-columns:1fr}.specialty-stack{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.product-lower-layout{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.page-shell{width:calc(100% - 12px)}.order-card{padding:12px}.form-title-row{flex-direction:column}.floor-tabs{width:100%}.floor-tab{flex:1;justify-content:center}.details-fields{grid-template-columns:1fr}.compact-field,.field-wide,.field-full{grid-column:1}.delivery-options{grid-template-columns:1fr}.choice-panel{border-left:0}.product-lower-layout,.specialty-stack{grid-template-columns:1fr}.history-detail-grid{grid-template-columns:1fr}}
+
+
+/* Searchable Accrivia catalogue for Other Materials */
+.searchable-materials-section .product-section-body {
+  padding: 12px;
+  background: #f8fafc;
+}
+
+.other-materials-intro {
+  margin: 0 0 10px;
+  color: #5d6966;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.catalogue-picker {
+  position: relative;
+  z-index: 20;
+}
+
+.catalogue-search-input {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid #879993;
+  border-radius: 5px;
+  background: #fff;
+  color: #17211f;
+  font: 600 13px Inter, sans-serif;
+}
+
+.catalogue-search-input:focus {
+  border-color: #006557;
+  outline: 2px solid rgba(0, 101, 87, .16);
+  outline-offset: 0;
+}
+
+.catalogue-search-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  left: 0;
+  max-height: 340px;
+  overflow-y: auto;
+  border: 1px solid #9eaaa7;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(28, 52, 46, .18);
+}
+
+.catalogue-result {
+  display: grid;
+  width: 100%;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid #e1e7e5;
+  border-radius: 0;
+  background: #fff;
+  color: #17211f;
+  text-align: left;
+  cursor: pointer;
+}
+
+.catalogue-result:last-child { border-bottom: 0; }
+.catalogue-result:hover,
+.catalogue-result.is-active { background: #edf7f3; }
+.catalogue-result strong { color: #006557; font-size: 12px; }
+.catalogue-result span { overflow-wrap: anywhere; font-size: 11px; }
+.catalogue-no-results { padding: 13px; color: #65716e; font-size: 12px; }
+
+.selected-materials {
+  margin-top: 11px;
+  border: 1px solid #b3bfbb;
+  border-radius: 5px;
+  background: #fff;
+}
+
+.selected-materials-empty {
+  padding: 13px;
+  color: #6b7673;
+  font-size: 11px;
+}
+
+.selected-materials-header,
+.selected-material-row {
+  display: grid;
+  grid-template-columns: minmax(82px, .7fr) minmax(190px, 2.2fr) 62px 66px;
+  align-items: center;
+  gap: 8px;
+}
+
+.selected-materials-header {
+  padding: 7px 9px;
+  border-bottom: 1px solid #b3bfbb;
+  background: #dfe7eb;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.selected-material-row {
+  padding: 8px 9px;
+  border-bottom: 1px solid #e0e6e4;
+  font-size: 11px;
+}
+
+.selected-material-row:last-child { border-bottom: 0; }
+.selected-material-row > strong { color: #006557; overflow-wrap: anywhere; }
+.selected-material-description { overflow-wrap: anywhere; line-height: 1.35; }
+.selected-material-row .other-material-quantity {
+  width: 58px;
+  min-height: 32px;
+  padding: 4px 14px 4px 5px;
+  border: 1px solid #7f918b;
+  border-radius: 4px;
+  text-align: center;
+  font: 700 12px Inter, sans-serif;
+}
+
+.remove-material-button {
+  padding: 6px 7px;
+  border: 1px solid #d7a5a5;
+  border-radius: 4px;
+  background: #fff;
+  color: #9d2929;
+  font: 700 10px Inter, sans-serif;
+  cursor: pointer;
+}
+.remove-material-button:hover { background: #fff1f1; }
+
+@media (max-width: 700px) {
+  .selected-materials-header { display: none; }
+  .selected-material-row {
+    grid-template-columns: 1fr 62px;
+  }
+  .selected-material-description { grid-column: 1 / -1; grid-row: 2; }
+  .remove-material-button { grid-column: 1 / -1; width: fit-content; }
+}
