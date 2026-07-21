@@ -10,10 +10,12 @@ const state = {
   productDirectory: [],
   productDirectoryLoaded: false,
   otherMaterials: { ground: [], first: [] },
+  activeStep: "details",
+  activeCategory: "boards",
 };
 
-const DRAFT_STORAGE_KEY = "bps-knauf-order-form-draft-v6";
-const DRAFT_VERSION = 6;
+const DRAFT_STORAGE_KEY = "bps-knauf-order-form-draft-v7";
+const DRAFT_VERSION = 7;
 const floorLabels = { ground: "Ground Floor", first: "1st Floor" };
 
 document.addEventListener("DOMContentLoaded", initialise);
@@ -24,13 +26,23 @@ async function initialise() {
   bindLogout();
   bindDraftPersistence();
   bindOrderDetailInteractions();
+  bindKioskNavigation();
+  bindCategoryNavigation();
+  bindGlobalProductSearch();
+  bindHistoryDrawer();
+  bindCurrentOrderActions();
+
   document.getElementById("refreshHistoryButton").addEventListener("click", loadOrderHistory);
   document.getElementById("cancelEditButton").addEventListener("click", cancelEdit);
   document.getElementById("orderDate").value = todayLocal();
+
   await loadCatalog();
   await loadProductDirectory();
   restoreDraft();
   updateAllFloorCounts();
+  activateCategory(state.activeCategory, { silent: true });
+  setActiveStep(state.activeStep, { skipValidation: true, silent: true });
+  renderCurrentOrder();
   await loadOrderHistory();
 }
 
@@ -52,6 +64,23 @@ function activateFloorTab(floor) {
     panel.hidden = !active;
   });
   state.activeFloor = floor;
+
+  const workspaceFloorLabel = document.getElementById("workspaceFloorLabel");
+  if (workspaceFloorLabel) {
+    workspaceFloorLabel.textContent = floorLabels[floor];
+  }
+
+  const search = document.getElementById("globalProductSearch");
+  if (search) {
+    search.setAttribute(
+      "aria-label",
+      `Search products to add to ${floorLabels[floor]}`,
+    );
+  }
+
+  activateCategory(state.activeCategory, { silent: true });
+  renderCurrentOrder();
+
   if (!state.isRestoringDraft) scheduleDraftSave();
 }
 
@@ -70,7 +99,7 @@ function bindOrderDetailInteractions() {
   document.querySelectorAll(
     "#orderForm input:not(.quantity-input), #orderForm textarea, #orderForm input[type=radio], #orderForm input[type=checkbox]",
   ).forEach((field) => {
-    if (["logoutButton", "submitButton", "cancelEditButton"].includes(field.id)) return;
+    if (["logoutButton", "submitButton", "cancelEditButton", "globalProductSearch"].includes(field.id)) return;
     field.addEventListener("input", markDraftChanged);
     field.addEventListener("change", markDraftChanged);
   });
@@ -133,12 +162,24 @@ async function loadProductDirectory() {
     }));
     state.productDirectoryLoaded = true;
 
+    const globalSearch = document.getElementById("globalProductSearch");
+    if (globalSearch) {
+      globalSearch.disabled = false;
+      globalSearch.placeholder = "Search stock code, product or size";
+    }
+
     document.querySelectorAll("[data-product-search]").forEach((input) => {
       input.disabled = false;
       input.placeholder = "Search stock code or product description";
     });
   } catch (error) {
     state.productDirectoryLoaded = false;
+    const globalSearch = document.getElementById("globalProductSearch");
+    if (globalSearch) {
+      globalSearch.disabled = true;
+      globalSearch.placeholder = "Product catalogue unavailable";
+    }
+
     document.querySelectorAll("[data-product-search]").forEach((input) => {
       input.disabled = true;
       input.placeholder = "Product catalogue unavailable";
@@ -151,24 +192,91 @@ function renderFloorSheet(floor) {
   const container = document.getElementById(`${floor}OrderSheet`);
   container.replaceChildren();
 
-  const top = document.createElement("div");
-  top.className = "product-top-layout";
-  top.append(renderMainBoardMatrix(floor, state.layout.mainBoard));
-  top.append(renderSpecialtyBoards(floor, state.layout.specialtyBoards));
-  container.append(top);
+  const definitions = [
+    {
+      id: "boards",
+      nodes: [
+        renderMainBoardMatrix(floor, state.layout.mainBoard),
+        renderSpecialtyBoards(floor, state.layout.specialtyBoards),
+      ],
+    },
+    {
+      id: "cornice",
+      nodes: [
+        renderSection(floor, state.layout.sections.cove),
+        renderSection(floor, state.layout.sections.decorative),
+      ],
+    },
+    {
+      id: "compounds",
+      nodes: [
+        renderSection(floor, state.layout.sections.compounds),
+      ],
+    },
+    {
+      id: "partiwall",
+      nodes: [
+        renderSection(floor, state.layout.sections.partiwall),
+        renderSection(floor, state.layout.sections.partiwall_accessories),
+        renderSection(floor, state.layout.sections.partiwall_screws),
+      ],
+    },
+    {
+      id: "fixings",
+      nodes: [
+        renderSection(floor, state.layout.sections.screws),
+        renderSection(floor, state.layout.sections.nails),
+      ],
+    },
+    {
+      id: "ceilings",
+      nodes: [
+        renderSection(floor, state.layout.sections.usg_tiles),
+        renderSection(floor, state.layout.sections.knauf_tiles),
+      ],
+    },
+    {
+      id: "villaboard",
+      nodes: [
+        renderSection(floor, state.layout.sections.villaboard),
+      ],
+    },
+    {
+      id: "insulation",
+      nodes: [
+        renderSection(floor, state.layout.sections.insulation),
+      ],
+    },
+    {
+      id: "rondo",
+      nodes: [
+        renderSection(floor, state.layout.sections.rondo),
+      ],
+    },
+    {
+      id: "all_products",
+      nodes: [
+        renderSection(floor, state.layout.sections.other_materials),
+      ],
+    },
+  ];
 
-  const lower = document.createElement("div");
-  lower.className = "product-lower-layout";
-  state.layout.lowerColumns.forEach((sectionIds) => {
-    const column = document.createElement("div");
-    column.className = "product-layout-column";
-    sectionIds.forEach((id) => {
-      const def = state.layout.sections[id];
-      if (def) column.append(renderSection(floor, def));
-    });
-    lower.append(column);
+  definitions.forEach((definition) => {
+    const panel = document.createElement("div");
+    panel.className = "category-panel";
+    panel.dataset.categoryPanel = definition.id;
+    panel.hidden = definition.id !== state.activeCategory;
+
+    const content = document.createElement("div");
+    content.className =
+      definition.id === "boards"
+        ? "category-content category-content-boards"
+        : "category-content";
+
+    definition.nodes.filter(Boolean).forEach((node) => content.append(node));
+    panel.append(content);
+    container.append(panel);
   });
-  container.append(lower);
 }
 
 function renderMainBoardMatrix(floor, matrix) {
@@ -323,51 +431,19 @@ function renderInsulationSection(floor, def) {
 function renderOtherMaterialsSection(floor, def) {
   const section = createSectionShell(
     "compact-section other-materials-section searchable-materials-section",
-    def.title,
+    "PRODUCTS ADDED FROM SEARCH",
   );
 
   const intro = document.createElement("p");
   intro.className = "other-materials-intro";
-  intro.textContent = "Search the Accrivia catalogue and add as many products as required.";
-
-  const picker = document.createElement("div");
-  picker.className = "catalogue-picker";
-
-  const search = document.createElement("input");
-  search.type = "search";
-  search.className = "catalogue-search-input";
-  search.placeholder = state.productDirectoryLoaded
-    ? "Search stock code or product description"
-    : "Loading product catalogue…";
-  search.disabled = !state.productDirectoryLoaded;
-  search.autocomplete = "off";
-  search.dataset.productSearch = floor;
-  search.setAttribute("aria-label", `${floorLabels[floor]} other materials search`);
-
-  const results = document.createElement("div");
-  results.className = "catalogue-search-results";
-  results.dataset.productResults = floor;
-  results.hidden = true;
-
-  search.addEventListener("input", () => {
-    renderProductSearchResults(floor, search.value, search, results);
-  });
-  search.addEventListener("keydown", (event) => {
-    handleProductSearchKeydown(event, floor, search, results);
-  });
-  search.addEventListener("focus", () => {
-    if (search.value.trim()) {
-      renderProductSearchResults(floor, search.value, search, results);
-    }
-  });
-
-  picker.append(search, results);
+  intro.textContent =
+    `Use the search bar above to add any Accrivia product to ${floorLabels[floor]}.`;
 
   const selected = document.createElement("div");
   selected.className = "selected-materials";
   selected.dataset.selectedMaterials = floor;
 
-  section.body.append(intro, picker, selected);
+  section.body.append(intro, selected);
   renderSelectedOtherMaterials(floor);
   return section.root;
 }
@@ -403,7 +479,11 @@ function renderProductSearchResults(floor, query, search, results) {
     sku.textContent = product.sku;
     const description = document.createElement("span");
     description.textContent = product.description;
-    button.append(sku, description);
+
+    const addLabel = document.createElement("em");
+    addLabel.textContent = "Add";
+
+    button.append(sku, description, addLabel);
 
     button.addEventListener("mousedown", (event) => event.preventDefault());
     button.addEventListener("click", () => addOtherMaterial(floor, product, search, results));
@@ -478,6 +558,9 @@ function addOtherMaterial(floor, product, search, results) {
   search.value = "";
   results.hidden = true;
   search._catalogueMatches = [];
+
+  activateCategory("all_products");
+  renderCurrentOrder();
 }
 
 function renderSelectedOtherMaterials(floor) {
@@ -523,6 +606,7 @@ function renderSelectedOtherMaterials(floor) {
       normaliseQuantityField(quantity);
       item.quantity = Number(quantity.value || 0);
       updateFloorCount(floor);
+      renderCurrentOrder();
       markDraftChanged();
     });
 
@@ -534,6 +618,7 @@ function renderSelectedOtherMaterials(floor) {
       state.otherMaterials[floor] = state.otherMaterials[floor].filter((candidate) => candidate.sku !== item.sku);
       renderSelectedOtherMaterials(floor);
       updateFloorCount(floor);
+      renderCurrentOrder();
       markDraftChanged();
     });
 
@@ -621,7 +706,13 @@ function createQuantityCell(floor,key){const td=document.createElement("td");if(
 function createStandaloneQuantity(floor,key){const wrap=document.createElement("div");wrap.className="standalone-quantity";wrap.append(createQuantityInput(floor,key));return wrap;}
 function createQuantityInput(floor,key){
   const product=state.catalog[key]; const input=document.createElement("input");input.className="quantity-input";input.type="number";input.min="0";input.max="999";input.step="1";input.inputMode="numeric";input.autocomplete="off";input.placeholder="0";input.dataset.productKey=key;input.dataset.floor=floor;input.title=product?.label||key;input.setAttribute("aria-label",`${product?.label||key} quantity for ${floorLabels[floor]}`);
-  input.addEventListener("input",()=>{normaliseQuantityField(input);updateFloorCount(floor);markDraftChanged();});
+  input.addEventListener("input",()=>{
+    normaliseQuantityField(input);
+    updateQuantityAppearance(input);
+    updateFloorCount(floor);
+    renderCurrentOrder();
+    markDraftChanged();
+  });
   input.addEventListener("focus",()=>input.select());
   input.addEventListener("keydown",(event)=>{if(event.key!=="Enter")return;event.preventDefault();focusNextQuantityField(floor,input,event.shiftKey?-1:1);});
   return input;
@@ -642,6 +733,7 @@ function updateFloorCount(floor) {
   const standard = getFloorItems(floor).length;
   const other = getOtherMaterials(floor).length;
   document.getElementById(`${floor}TabCount`).textContent = String(standard + other);
+  updateCategoryBadges();
 }
 function updateAllFloorCounts(){updateFloorCount("ground");updateFloorCount("first");}
 
@@ -665,22 +757,58 @@ async function submitOrder(event){
   event.preventDefault();if(state.isSubmitting)return;clearMessage();document.getElementById("successPanel").hidden=true;
   try{validateOrder();const payload=buildPayload();const editing=Boolean(state.editingOrder);const endpoint=editing?`/api/orders/${encodeURIComponent(state.editingOrder.submissionId)}`:"/api/submit";state.isSubmitting=true;const button=document.getElementById("submitButton");button.disabled=true;button.textContent=editing?"Saving changes…":"Generating files…";showMessage(editing?`Generating an updated revision for ${state.editingOrder.orderNumber}…`:"Generating order files…","info");
     const response=await fetch(endpoint,{method:editing?"PUT":"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify(payload)});if(response.status===401){window.location.replace("/signin/");return;}const result=await response.json().catch(()=>({ok:false,error:"The submission service returned an unreadable response."}));if(!response.ok||!result.ok){const stage=result.diagnostic?.lastStage?.stage;const parts=[result.error||"The order could not be generated."];if(stage)parts.push(`Failed stage: ${stage}.`);if(result.requestId)parts.push(`Request ID: ${result.requestId}.`);throw new Error(parts.join(" "));}
-    showSuccess(result);await loadOrderHistory();clearSavedDraft({statusText:result.updated?"Revision saved. Local draft cleared.":"Order submitted. Local draft cleared."});if(editing)resetOrderForm();else state.suppressDraftUntilInput=true;
+    showSuccess(result);await loadOrderHistory();clearSavedDraft({statusText:result.updated?"Revision saved. Local draft cleared.":"Order submitted. Local draft cleared."});if(editing){state.editingOrder=null;document.getElementById("editModeBanner").hidden=true;document.getElementById("editOrderNumber").textContent="";document.getElementById("editRevisionText").textContent="";}state.suppressDraftUntilInput=true;
   }catch(error){showMessage(error.message||String(error),"error");}finally{state.isSubmitting=false;const button=document.getElementById("submitButton");button.disabled=false;button.textContent=state.editingOrder?"Save changes":"Submit order";}}
 
-function validateOrder(){
-  const details=getOrderDetails();
-  if(!details.contact)throw new Error("Enter the contact name.");
-  if(!details.mobile)throw new Error("Enter the contact mobile number.");
-  if(!details.requiredDate)throw new Error("Select the required date.");
-  if(!details.requiredTime)throw new Error("Select the required time.");
-  if(!details.timeSlot)throw new Error("Select a time slot.");
-  if(!details.deliveryType)throw new Error("Select the delivery type.");
-  if(details.deliveryType!=="Pickup (Customer to collect)"&&!details.deliveryAddress)throw new Error("Enter the delivery address.");
-  const items=getFloorItems("ground").length+getFloorItems("first").length;
-  const other=getOtherMaterials("ground").length+getOtherMaterials("first").length;
-  if(items===0&&other===0)throw new Error("Enter a quantity for at least one product.");
-  ["ground","first"].forEach((floor)=>getOtherMaterials(floor).forEach((item)=>{if(!item.sku||!Number.isInteger(item.quantity)||item.quantity<1||item.quantity>999)throw new Error(`${floorLabels[floor]}: each Other Materials product requires a valid stock code and quantity from 1 to 999.`);}));
+function validateOrderDetails() {
+  const details = getOrderDetails();
+
+  if (!details.contact) throw new Error("Enter the contact name.");
+  if (!details.mobile) throw new Error("Enter the contact mobile number.");
+  if (!details.requiredDate) throw new Error("Select the required date.");
+  if (!details.requiredTime) throw new Error("Select the required time.");
+  if (!details.timeSlot) throw new Error("Select a time slot.");
+  if (!details.deliveryType) throw new Error("Select the delivery type.");
+
+  if (
+    details.deliveryType !== "Pickup (Customer to collect)" &&
+    !details.deliveryAddress
+  ) {
+    throw new Error("Enter the delivery address.");
+  }
+}
+
+function validateProducts() {
+  const items =
+    getFloorItems("ground").length +
+    getFloorItems("first").length;
+  const other =
+    getOtherMaterials("ground").length +
+    getOtherMaterials("first").length;
+
+  if (items === 0 && other === 0) {
+    throw new Error("Add at least one product to the order.");
+  }
+
+  ["ground", "first"].forEach((floor) =>
+    getOtherMaterials(floor).forEach((item) => {
+      if (
+        !item.sku ||
+        !Number.isInteger(item.quantity) ||
+        item.quantity < 1 ||
+        item.quantity > 999
+      ) {
+        throw new Error(
+          `${floorLabels[floor]}: each searched product requires a quantity from 1 to 999.`,
+        );
+      }
+    }),
+  );
+}
+
+function validateOrder() {
+  validateOrderDetails();
+  validateProducts();
 }
 
 function buildPayload(){
@@ -691,6 +819,7 @@ function buildPayload(){
 }
 
 function showSuccess(result){
+  setActiveStep("review", { skipValidation: true, silent: true });
   clearMessage();const panel=document.getElementById("successPanel");const title=document.getElementById("successTitle");const summary=document.getElementById("successSummary");const files=document.getElementById("generatedFiles");files.replaceChildren();const generated=Array.isArray(result.generatedFiles)?result.generatedFiles:[];title.textContent=result.updated?"Order updated":"Order created";
   summary.textContent=generated.length>0?(result.updated?`${generated.length} replacement file${generated.length===1?" was":"s were"} generated for Revision ${result.revisionNo}.`:`${generated.length} Accrivia file${generated.length===1?" was":"s were"} generated and saved.`):"The order was saved successfully. Bell Plaster will process the selected lines.";
   generated.forEach((file)=>{const item=document.createElement("div");item.className="generated-file";const info=document.createElement("div");info.className="generated-file-info";const name=document.createElement("strong");name.textContent=file.filename;const detail=document.createElement("span");detail.textContent=`${file.floorLabel} · ${file.itemCount} line${file.itemCount===1?"":"s"}`;info.append(name,detail);item.append(info);if(file.downloadUrl)item.append(createDownloadLink(file.downloadUrl,file.filename));files.append(item);});
@@ -728,7 +857,7 @@ async function editOrder(submissionId){clearMessage();document.getElementById("s
 function populateOrderForEditing(result){
   clearProductSelections();const payload=result.payload||{};setOrderDetails(payload);const floors=payload.floors||{};
   ["ground","first"].forEach((floor)=>{const p=floors[floor];if(!p)return;(p.items||[]).forEach((item)=>{const field=document.querySelector(`.quantity-input[data-floor="${floor}"][data-product-key="${cssEscape(item.key)}"]`);if(field)field.value=String(item.quantity);});state.otherMaterials[floor]=(p.otherMaterials||[]).map((item)=>({sku:item.sku||"",description:item.description||item.description_raw||state.productDirectory.find((product)=>product.sku.toUpperCase()===String(item.sku||"").toUpperCase())?.description||"",quantity:Number(item.quantity||1)})).filter((item)=>item.sku);renderSelectedOtherMaterials(floor);const acoustic=document.querySelector(`input[name="${floor}AcousticFormat"][value="${cssEscape(p.acousticFormat||"Roll")}"]`);if(acoustic)acoustic.checked=true;updateFloorCount(floor);});
-  state.editingOrder={submissionId:result.order.submissionId,orderNumber:result.order.orderNumber,latestRevision:result.order.latestRevision};document.getElementById("editOrderNumber").textContent=result.order.orderNumber;document.getElementById("editRevisionText").textContent=`Saving will create Revision ${result.order.latestRevision+1}. Earlier files will remain available.`;document.getElementById("editModeBanner").hidden=false;document.getElementById("submitButton").textContent="Save changes";activateFloorTab(floors.ground?"ground":"first");state.suppressDraftUntilInput=false;saveDraftNow();window.scrollTo({top:0,behavior:"smooth"});
+  state.editingOrder={submissionId:result.order.submissionId,orderNumber:result.order.orderNumber,latestRevision:result.order.latestRevision};document.getElementById("editOrderNumber").textContent=result.order.orderNumber;document.getElementById("editRevisionText").textContent=`Saving will create Revision ${result.order.latestRevision+1}. Earlier files will remain available.`;document.getElementById("editModeBanner").hidden=false;document.getElementById("submitButton").textContent="Save changes";activateFloorTab(floors.ground?"ground":"first");state.suppressDraftUntilInput=false;saveDraftNow();closeHistoryDrawer();setActiveStep("products",{skipValidation:true});renderCurrentOrder();window.scrollTo({top:0,behavior:"smooth"});
 }
 
 function setOrderDetails(p){
@@ -737,20 +866,593 @@ function setOrderDetails(p){
 }
 function setRadio(name,value){document.querySelectorAll(`input[name="${name}"]`).forEach((f)=>{f.checked=f.value===value;});}
 function cancelEdit(){resetOrderForm();clearMessage();document.getElementById("successPanel").hidden=true;}
-function resetOrderForm(){state.editingOrder=null;clearProductSelections();clearOrderDetails();activateFloorTab("ground");document.getElementById("editModeBanner").hidden=true;document.getElementById("editOrderNumber").textContent="";document.getElementById("editRevisionText").textContent="";document.getElementById("submitButton").textContent="Submit order";clearSavedDraft({statusText:"Form cleared."});state.suppressDraftUntilInput=true;}
+function resetOrderForm(){state.editingOrder=null;clearProductSelections();clearOrderDetails();activateFloorTab("ground");activateCategory("boards",{silent:true});setActiveStep("details",{skipValidation:true,silent:true});document.getElementById("editModeBanner").hidden=true;document.getElementById("editOrderNumber").textContent="";document.getElementById("editRevisionText").textContent="";document.getElementById("submitButton").textContent="Submit order";document.getElementById("successPanel").hidden=true;clearSavedDraft({statusText:"Form cleared."});state.suppressDraftUntilInput=true;renderCurrentOrder();}
 function clearOrderDetails(){document.getElementById("orderDate").value=todayLocal();document.getElementById("accountReference").value="BPS BRUNSW17";document.getElementById("customerName").value="BPS Brunswick Plastering Services";["contactName","contactMobile","deliveryAddress","deliveryInstructions","requiredDate","requiredTime"].forEach((id)=>document.getElementById(id).value="");setRadio("timeSlot","ANY");setRadio("deliveryType","");document.querySelectorAll('input[name="deliveryExtra"]').forEach((f)=>f.checked=false);updatePickupAddressRequirement();}
 function clearProductSelections(){document.querySelectorAll(".quantity-input").forEach((f)=>f.value="");["ground","first"].forEach((floor)=>{state.otherMaterials[floor]=[];renderSelectedOtherMaterials(floor);setRadio(`${floor}AcousticFormat`,"Roll");updateFloorCount(floor);});}
 
 async function changeOrderArchiveStatus(submissionId,orderNumber,action){const verb=action==="archive"?"archive":"restore";if(action==="archive"&&!window.confirm(`Archive ${orderNumber}? The order and files will remain available.`))return;try{const response=await fetch(`/api/orders/${encodeURIComponent(submissionId)}`,{method:"PATCH",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({action})});const result=await response.json().catch(()=>({ok:false,error:`The order could not be ${verb}d.`}));if(!response.ok||!result.ok)throw new Error(result.error||`The order could not be ${verb}d.`);if(state.editingOrder?.submissionId===submissionId&&action==="archive")cancelEdit();await loadOrderHistory();}catch(error){showMessage(error.message||String(error),"error");}}
 async function deleteOrder(submissionId,orderNumber){if(!window.confirm(`Permanently delete ${orderNumber}? This removes its order history and every generated file. This cannot be undone.`))return;const typed=window.prompt(`Type ${orderNumber} to confirm permanent deletion.`);if(typed!==orderNumber){showMessage("Deletion cancelled because the order number did not match.","error");return;}try{const response=await fetch(`/api/orders/${encodeURIComponent(submissionId)}`,{method:"DELETE",headers:{Accept:"application/json"}});const result=await response.json().catch(()=>({ok:false,error:"The order could not be deleted."}));if(!response.ok||!result.ok)throw new Error(result.error||"The order could not be deleted.");if(state.editingOrder?.submissionId===submissionId)cancelEdit();document.getElementById("successPanel").hidden=true;clearMessage();await loadOrderHistory();}catch(error){showMessage(error.message||String(error),"error");}}
 
+
+function bindKioskNavigation() {
+  document.querySelectorAll("[data-step-target]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const target = button.dataset.stepTarget;
+
+      try {
+        if (target === "products") validateOrderDetails();
+        if (target === "review") {
+          validateOrder();
+          renderReviewStep();
+        }
+        setActiveStep(target);
+      } catch (error) {
+        showMessage(error.message || String(error), "error");
+        setActiveStep(target === "review" ? "products" : "details", {
+          skipValidation: true,
+        });
+      }
+    });
+  });
+
+  document
+    .getElementById("continueToProductsButton")
+    .addEventListener("click", () => {
+      try {
+        validateOrderDetails();
+        setActiveStep("products");
+      } catch (error) {
+        showMessage(error.message || String(error), "error");
+      }
+    });
+
+  document
+    .getElementById("reviewOrderButton")
+    .addEventListener("click", () => {
+      try {
+        validateOrder();
+        renderReviewStep();
+        setActiveStep("review");
+      } catch (error) {
+        showMessage(error.message || String(error), "error");
+      }
+    });
+
+  document
+    .getElementById("backToProductsButton")
+    .addEventListener("click", () => setActiveStep("products", {
+      skipValidation: true,
+    }));
+
+  document
+    .getElementById("editDetailsButton")
+    .addEventListener("click", () => setActiveStep("details", {
+      skipValidation: true,
+    }));
+
+  document
+    .getElementById("editProductsButton")
+    .addEventListener("click", () => setActiveStep("products", {
+      skipValidation: true,
+    }));
+
+  document
+    .getElementById("startNewOrderButton")
+    .addEventListener("click", resetOrderForm);
+}
+
+function setActiveStep(step, options = {}) {
+  if (!["details", "products", "review"].includes(step)) {
+    step = "details";
+  }
+
+  document.querySelectorAll("[data-kiosk-step]").forEach((panel) => {
+    const active = panel.dataset.kioskStep === step;
+    panel.classList.toggle("is-active", active);
+    panel.hidden = !active;
+  });
+
+  document.querySelectorAll("[data-step-target]").forEach((button) => {
+    const steps = ["details", "products", "review"];
+    const currentIndex = steps.indexOf(step);
+    const buttonIndex = steps.indexOf(button.dataset.stepTarget);
+    button.classList.toggle("is-active", buttonIndex === currentIndex);
+    button.classList.toggle("is-complete", buttonIndex < currentIndex);
+    button.setAttribute(
+      "aria-current",
+      buttonIndex === currentIndex ? "step" : "false",
+    );
+  });
+
+  state.activeStep = step;
+
+  if (step === "review") {
+    renderReviewStep();
+  }
+
+  if (step === "products") {
+    renderCurrentOrder();
+    requestAnimationFrame(() => {
+      document.querySelector(
+        `[data-floor-panel="${state.activeFloor}"] [data-category-panel="${state.activeCategory}"]`,
+      )?.scrollTo?.({ top: 0 });
+    });
+  }
+
+  if (!options.silent && !state.isRestoringDraft) {
+    scheduleDraftSave();
+  }
+}
+
+function bindCategoryNavigation() {
+  document.querySelectorAll("[data-category-target]").forEach((button) => {
+    button.addEventListener("click", () => {
+      activateCategory(button.dataset.categoryTarget);
+    });
+  });
+}
+
+function activateCategory(category, options = {}) {
+  const button = document.querySelector(
+    `[data-category-target="${cssEscape(category)}"]`,
+  );
+
+  if (!button) {
+    category = "boards";
+  }
+
+  document.querySelectorAll("[data-category-target]").forEach((item) => {
+    item.classList.toggle(
+      "is-active",
+      item.dataset.categoryTarget === category,
+    );
+  });
+
+  document.querySelectorAll("[data-category-panel]").forEach((panel) => {
+    panel.hidden = panel.dataset.categoryPanel !== category;
+  });
+
+  const activeButton = document.querySelector(
+    `[data-category-target="${cssEscape(category)}"]`,
+  );
+
+  document.getElementById("activeCategoryTitle").textContent =
+    activeButton?.dataset.categoryTitle || "Products";
+  document.getElementById("activeCategoryDescription").textContent =
+    activeButton?.dataset.categoryDescription || "";
+
+  state.activeCategory = category;
+
+  if (category === "all_products") {
+    requestAnimationFrame(() => {
+      document.getElementById("globalProductSearch")?.focus();
+    });
+  }
+
+  if (!options.silent && !state.isRestoringDraft) {
+    scheduleDraftSave();
+  }
+}
+
+function bindGlobalProductSearch() {
+  const search = document.getElementById("globalProductSearch");
+  const results = document.getElementById("globalProductResults");
+
+  search.addEventListener("input", () => {
+    renderProductSearchResults(
+      state.activeFloor,
+      search.value,
+      search,
+      results,
+    );
+  });
+
+  search.addEventListener("keydown", (event) => {
+    handleProductSearchKeydown(
+      event,
+      state.activeFloor,
+      search,
+      results,
+    );
+  });
+
+  search.addEventListener("focus", () => {
+    if (search.value.trim()) {
+      renderProductSearchResults(
+        state.activeFloor,
+        search.value,
+        search,
+        results,
+      );
+    }
+  });
+
+  document.addEventListener("pointerdown", (event) => {
+    if (
+      !event.target.closest(".global-product-search") &&
+      !results.hidden
+    ) {
+      results.hidden = true;
+    }
+  });
+}
+
+function bindHistoryDrawer() {
+  document
+    .getElementById("openHistoryButton")
+    .addEventListener("click", openHistoryDrawer);
+
+  document
+    .getElementById("closeHistoryButton")
+    .addEventListener("click", closeHistoryDrawer);
+
+  document
+    .getElementById("historyBackdrop")
+    .addEventListener("click", closeHistoryDrawer);
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeHistoryDrawer();
+    }
+  });
+}
+
+function openHistoryDrawer() {
+  const drawer = document.getElementById("historyDrawer");
+  const backdrop = document.getElementById("historyBackdrop");
+
+  backdrop.hidden = false;
+  requestAnimationFrame(() => {
+    backdrop.classList.add("is-open");
+    drawer.classList.add("is-open");
+    drawer.setAttribute("aria-hidden", "false");
+  });
+}
+
+function closeHistoryDrawer() {
+  const drawer = document.getElementById("historyDrawer");
+  const backdrop = document.getElementById("historyBackdrop");
+
+  drawer.classList.remove("is-open");
+  backdrop.classList.remove("is-open");
+  drawer.setAttribute("aria-hidden", "true");
+
+  window.setTimeout(() => {
+    if (!backdrop.classList.contains("is-open")) {
+      backdrop.hidden = true;
+    }
+  }, 220);
+}
+
+function bindCurrentOrderActions() {
+  document
+    .getElementById("clearOrderButton")
+    .addEventListener("click", () => {
+      const hasProducts =
+        getOrderLines("ground").length +
+        getOrderLines("first").length > 0;
+
+      if (
+        hasProducts &&
+        !window.confirm("Clear every product from this order?")
+      ) {
+        return;
+      }
+
+      clearProductSelections();
+      renderCurrentOrder();
+      markDraftChanged();
+    });
+}
+
+function getOrderLines(floor) {
+  const standard = getFloorItems(floor).map((item) => {
+    const product = state.catalog[item.key] || {};
+
+    return {
+      source: "standard",
+      key: item.key,
+      sku: product.sku || "",
+      description: product.label || product.description || item.key,
+      quantity: item.quantity,
+    };
+  });
+
+  const searched = getOtherMaterials(floor).map((item) => ({
+    source: "search",
+    key: item.sku,
+    sku: item.sku,
+    description: item.description,
+    quantity: item.quantity,
+  }));
+
+  return [...standard, ...searched];
+}
+
+function renderCurrentOrder() {
+  const container = document.getElementById("currentOrderList");
+  if (!container) return;
+
+  const allLines = {
+    ground: getOrderLines("ground"),
+    first: getOrderLines("first"),
+  };
+
+  const lineCount =
+    allLines.ground.length +
+    allLines.first.length;
+  const unitCount =
+    [...allLines.ground, ...allLines.first]
+      .reduce((total, item) => total + item.quantity, 0);
+
+  document.getElementById("currentOrderSummary").textContent =
+    `${lineCount} product${lineCount === 1 ? "" : "s"}`;
+  document.getElementById("currentOrderLineCount").textContent =
+    String(lineCount);
+  document.getElementById("currentOrderUnitCount").textContent =
+    String(unitCount);
+
+  container.replaceChildren();
+
+  if (lineCount === 0) {
+    const empty = document.createElement("div");
+    empty.className = "basket-empty";
+    empty.innerHTML =
+      "<span>＋</span><strong>Your order is empty</strong><p>Select a product or use the search above.</p>";
+    container.append(empty);
+    return;
+  }
+
+  ["ground", "first"].forEach((floor) => {
+    if (!allLines[floor].length) return;
+
+    const group = document.createElement("section");
+    group.className = "basket-floor-group";
+
+    const heading = document.createElement("header");
+    heading.innerHTML =
+      `<strong>${floorLabels[floor]}</strong><span>${allLines[floor].length} line${allLines[floor].length === 1 ? "" : "s"}</span>`;
+    group.append(heading);
+
+    allLines[floor].forEach((item) => {
+      group.append(createBasketLine(floor, item));
+    });
+
+    container.append(group);
+  });
+}
+
+function createBasketLine(floor, item) {
+  const row = document.createElement("div");
+  row.className = "basket-line";
+
+  const info = document.createElement("button");
+  info.type = "button";
+  info.className = "basket-line-info";
+
+  const name = document.createElement("strong");
+  name.textContent = item.description;
+  const sku = document.createElement("span");
+  sku.textContent = item.sku || "Standard form product";
+  info.append(name, sku);
+
+  info.addEventListener("click", () => {
+    activateFloorTab(floor);
+
+    if (item.source === "search") {
+      activateCategory("all_products");
+      document
+        .querySelector(
+          `[data-other-material-sku="${floor}:${cssEscape(item.sku)}"]`,
+        )
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    } else {
+      const field = document.querySelector(
+        `.quantity-input[data-floor="${floor}"][data-product-key="${cssEscape(item.key)}"]`,
+      );
+      const panel = field?.closest("[data-category-panel]");
+      if (panel) activateCategory(panel.dataset.categoryPanel);
+      field?.scrollIntoView({ behavior: "smooth", block: "center" });
+      field?.focus();
+    }
+  });
+
+  const controls = document.createElement("div");
+  controls.className = "basket-line-controls";
+
+  const minus = document.createElement("button");
+  minus.type = "button";
+  minus.textContent = "−";
+  minus.setAttribute("aria-label", `Reduce ${item.description}`);
+
+  const quantity = document.createElement("input");
+  quantity.type = "number";
+  quantity.min = "1";
+  quantity.max = "999";
+  quantity.value = String(item.quantity);
+  quantity.setAttribute("aria-label", `${item.description} quantity`);
+
+  const plus = document.createElement("button");
+  plus.type = "button";
+  plus.textContent = "+";
+  plus.setAttribute("aria-label", `Increase ${item.description}`);
+
+  const update = (nextValue) => {
+    setOrderLineQuantity(floor, item, nextValue);
+  };
+
+  minus.addEventListener("click", () => update(item.quantity - 1));
+  plus.addEventListener("click", () => update(item.quantity + 1));
+  quantity.addEventListener("change", () => update(Number(quantity.value || 0)));
+  quantity.addEventListener("focus", () => quantity.select());
+
+  controls.append(minus, quantity, plus);
+  row.append(info, controls);
+
+  return row;
+}
+
+function setOrderLineQuantity(floor, item, value) {
+  const quantity = Math.max(0, Math.min(999, Math.floor(Number(value) || 0)));
+
+  if (item.source === "standard") {
+    const field = document.querySelector(
+      `.quantity-input[data-floor="${floor}"][data-product-key="${cssEscape(item.key)}"]`,
+    );
+
+    if (field) {
+      field.value = quantity > 0 ? String(quantity) : "";
+      updateQuantityAppearance(field);
+    }
+  } else {
+    const selected = state.otherMaterials[floor].find(
+      (candidate) =>
+        candidate.sku.toUpperCase() === item.sku.toUpperCase(),
+    );
+
+    if (quantity <= 0) {
+      state.otherMaterials[floor] = state.otherMaterials[floor].filter(
+        (candidate) =>
+          candidate.sku.toUpperCase() !== item.sku.toUpperCase(),
+      );
+    } else if (selected) {
+      selected.quantity = quantity;
+    }
+
+    renderSelectedOtherMaterials(floor);
+  }
+
+  updateFloorCount(floor);
+  renderCurrentOrder();
+  markDraftChanged();
+}
+
+function updateQuantityAppearance(input) {
+  input.classList.toggle(
+    "has-value",
+    Number(input.value || 0) > 0,
+  );
+}
+
+function updateCategoryBadges() {
+  document.querySelectorAll("[data-category-target]").forEach((button) => {
+    const category = button.dataset.categoryTarget;
+    const panels = Array.from(
+      document.querySelectorAll(
+        `[data-floor-panel="${state.activeFloor}"] [data-category-panel="${category}"]`,
+      ),
+    );
+
+    const count = panels.reduce((total, panel) => {
+      const standard = Array.from(
+        panel.querySelectorAll(".quantity-input"),
+      ).filter((field) => Number(field.value || 0) > 0).length;
+
+      const searched =
+        category === "all_products"
+          ? getOtherMaterials(state.activeFloor).length
+          : 0;
+
+      return total + standard + searched;
+    }, 0);
+
+    let badge = button.querySelector(".category-count");
+
+    if (!badge && count > 0) {
+      badge = document.createElement("span");
+      badge.className = "category-count";
+      button.append(badge);
+    }
+
+    if (badge) {
+      badge.textContent = String(count);
+      badge.hidden = count === 0;
+    }
+  });
+}
+
+function renderReviewStep() {
+  const details = getOrderDetails();
+  const detailsContainer = document.getElementById("reviewDetails");
+  detailsContainer.replaceChildren();
+
+  const detailRows = [
+    ["Customer", details.customer],
+    ["Contact", [details.contact, details.mobile].filter(Boolean).join(" · ")],
+    ["Required", [details.requiredDate, details.requiredTime, details.timeSlot].filter(Boolean).join(" · ")],
+    ["Delivery", details.deliveryType],
+    ["Address", details.deliveryAddress || "Pickup from Bell Plaster"],
+    ["Extras", details.extras.join(", ")],
+    ["Instructions", details.deliveryInstructions],
+  ];
+
+  detailRows.forEach(([label, value]) => {
+    if (!value) return;
+
+    const item = document.createElement("div");
+    const heading = document.createElement("span");
+    heading.textContent = label;
+    const content = document.createElement("strong");
+    content.textContent = value;
+    item.append(heading, content);
+    detailsContainer.append(item);
+  });
+
+  const productsContainer = document.getElementById("reviewOrderLines");
+  productsContainer.replaceChildren();
+
+  let lineTotal = 0;
+  let unitTotal = 0;
+
+  ["ground", "first"].forEach((floor) => {
+    const lines = getOrderLines(floor);
+    if (!lines.length) return;
+
+    const group = document.createElement("section");
+    group.className = "review-floor-group";
+
+    const heading = document.createElement("header");
+    heading.innerHTML =
+      `<strong>${floorLabels[floor]}</strong><span>${lines.length} line${lines.length === 1 ? "" : "s"}</span>`;
+    group.append(heading);
+
+    lines.forEach((item) => {
+      const row = document.createElement("div");
+      row.className = "review-product-line";
+
+      const info = document.createElement("div");
+      const name = document.createElement("strong");
+      name.textContent = item.description;
+      const sku = document.createElement("span");
+      sku.textContent = item.sku || "Standard form product";
+      info.append(name, sku);
+
+      const quantity = document.createElement("strong");
+      quantity.textContent = `× ${item.quantity}`;
+
+      row.append(info, quantity);
+      group.append(row);
+
+      lineTotal += 1;
+      unitTotal += item.quantity;
+    });
+
+    productsContainer.append(group);
+  });
+
+  document.getElementById("reviewLineTotal").textContent =
+    `${lineTotal} product line${lineTotal === 1 ? "" : "s"}`;
+  document.getElementById("reviewUnitTotal").textContent =
+    `${unitTotal} total unit${unitTotal === 1 ? "" : "s"}`;
+}
+
 function bindDraftPersistence(){window.addEventListener("beforeunload",()=>saveDraftNow({silent:true}));document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")saveDraftNow({silent:true});});}
 function markDraftChanged(){state.suppressDraftUntilInput=false;scheduleDraftSave();}
 function scheduleDraftSave(){if(state.isRestoringDraft||state.suppressDraftUntilInput)return;setDraftStatus("Saving draft…","saving");window.clearTimeout(state.draftSaveTimer);state.draftSaveTimer=window.setTimeout(()=>saveDraftNow(),180);}
-function saveDraftNow(options={}){if(state.isRestoringDraft||state.suppressDraftUntilInput||!state.layout)return;window.clearTimeout(state.draftSaveTimer);const draft=collectDraft();if(!draftHasContent(draft)){try{localStorage.removeItem(DRAFT_STORAGE_KEY);}catch{}if(!options.silent)setDraftStatus("Changes save automatically on this device.","idle");return;}try{localStorage.setItem(DRAFT_STORAGE_KEY,JSON.stringify(draft));if(!options.silent)setDraftStatus(`Draft saved ${formatDraftTime(draft.updatedAt)}.`,"saved");}catch{if(!options.silent)setDraftStatus("Draft saving is unavailable in this browser.","error");}}
-function collectDraft(){const floors={};["ground","first"].forEach((floor)=>{const quantities={};document.querySelectorAll(`.quantity-input[data-floor="${floor}"]`).forEach((f)=>{const value=Number(f.value||0);if(Number.isInteger(value)&&value>0&&value<=999)quantities[f.dataset.productKey]=value;});floors[floor]={quantities,otherMaterials:getOtherMaterials(floor),acousticFormat:selectedRadioValue(`${floor}AcousticFormat`)||"Roll"};});return{version:DRAFT_VERSION,updatedAt:new Date().toISOString(),activeFloor:state.activeFloor,editingOrder:state.editingOrder,details:getOrderDetails(),floors};}
+function saveDraftNow(options={}){if(state.isRestoringDraft||state.suppressDraftUntilInput||!state.layout)return;window.clearTimeout(state.draftSaveTimer);const draft=collectDraft();if(!draftHasContent(draft)){try{localStorage.removeItem(DRAFT_STORAGE_KEY);}catch{}if(!options.silent)setDraftStatus("Changes save automatically","idle");return;}try{localStorage.setItem(DRAFT_STORAGE_KEY,JSON.stringify(draft));if(!options.silent)setDraftStatus(`Draft saved ${formatDraftTime(draft.updatedAt)}.`,"saved");}catch{if(!options.silent)setDraftStatus("Draft saving is unavailable in this browser.","error");}}
+function collectDraft(){const floors={};["ground","first"].forEach((floor)=>{const quantities={};document.querySelectorAll(`.quantity-input[data-floor="${floor}"]`).forEach((f)=>{const value=Number(f.value||0);if(Number.isInteger(value)&&value>0&&value<=999)quantities[f.dataset.productKey]=value;});floors[floor]={quantities,otherMaterials:getOtherMaterials(floor),acousticFormat:selectedRadioValue(`${floor}AcousticFormat`)||"Roll"};});return{version:DRAFT_VERSION,updatedAt:new Date().toISOString(),activeFloor:state.activeFloor,activeStep:state.activeStep,activeCategory:state.activeCategory,editingOrder:state.editingOrder,details:getOrderDetails(),floors};}
 function draftHasContent(draft){const d=draft.details||{};if(draft.editingOrder)return true;if(d.contact||d.mobile||d.deliveryAddress||d.deliveryInstructions||d.requiredDate||d.requiredTime||d.deliveryType||(d.extras||[]).length)return true;return Object.values(draft.floors||{}).some((f)=>Object.keys(f.quantities||{}).length||(f.otherMaterials||[]).length);}
-function restoreDraft(){let draft;try{const raw=localStorage.getItem(DRAFT_STORAGE_KEY);if(!raw){setDraftStatus("Changes save automatically on this device.","idle");return;}draft=JSON.parse(raw);}catch{setDraftStatus("The previous browser draft could not be read.","error");return;}if(!draft||draft.version!==DRAFT_VERSION){clearSavedDraft();return;}state.isRestoringDraft=true;try{setOrderDetails(draft.details||{});["ground","first"].forEach((floor)=>{const f=draft.floors?.[floor]||{};Object.entries(f.quantities||{}).forEach(([key,q])=>{const field=document.querySelector(`.quantity-input[data-floor="${floor}"][data-product-key="${cssEscape(key)}"]`);if(field)field.value=String(q);});state.otherMaterials[floor]=(f.otherMaterials||[]).map((item)=>({sku:item.sku||"",description:item.description||state.productDirectory.find((product)=>product.sku.toUpperCase()===String(item.sku||"").toUpperCase())?.description||"",quantity:Number(item.quantity||1)})).filter((item)=>item.sku);renderSelectedOtherMaterials(floor);setRadio(`${floor}AcousticFormat`,f.acousticFormat||"Roll");});state.editingOrder=draft.editingOrder||null;if(state.editingOrder){document.getElementById("editOrderNumber").textContent=state.editingOrder.orderNumber||"";document.getElementById("editRevisionText").textContent=`Saving will create Revision ${(state.editingOrder.latestRevision||0)+1}. Earlier files will remain available.`;document.getElementById("editModeBanner").hidden=false;document.getElementById("submitButton").textContent="Save changes";}activateFloorTab(["ground","first"].includes(draft.activeFloor)?draft.activeFloor:"ground");updateAllFloorCounts();state.suppressDraftUntilInput=false;setDraftStatus(`Draft restored from ${formatDraftTime(draft.updatedAt)}.`,"restored");}finally{state.isRestoringDraft=false;}}
+function restoreDraft(){let draft;try{const raw=localStorage.getItem(DRAFT_STORAGE_KEY);if(!raw){setDraftStatus("Changes save automatically","idle");return;}draft=JSON.parse(raw);}catch{setDraftStatus("The previous browser draft could not be read.","error");return;}if(!draft||draft.version!==DRAFT_VERSION){clearSavedDraft();return;}state.isRestoringDraft=true;try{setOrderDetails(draft.details||{});["ground","first"].forEach((floor)=>{const f=draft.floors?.[floor]||{};Object.entries(f.quantities||{}).forEach(([key,q])=>{const field=document.querySelector(`.quantity-input[data-floor="${floor}"][data-product-key="${cssEscape(key)}"]`);if(field)field.value=String(q);});state.otherMaterials[floor]=(f.otherMaterials||[]).map((item)=>({sku:item.sku||"",description:item.description||state.productDirectory.find((product)=>product.sku.toUpperCase()===String(item.sku||"").toUpperCase())?.description||"",quantity:Number(item.quantity||1)})).filter((item)=>item.sku);renderSelectedOtherMaterials(floor);setRadio(`${floor}AcousticFormat`,f.acousticFormat||"Roll");});state.editingOrder=draft.editingOrder||null;if(state.editingOrder){document.getElementById("editOrderNumber").textContent=state.editingOrder.orderNumber||"";document.getElementById("editRevisionText").textContent=`Saving will create Revision ${(state.editingOrder.latestRevision||0)+1}. Earlier files will remain available.`;document.getElementById("editModeBanner").hidden=false;document.getElementById("submitButton").textContent="Save changes";}activateFloorTab(["ground","first"].includes(draft.activeFloor)?draft.activeFloor:"ground");activateCategory(draft.activeCategory||"boards",{silent:true});setActiveStep(draft.activeStep||"details",{skipValidation:true,silent:true});updateAllFloorCounts();renderCurrentOrder();state.suppressDraftUntilInput=false;setDraftStatus(`Draft restored from ${formatDraftTime(draft.updatedAt)}.`,"restored");}finally{state.isRestoringDraft=false;}}
 function clearSavedDraft(options={}){window.clearTimeout(state.draftSaveTimer);try{localStorage.removeItem(DRAFT_STORAGE_KEY);}catch{}if(options.statusText)setDraftStatus(options.statusText,"saved");}
 function setDraftStatus(text,status){const e=document.getElementById("draftStatus");if(!e)return;e.textContent=text;e.dataset.status=status||"idle";}
 function formatDraftTime(value){const date=new Date(value);if(Number.isNaN(date.getTime()))return"recently";return new Intl.DateTimeFormat("en-AU",{hour:"numeric",minute:"2-digit"}).format(date);}
@@ -760,5 +1462,27 @@ function todayLocal(){const d=new Date();const offset=d.getTimezoneOffset();retu
 function formatHistoryDate(value){const date=new Date(value);if(Number.isNaN(date.getTime()))return String(value||"");return new Intl.DateTimeFormat("en-AU",{dateStyle:"medium",timeStyle:"short"}).format(date);}
 function cssEscape(value){return window.CSS?.escape?window.CSS.escape(String(value)):String(value).replace(/(["\\])/g,"\\$1");}
 function escapeHtml(value){return String(value??"").replace(/[&<>'"]/g,(char)=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[char]));}
-function showMessage(text,type){const message=document.getElementById("formMessage");message.textContent=text;message.className=`message message-${type}`;message.hidden=false;}
-function clearMessage(){const message=document.getElementById("formMessage");message.hidden=true;message.textContent="";message.className="message";}
+function showMessage(text,type){
+  const globalMessage=document.getElementById("globalMessage");
+  const reviewMessage=document.getElementById("formMessage");
+
+  [globalMessage,reviewMessage].filter(Boolean).forEach((message)=>{
+    message.textContent=text;
+    message.className=`${message.id==="globalMessage"?"kiosk-message":"message"} message-${type}`;
+    message.hidden=false;
+  });
+
+  if(globalMessage){
+    window.clearTimeout(showMessage._timer);
+    showMessage._timer=window.setTimeout(()=>{globalMessage.hidden=true;},5000);
+  }
+}
+function clearMessage(){
+  ["globalMessage","formMessage"].forEach((id)=>{
+    const message=document.getElementById(id);
+    if(!message)return;
+    message.hidden=true;
+    message.textContent="";
+    message.className=id==="globalMessage"?"kiosk-message":"message";
+  });
+}

@@ -4,96 +4,395 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <title>BPS Order Form | Bell Plaster</title>
+  <title>BPS Order Portal | Bell Plaster</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css">
 </head>
-<body>
-  <header class="site-header">
-    <div class="brand-block">
-      <img class="brand-logo" src="https://bellplastersupplies.com.au/cdn/shop/files/bell_logo_black.png?v=1781229976" alt="Bell Plaster">
+<body class="kiosk-body">
+  <header class="kiosk-header">
+    <div class="header-left">
+      <button id="openHistoryButton" class="header-action" type="button">
+        <span class="header-action-icon" aria-hidden="true">↺</span>
+        Orders
+      </button>
     </div>
-    <button id="logoutButton" class="button button-secondary button-small" type="button">Sign out</button>
+
+    <img
+      class="kiosk-logo"
+      src="https://bellplastersupplies.com.au/cdn/shop/files/bell_logo_black.png?v=1781229976"
+      alt="Bell Plaster"
+    >
+
+    <div class="header-right">
+      <p id="draftStatus" class="header-save-status" aria-live="polite">
+        Changes save automatically
+      </p>
+      <button id="logoutButton" class="header-action header-signout" type="button">
+        Sign out
+      </button>
+    </div>
   </header>
 
-  <main class="page-shell">
+  <nav class="journey-nav" aria-label="Order progress">
+    <button class="journey-step is-active" type="button" data-step-target="details">
+      <span class="journey-number">1</span>
+      <span>
+        <strong>Delivery</strong>
+        <small>Order details</small>
+      </span>
+    </button>
+
+    <span class="journey-connector" aria-hidden="true"></span>
+
+    <button class="journey-step" type="button" data-step-target="products">
+      <span class="journey-number">2</span>
+      <span>
+        <strong>Products</strong>
+        <small>Build the order</small>
+      </span>
+    </button>
+
+    <span class="journey-connector" aria-hidden="true"></span>
+
+    <button class="journey-step" type="button" data-step-target="review">
+      <span class="journey-number">3</span>
+      <span>
+        <strong>Review</strong>
+        <small>Confirm and submit</small>
+      </span>
+    </button>
+  </nav>
+
+  <div id="globalMessage" class="kiosk-message" hidden role="alert"></div>
+
+  <main class="kiosk-main">
     <form id="orderForm" novalidate>
-      <div id="editModeBanner" class="edit-mode-banner" hidden>
-        <div><span>Editing order</span><strong id="editOrderNumber"></strong><small id="editRevisionText"></small></div>
-        <button id="cancelEditButton" class="button button-secondary button-small" type="button">Cancel edit</button>
+      <div id="editModeBanner" class="edit-mode-banner kiosk-edit-banner" hidden>
+        <div>
+          <span>Editing order</span>
+          <strong id="editOrderNumber"></strong>
+          <small id="editRevisionText"></small>
+        </div>
+        <button id="cancelEditButton" class="button button-secondary button-small" type="button">
+          Cancel edit
+        </button>
       </div>
 
-      <section class="form-card order-card">
-        <div class="form-title-row">
-          <div>
-            <p class="form-eyebrow">BPS Brunswick Plastering Services</p>
-            <h1>Order Form</h1>
-            <p id="draftStatus" class="draft-status" aria-live="polite">Changes save automatically on this device.</p>
+      <!-- STEP 1: DELIVERY -->
+      <section class="kiosk-step-panel is-active" data-kiosk-step="details">
+        <div class="details-stage">
+          <div class="stage-intro">
+            <p class="stage-eyebrow">BPS Brunswick Plastering Services</p>
+            <h1>Where is this order going?</h1>
+            <p>Enter the delivery details once, then add products by floor.</p>
           </div>
-          <div class="floor-tabs" role="tablist" aria-label="Order floor">
-            <button class="floor-tab is-active" type="button" role="tab" aria-selected="true" data-floor-tab="ground">Ground Floor <span id="groundTabCount" class="tab-count">0</span></button>
-            <button class="floor-tab" type="button" role="tab" aria-selected="false" data-floor-tab="first">1st Floor <span id="firstTabCount" class="tab-count">0</span></button>
+
+          <div class="details-layout">
+            <section class="details-card account-card">
+              <div class="account-mark">BPS</div>
+              <div>
+                <span>Customer account</span>
+                <strong>BPS Brunswick Plastering Services</strong>
+                <small>Debtor code: BPS BRUNSW17</small>
+              </div>
+            </section>
+
+            <section class="details-card delivery-card">
+              <div class="details-grid">
+                <label class="kiosk-field">
+                  <span>Order date</span>
+                  <input id="orderDate" type="date" readonly>
+                </label>
+
+                <label class="kiosk-field">
+                  <span>Required date *</span>
+                  <input id="requiredDate" type="date" required>
+                </label>
+
+                <label class="kiosk-field">
+                  <span>Required time *</span>
+                  <input id="requiredTime" type="time" required>
+                </label>
+
+                <label class="kiosk-field">
+                  <span>Contact *</span>
+                  <input id="contactName" maxlength="120" autocomplete="name" required placeholder="Name">
+                </label>
+
+                <label class="kiosk-field">
+                  <span>Mobile *</span>
+                  <input id="contactMobile" maxlength="30" inputmode="tel" autocomplete="tel" required placeholder="04xx xxx xxx">
+                </label>
+
+                <label class="kiosk-field field-span-2">
+                  <span>Delivery address *</span>
+                  <textarea id="deliveryAddress" rows="2" maxlength="500" required placeholder="Street, suburb, state and postcode"></textarea>
+                </label>
+
+                <label class="kiosk-field field-span-2">
+                  <span>Delivery instructions</span>
+                  <textarea id="deliveryInstructions" rows="3" maxlength="1500" placeholder="Access, unloading or site instructions"></textarea>
+                </label>
+
+                <input id="accountReference" value="BPS BRUNSW17" type="hidden">
+                <input id="customerName" value="BPS Brunswick Plastering Services" type="hidden">
+              </div>
+
+              <div class="delivery-choice-grid">
+                <fieldset class="kiosk-choice-card">
+                  <legend>Time slot *</legend>
+                  <div class="segmented-options">
+                    <label><input type="radio" name="timeSlot" value="1ST"><span>1st</span></label>
+                    <label><input type="radio" name="timeSlot" value="2ND"><span>2nd</span></label>
+                    <label><input type="radio" name="timeSlot" value="AM"><span>AM</span></label>
+                    <label><input type="radio" name="timeSlot" value="PM"><span>PM</span></label>
+                    <label><input type="radio" name="timeSlot" value="ANY" checked><span>Any</span></label>
+                  </div>
+                </fieldset>
+
+                <fieldset class="kiosk-choice-card">
+                  <legend>Delivery type *</legend>
+                  <div class="tile-options">
+                    <label><input type="radio" name="deliveryType" value="Manual Unload (Knauf Labour)"><span>Manual unload</span></label>
+                    <label><input type="radio" name="deliveryType" value="Mechanical (Forklift/Crane/Own)"><span>Mechanical</span></label>
+                    <label><input type="radio" name="deliveryType" value="Mixed Unload (Hand + Machine)"><span>Mixed unload</span></label>
+                    <label><input type="radio" name="deliveryType" value="Return Delivery (Collect from site)"><span>Return delivery</span></label>
+                    <label><input type="radio" name="deliveryType" value="Pickup (Customer to collect)"><span>Pickup</span></label>
+                  </div>
+                </fieldset>
+
+                <fieldset class="kiosk-choice-card">
+                  <legend>Extras</legend>
+                  <div class="chip-options">
+                    <label><input type="checkbox" name="deliveryExtra" value="Downstairs"><span>Downstairs</span></label>
+                    <label><input type="checkbox" name="deliveryExtra" value="Upstairs"><span>Upstairs</span></label>
+                    <label><input type="checkbox" name="deliveryExtra" value="Wrap"><span>Wrap</span></label>
+                    <label><input type="checkbox" name="deliveryExtra" value="Strap"><span>Strap</span></label>
+                    <label><input type="checkbox" name="deliveryExtra" value="Extra Labour"><span>Extra labour</span></label>
+                  </div>
+                </fieldset>
+              </div>
+            </section>
+          </div>
+
+          <div class="stage-actions stage-actions-end">
+            <button id="continueToProductsButton" class="button button-primary button-large" type="button">
+              Continue to products
+              <span aria-hidden="true">→</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 2: PRODUCTS -->
+      <section class="kiosk-step-panel product-stage" data-kiosk-step="products" hidden>
+        <div class="product-stage-topbar">
+          <div class="adding-to-control">
+            <span>Adding products to</span>
+            <div class="floor-tabs kiosk-floor-tabs" role="tablist" aria-label="Order floor">
+              <button class="floor-tab is-active" type="button" role="tab" aria-selected="true" data-floor-tab="ground">
+                Ground Floor
+                <span id="groundTabCount" class="tab-count">0</span>
+              </button>
+              <button class="floor-tab" type="button" role="tab" aria-selected="false" data-floor-tab="first">
+                1st Floor
+                <span id="firstTabCount" class="tab-count">0</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="global-product-search">
+            <span class="search-icon" aria-hidden="true">⌕</span>
+            <input
+              id="globalProductSearch"
+              type="search"
+              autocomplete="off"
+              placeholder="Search stock code, product or size"
+              aria-label="Search all Accrivia products"
+              disabled
+            >
+            <div id="globalProductResults" class="catalogue-search-results global-search-results" hidden></div>
           </div>
         </div>
 
-        <section class="order-details-panel" aria-labelledby="orderDetailsHeading">
-          <h2 id="orderDetailsHeading" class="visually-hidden">Order and delivery details</h2>
-          <div class="details-fields">
-            <label class="compact-field"><span>Order Date</span><input id="orderDate" type="date" readonly></label>
-            <label class="compact-field"><span>Reference</span><input id="accountReference" value="BPS BRUNSW17" readonly></label>
-            <label class="compact-field"><span>Required Date *</span><input id="requiredDate" type="date" required></label>
-            <label class="compact-field"><span>Time *</span><input id="requiredTime" type="time" required></label>
-            <label class="compact-field field-wide"><span>Customer</span><input id="customerName" value="BPS Brunswick Plastering Services" readonly></label>
-            <label class="compact-field"><span>Contact *</span><input id="contactName" maxlength="120" autocomplete="name" required></label>
-            <label class="compact-field"><span>Mobile *</span><input id="contactMobile" maxlength="30" inputmode="tel" autocomplete="tel" required></label>
-            <label class="compact-field field-full"><span>Delivery Address *</span><textarea id="deliveryAddress" rows="2" maxlength="500" required></textarea></label>
-            <label class="compact-field field-full"><span>Delivery Instructions</span><textarea id="deliveryInstructions" rows="3" maxlength="1500"></textarea></label>
-          </div>
+        <div class="product-stage-grid">
+          <aside class="category-rail" aria-label="Product categories">
+            <div class="category-rail-heading">
+              <span>Products</span>
+              <small>Choose a category</small>
+            </div>
 
-          <div class="delivery-options">
-            <fieldset class="choice-panel"><legend>Time Slot *</legend><div class="choice-grid choice-grid-five">
-              <label><input type="radio" name="timeSlot" value="1ST"><span>1st</span></label>
-              <label><input type="radio" name="timeSlot" value="2ND"><span>2nd</span></label>
-              <label><input type="radio" name="timeSlot" value="AM"><span>AM</span></label>
-              <label><input type="radio" name="timeSlot" value="PM"><span>PM</span></label>
-              <label><input type="radio" name="timeSlot" value="ANY" checked><span>Any</span></label>
-            </div></fieldset>
-            <fieldset class="choice-panel"><legend>Delivery Type *</legend><div class="choice-list">
-              <label><input type="radio" name="deliveryType" value="Manual Unload (Knauf Labour)"><span>Manual Unload (Knauf Labour)</span></label>
-              <label><input type="radio" name="deliveryType" value="Mechanical (Forklift/Crane/Own)"><span>Mechanical (Forklift/Crane/Own)</span></label>
-              <label><input type="radio" name="deliveryType" value="Mixed Unload (Hand + Machine)"><span>Mixed Unload (Hand + Machine)</span></label>
-              <label><input type="radio" name="deliveryType" value="Return Delivery (Collect from site)"><span>Return Delivery (Collect from site)</span></label>
-              <label><input type="radio" name="deliveryType" value="Pickup (Customer to collect)"><span>Pickup (Customer to collect)</span></label>
-            </div></fieldset>
-            <fieldset class="choice-panel"><legend>Extras</legend><div class="choice-list choice-list-two">
-              <label><input type="checkbox" name="deliveryExtra" value="Downstairs"><span>Downstairs</span></label>
-              <label><input type="checkbox" name="deliveryExtra" value="Upstairs"><span>Upstairs</span></label>
-              <label><input type="checkbox" name="deliveryExtra" value="Wrap"><span>Wrap</span></label>
-              <label><input type="checkbox" name="deliveryExtra" value="Strap"><span>Strap</span></label>
-              <label><input type="checkbox" name="deliveryExtra" value="Extra Labour"><span>Extra Labour</span></label>
-            </div></fieldset>
-          </div>
-        </section>
+            <button class="category-button is-active" type="button" data-category-target="boards" data-category-title="Boards" data-category-description="Standard and specialty plasterboard">
+              <span class="category-icon">▦</span>
+              <span>Boards</span>
+            </button>
+            <button class="category-button" type="button" data-category-target="cornice" data-category-title="Cornice" data-category-description="Cove and decorative cornice">
+              <span class="category-icon">⌒</span>
+              <span>Cornice</span>
+            </button>
+            <button class="category-button" type="button" data-category-target="compounds" data-category-title="Compounds" data-category-description="Adhesives, basecoats and finishes">
+              <span class="category-icon">◫</span>
+              <span>Compounds</span>
+            </button>
+            <button class="category-button" type="button" data-category-target="partiwall" data-category-title="Partiwall" data-category-description="Sections, accessories and screws">
+              <span class="category-icon">Ⅱ</span>
+              <span>Partiwall</span>
+            </button>
+            <button class="category-button" type="button" data-category-target="fixings" data-category-title="Fixings" data-category-description="Screws and nails">
+              <span class="category-icon">✣</span>
+              <span>Fixings</span>
+            </button>
+            <button class="category-button" type="button" data-category-target="ceilings" data-category-title="Ceiling Tiles" data-category-description="USG and Knauf ceiling tiles">
+              <span class="category-icon">▤</span>
+              <span>Ceiling tiles</span>
+            </button>
+            <button class="category-button" type="button" data-category-target="villaboard" data-category-title="Villaboard" data-category-description="6 mm Villaboard range">
+              <span class="category-icon">▥</span>
+              <span>Villaboard</span>
+            </button>
+            <button class="category-button" type="button" data-category-target="insulation" data-category-title="Insulation" data-category-description="Thermal and acoustic insulation">
+              <span class="category-icon">≈</span>
+              <span>Insulation</span>
+            </button>
+            <button class="category-button" type="button" data-category-target="rondo" data-category-title="Rondo & PVC" data-category-description="Sections, angles, beads and battens">
+              <span class="category-icon">∟</span>
+              <span>Rondo & PVC</span>
+            </button>
+            <button class="category-button category-search-button" type="button" data-category-target="all_products" data-category-title="Added from search" data-category-description="Products selected from the complete Accrivia catalogue">
+              <span class="category-icon">＋</span>
+              <span>Search additions</span>
+            </button>
+          </aside>
 
-        <article class="floor-panel is-active" data-floor-panel="ground"><div id="groundOrderSheet" class="pdf-order-sheet"></div></article>
-        <article class="floor-panel" data-floor-panel="first" hidden><div id="firstOrderSheet" class="pdf-order-sheet"></div></article>
+          <section class="product-workspace">
+            <header class="workspace-header">
+              <div>
+                <h2 id="activeCategoryTitle">Boards</h2>
+                <p id="activeCategoryDescription">Standard and specialty plasterboard</p>
+              </div>
+              <span id="workspaceFloorLabel" class="workspace-floor-label">Ground Floor</span>
+            </header>
+
+            <article class="floor-panel is-active" data-floor-panel="ground">
+              <div id="groundOrderSheet" class="pdf-order-sheet category-product-canvas"></div>
+            </article>
+
+            <article class="floor-panel" data-floor-panel="first" hidden>
+              <div id="firstOrderSheet" class="pdf-order-sheet category-product-canvas"></div>
+            </article>
+          </section>
+
+          <aside class="current-order-panel" aria-label="Current order">
+            <header class="current-order-header">
+              <div>
+                <span>Current order</span>
+                <strong id="currentOrderSummary">0 products</strong>
+              </div>
+              <button id="clearOrderButton" class="text-button" type="button">Clear</button>
+            </header>
+
+            <div id="currentOrderList" class="current-order-list">
+              <div class="basket-empty">
+                <span>＋</span>
+                <strong>Your order is empty</strong>
+                <p>Select a product or use the search above.</p>
+              </div>
+            </div>
+
+            <footer class="current-order-footer">
+              <div class="basket-totals">
+                <span><strong id="currentOrderLineCount">0</strong> product lines</span>
+                <span><strong id="currentOrderUnitCount">0</strong> total units</span>
+              </div>
+              <button id="reviewOrderButton" class="button button-primary button-large" type="button">
+                Review order
+                <span aria-hidden="true">→</span>
+              </button>
+            </footer>
+          </aside>
+        </div>
       </section>
 
-      <section class="form-card review-card">
-        <div id="formMessage" class="message" hidden role="alert"></div>
-        <div class="submit-row"><p class="submit-note">Ground Floor and 1st Floor files are generated separately.</p><button id="submitButton" class="button button-primary" type="submit">Submit order</button></div>
-        <div id="successPanel" class="success-panel" hidden><h3 id="successTitle">Order created</h3><p id="successSummary"></p><div id="generatedFiles" class="generated-files"></div><p class="submission-reference">Order number: <code id="orderNumberDisplay"></code></p></div>
+      <!-- STEP 3: REVIEW -->
+      <section class="kiosk-step-panel" data-kiosk-step="review" hidden>
+        <div class="review-stage">
+          <div class="stage-intro review-intro">
+            <p class="stage-eyebrow">Final check</p>
+            <h1>Review your order</h1>
+            <p>Confirm the delivery details and quantities before submitting.</p>
+          </div>
+
+          <div class="review-layout">
+            <section class="review-summary-card">
+              <header>
+                <h2>Delivery</h2>
+                <button id="editDetailsButton" class="text-button" type="button">Edit</button>
+              </header>
+              <div id="reviewDetails" class="review-details-grid"></div>
+            </section>
+
+            <section class="review-summary-card review-products-card">
+              <header>
+                <h2>Products</h2>
+                <button id="editProductsButton" class="text-button" type="button">Edit</button>
+              </header>
+              <div id="reviewOrderLines" class="review-order-lines"></div>
+              <footer class="review-total">
+                <span id="reviewLineTotal">0 product lines</span>
+                <strong id="reviewUnitTotal">0 total units</strong>
+              </footer>
+            </section>
+          </div>
+
+          <div id="formMessage" class="message" hidden role="alert"></div>
+
+          <div class="stage-actions review-actions">
+            <button id="backToProductsButton" class="button button-secondary button-large" type="button">
+              ← Back to products
+            </button>
+            <button id="submitButton" class="button button-primary button-large" type="submit">
+              Submit order
+            </button>
+          </div>
+
+          <div id="successPanel" class="success-panel kiosk-success-panel" hidden>
+            <div class="success-check" aria-hidden="true">✓</div>
+            <h3 id="successTitle">Order created</h3>
+            <p id="successSummary"></p>
+            <div id="generatedFiles" class="generated-files"></div>
+            <p class="submission-reference">
+              Order number: <code id="orderNumberDisplay"></code>
+            </p>
+            <button id="startNewOrderButton" class="button button-secondary" type="button">
+              Start new order
+            </button>
+          </div>
+        </div>
       </section>
     </form>
-
-    <section class="form-card order-history-card">
-      <div class="section-heading"><h2>Order history</h2><button id="refreshHistoryButton" class="button button-secondary button-small" type="button">Refresh</button></div>
-      <div id="orderHistoryStatus" class="history-status">Loading orders…</div><div id="orderHistoryList" class="order-history-list"></div>
-    </section>
   </main>
-  <footer class="site-footer"><span>Bell Plaster</span><span>BPS Order Form</span></footer>
+
+  <!-- ORDER HISTORY DRAWER -->
+  <div id="historyBackdrop" class="drawer-backdrop" hidden></div>
+  <aside id="historyDrawer" class="history-drawer" aria-label="Order history" aria-hidden="true">
+    <header class="history-drawer-header">
+      <div>
+        <span>BPS portal</span>
+        <h2>Order history</h2>
+      </div>
+      <button id="closeHistoryButton" class="drawer-close" type="button" aria-label="Close order history">×</button>
+    </header>
+
+    <div class="history-drawer-toolbar">
+      <div id="orderHistoryStatus" class="history-status">Loading orders…</div>
+      <button id="refreshHistoryButton" class="button button-secondary button-small" type="button">Refresh</button>
+    </div>
+
+    <div id="orderHistoryList" class="order-history-list history-drawer-list"></div>
+  </aside>
+
   <script src="/app.js" defer></script>
 </body>
 </html>
