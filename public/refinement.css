@@ -800,3 +800,493 @@
   }
 }
 
+
+/* ================================================================
+   PRODUCT CATALOGUE POLISH — CONSISTENT COLOUR, SPACING AND LAYOUT
+   ================================================================ */
+
+:root {
+  --bps-grid-line: #D5DEDB;
+  --bps-grid-header: #F2F5F4;
+  --bps-selected-soft: #EAF5F2;
+  --bps-selected: #006557;
+  --bps-unavailable: #AEB5B3;
+}
+
+/* One neutral visual language across every product category. */
+.product-workspace .product-section {
+  overflow: hidden;
+  border: 1px solid var(--bps-grid-line) !important;
+  border-radius: 0 !important;
+  background: #FFFFFF;
+  box-shadow: none !important;
+}
+
+.product-workspace .product-section > h3 {
+  min-height: 40px;
+  margin: 0;
+  padding: 11px 13px !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--bps-grid-line) !important;
+  background: var(--bps-grid-header) !important;
+  color: #1C2825;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .035em;
+  line-height: 1.25;
+}
+
+.product-section-body,
+.table-scroller {
+  width: 100%;
+  min-width: 0;
+}
+
+.product-table {
+  width: 100% !important;
+  min-width: 100% !important;
+  border: 0 !important;
+  border-collapse: collapse !important;
+  table-layout: fixed !important;
+}
+
+.product-table th,
+.product-table td {
+  height: 42px;
+  padding: 8px 10px !important;
+  border: 1px solid var(--bps-grid-line) !important;
+  background-clip: padding-box;
+  color: #202B28;
+  line-height: 1.3;
+}
+
+.product-table thead tr:first-child > th {
+  border-top: 0 !important;
+}
+
+.product-table tr > :first-child {
+  border-left: 0 !important;
+}
+
+.product-table tr > :last-child {
+  border-right: 0 !important;
+}
+
+.product-table tbody tr:last-child > * {
+  border-bottom: 0 !important;
+}
+
+.product-table thead th {
+  background: var(--bps-grid-header) !important;
+}
+
+.product-table tbody th {
+  padding: 10px 12px !important;
+  background: #FFFFFF !important;
+  text-align: left;
+}
+
+.product-table tbody th small {
+  margin-top: 3px;
+  color: #68736F;
+  line-height: 1.35;
+}
+
+.unavailable-cell {
+  background: var(--bps-unavailable) !important;
+}
+
+/* Board matrix fills the canvas without an artificial empty column. */
+.main-board-table {
+  width: 100% !important;
+  min-width: 940px !important;
+}
+
+.main-board-table th:first-child,
+.main-board-table td:first-child {
+  width: 76px !important;
+  min-width: 76px !important;
+}
+
+.main-board-table th:not(:first-child),
+.main-board-table td:not(:first-child) {
+  width: auto !important;
+  min-width: 60px !important;
+}
+
+/* Product descriptions receive enough room and consistent inset spacing. */
+.compact-table {
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.compact-table th:first-child,
+.compact-table td:first-child {
+  width: auto !important;
+  min-width: 260px !important;
+  padding-left: 14px !important;
+  padding-right: 14px !important;
+}
+
+.compact-table th:not(:first-child),
+.compact-table td:not(:first-child) {
+  width: 72px !important;
+  min-width: 72px !important;
+}
+
+.list-product-row {
+  min-height: 52px !important;
+  grid-template-columns: minmax(260px, 1fr) 72px !important;
+  border-bottom: 1px solid var(--bps-grid-line) !important;
+}
+
+.list-product-row:last-child {
+  border-bottom: 0 !important;
+}
+
+.list-product-row > div:first-child {
+  padding: 10px 14px !important;
+}
+
+.list-product-row strong {
+  font-size: 10px !important;
+  line-height: 1.35;
+}
+
+.list-product-row span {
+  margin-top: 3px !important;
+  font-size: 9px !important;
+  line-height: 1.35;
+}
+
+/* Quantity fields are white by default. A selected quantity uses green,
+   which reads as a completed selection rather than an error state. */
+.quantity-cell,
+.standalone-quantity.quantity-cell {
+  position: relative;
+  width: 72px !important;
+  min-width: 72px !important;
+  height: 42px !important;
+  padding: 0 !important;
+  overflow: hidden;
+  border: 1px solid var(--bps-grid-line) !important;
+  border-radius: 0 !important;
+  background: #FFFFFF !important;
+  box-shadow: none !important;
+}
+
+.product-table .quantity-cell {
+  border-color: var(--bps-grid-line) !important;
+}
+
+.quantity-cell:focus-within,
+.standalone-quantity.quantity-cell:focus-within {
+  z-index: 5;
+  border-color: var(--bps-selected) !important;
+  box-shadow: inset 0 0 0 1px var(--bps-selected) !important;
+}
+
+.quantity-control {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  grid-template-columns: minmax(0, 1fr) 17px;
+  align-items: stretch;
+  background: #FFFFFF;
+}
+
+.quantity-cell .quantity-input,
+.standalone-quantity.quantity-cell .quantity-input {
+  display: block;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  margin: 0 !important;
+  padding: 0 2px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: 0 !important;
+  background: #FFFFFF !important;
+  box-shadow: none !important;
+  color: #394541;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 40px;
+  text-align: center !important;
+}
+
+.quantity-cell .quantity-input.has-value,
+.standalone-quantity.quantity-cell .quantity-input.has-value {
+  background: var(--bps-selected-soft) !important;
+  color: var(--bps-selected) !important;
+}
+
+.quantity-steppers {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  overflow: hidden;
+  border-left: 1px solid var(--bps-grid-line);
+  background: #F8FAF9;
+  opacity: .68;
+}
+
+.quantity-cell:hover .quantity-steppers,
+.quantity-cell:focus-within .quantity-steppers,
+.standalone-quantity.quantity-cell:hover .quantity-steppers,
+.standalone-quantity.quantity-cell:focus-within .quantity-steppers {
+  opacity: 1;
+}
+
+.quantity-step {
+  color: #69746F;
+}
+
+.quantity-step + .quantity-step {
+  border-top: 1px solid var(--bps-grid-line);
+}
+
+.quantity-step:hover {
+  background: var(--bps-selected-soft);
+  color: var(--bps-selected);
+}
+
+/* Specialty boards: four complete cards in one horizontal strip. Variants
+   within Impactstop and Multistop One sit side-by-side. */
+.specialty-board-strip {
+  margin-top: 12px;
+}
+
+.specialty-board-strip .product-section-body {
+  padding: 12px;
+  background: #F8FAF9;
+}
+
+.specialty-board-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 1.25fr .9fr .9fr;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.specialty-board-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--bps-grid-line);
+  background: #FFFFFF;
+}
+
+.specialty-board-card > h4 {
+  min-height: 38px;
+  margin: 0;
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--bps-grid-line);
+  background: var(--bps-grid-header);
+  color: #202B28;
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.specialty-board-variants {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.specialty-board-card.has-multiple-variants .specialty-board-variants {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.specialty-board-variant {
+  display: grid;
+  min-width: 0;
+  min-height: 64px;
+  grid-template-columns: minmax(0, 1fr) 72px;
+  align-items: stretch;
+}
+
+.specialty-board-variant + .specialty-board-variant {
+  border-left: 1px solid var(--bps-grid-line);
+}
+
+.specialty-board-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  padding: 9px 10px;
+}
+
+.specialty-board-copy strong {
+  color: #202B28;
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.specialty-board-copy span {
+  margin-top: 3px;
+  color: #66716E;
+  font-size: 8px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.specialty-board-variant .standalone-quantity {
+  align-self: stretch;
+  height: auto !important;
+  min-height: 64px !important;
+  border: 0 !important;
+  border-left: 1px solid var(--bps-grid-line) !important;
+}
+
+.specialty-board-variant .quantity-input {
+  height: 62px !important;
+  min-height: 62px !important;
+  line-height: 62px !important;
+}
+
+/* Insulation uses product cards rather than another dense spreadsheet. */
+.insulation-section .product-section-body {
+  padding: 12px;
+  background: #F8FAF9;
+}
+
+.insulation-groups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.insulation-group {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--bps-grid-line);
+  background: #FFFFFF;
+}
+
+.insulation-group > header {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--bps-grid-line);
+  background: var(--bps-grid-header);
+}
+
+.insulation-group > header h4 {
+  margin: 0;
+  color: #202B28;
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.25;
+}
+
+.insulation-group > header p {
+  margin: 3px 0 0;
+  color: #66716E;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.insulation-product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 10px;
+}
+
+.insulation-product-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--bps-grid-line);
+  background: #FFFFFF;
+}
+
+.insulation-product-name {
+  display: block;
+  min-height: 43px;
+  padding: 10px 11px;
+  border-bottom: 1px solid var(--bps-grid-line);
+  color: #202B28;
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.insulation-variants {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.insulation-variant {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(54px, 1fr) 72px;
+  align-items: stretch;
+}
+
+.insulation-variant + .insulation-variant {
+  border-left: 1px solid var(--bps-grid-line);
+}
+
+.insulation-variant > span {
+  display: grid;
+  min-width: 0;
+  place-items: center;
+  padding: 8px 6px;
+  color: #53605C;
+  font-size: 9px;
+  font-weight: 750;
+  text-align: center;
+}
+
+.insulation-variant .standalone-quantity {
+  border: 0 !important;
+  border-left: 1px solid var(--bps-grid-line) !important;
+}
+
+.acoustic-format {
+  display: none !important;
+}
+
+/* Search predictions are progressively enriched with the full Victorian
+   suburb, state and postcode. */
+.address-result-title,
+.address-result-secondary {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.address-result-secondary:empty {
+  display: none;
+}
+
+@media (max-width: 1320px) {
+  .specialty-board-grid {
+    grid-template-columns: repeat(2, minmax(300px, 1fr));
+  }
+
+  .insulation-product-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 920px) {
+  .specialty-board-grid,
+  .insulation-groups {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Single-section categories and the specialty-board strip use the full
+   product canvas rather than occupying only one half of the legacy grid. */
+.category-content > .product-section:only-child,
+.specialty-board-strip {
+  grid-column: 1 / -1 !important;
+}
+
+.insulation-variant {
+  grid-template-columns: minmax(46px, 1fr) 60px;
+}
+
+.insulation-variant .standalone-quantity.quantity-cell {
+  width: 60px !important;
+  min-width: 60px !important;
+}

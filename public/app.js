@@ -21,6 +21,8 @@ const state = {
   addressRequestId: 0,
   addressPredictions: [],
   addressPredictionIndex: -1,
+  addressPreviewCache: new Map(),
+  addressPreviewTimer: null,
 };
 
 const DRAFT_STORAGE_KEY = "bps-knauf-order-form-draft-v9";
@@ -385,21 +387,44 @@ function renderMainBoardMatrix(floor, matrix) {
 }
 
 function renderSpecialtyBoards(floor, groups) {
-  const wrap = document.createElement("div");
-  wrap.className = "specialty-stack";
+  const section = createSectionShell("specialty-board-strip", "SPECIALTY BOARDS");
+  const grid = document.createElement("div");
+  grid.className = "specialty-board-grid";
+
   groups.forEach((group) => {
-    const section = createSectionShell("specialty-section", group.title);
+    const card = document.createElement("section");
+    card.className = "specialty-board-card";
+    if (group.rows.length > 1) card.classList.add("has-multiple-variants");
+
+    const heading = document.createElement("h4");
+    heading.textContent = group.title;
+
+    const variants = document.createElement("div");
+    variants.className = "specialty-board-variants";
+
     group.rows.forEach((row) => {
-      const line = document.createElement("div");
-      line.className = "specialty-row";
-      const label = document.createElement("div");
-      label.innerHTML = `<strong>${escapeHtml(row.label)}</strong><span>${escapeHtml(row.detail)}</span>`;
-      line.append(label, createStandaloneQuantity(floor, row.key));
-      section.body.append(line);
+      const variant = document.createElement("div");
+      variant.className = "specialty-board-variant";
+
+      const copy = document.createElement("div");
+      copy.className = "specialty-board-copy";
+
+      const label = document.createElement("strong");
+      label.textContent = row.label;
+      const detail = document.createElement("span");
+      detail.textContent = row.detail;
+      copy.append(label, detail);
+
+      variant.append(copy, createStandaloneQuantity(floor, row.key));
+      variants.append(variant);
     });
-    wrap.append(section.root);
+
+    card.append(heading, variants);
+    grid.append(card);
   });
-  return wrap;
+
+  section.body.append(grid);
+  return section.root;
 }
 
 function renderSection(floor, def) {
@@ -447,13 +472,65 @@ function renderListSection(floor, def) {
 }
 
 function renderInsulationSection(floor, def) {
-  const section=createSectionShell("compact-section","KNAUF INSULATION");
-  const thermal={id:"thermal",type:"matrix",title:"Thermal Batt",rowHeader:"Rating",columns:["430 mm","580 mm"],rows:def.thermalRows};
-  const thermalWrap=renderMatrixSection(floor,thermal); thermalWrap.classList.add("nested-section"); section.body.append(thermalWrap);
-  const format=document.createElement("fieldset"); format.className="acoustic-format"; format.innerHTML=`<legend>Acoustic format</legend><label><input type="radio" name="${floor}AcousticFormat" value="Roll" checked><span>Roll</span></label><label><input type="radio" name="${floor}AcousticFormat" value="Batt"><span>Batt</span></label>`;
-  format.querySelectorAll("input").forEach((input)=>input.addEventListener("change",markDraftChanged)); section.body.append(format);
-  const acoustic={id:"acoustic",type:"matrix",title:"Acoustic",rowHeader:"kg / mm",columns:["430 mm","580 mm"],rows:def.acousticRows};
-  const acousticWrap=renderMatrixSection(floor,acoustic); acousticWrap.classList.add("nested-section"); section.body.append(acousticWrap);
+  const section = createSectionShell("insulation-section", "KNAUF INSULATION");
+  const groups = document.createElement("div");
+  groups.className = "insulation-groups";
+
+  [
+    {
+      title: "THERMAL BATTS",
+      description: "Wall and ceiling thermal insulation",
+      rows: def.thermalRows,
+    },
+    {
+      title: "ACOUSTIC",
+      description: "Standard acoustic insulation",
+      rows: def.acousticRows,
+    },
+  ].forEach((definition) => {
+    const group = document.createElement("section");
+    group.className = "insulation-group";
+
+    const header = document.createElement("header");
+    const title = document.createElement("h4");
+    title.textContent = definition.title;
+    const description = document.createElement("p");
+    description.textContent = definition.description;
+    header.append(title, description);
+
+    const productGrid = document.createElement("div");
+    productGrid.className = "insulation-product-grid";
+
+    definition.rows.forEach((row) => {
+      const card = document.createElement("article");
+      card.className = "insulation-product-card";
+
+      const productName = document.createElement("strong");
+      productName.className = "insulation-product-name";
+      productName.textContent = row.label;
+
+      const variants = document.createElement("div");
+      variants.className = "insulation-variants";
+
+      row.cells.forEach((key, index) => {
+        const variant = document.createElement("div");
+        variant.className = "insulation-variant";
+
+        const variantLabel = document.createElement("span");
+        variantLabel.textContent = index === 0 ? "430 mm" : "580 mm";
+        variant.append(variantLabel, createStandaloneQuantity(floor, key));
+        variants.append(variant);
+      });
+
+      card.append(productName, variants);
+      productGrid.append(card);
+    });
+
+    group.append(header, productGrid);
+    groups.append(group);
+  });
+
+  section.body.append(groups);
   return section.root;
 }
 
@@ -1728,6 +1805,54 @@ function appendGoogleMapsAttribution(container) {
   container.append(attribution);
 }
 
+function getAddressPredictionCacheKey(prediction) {
+  return String(
+    prediction?.placeId ||
+    prediction?.place_id ||
+    prediction?.text ||
+    "",
+  );
+}
+
+async function getAddressPredictionPreview(prediction) {
+  const key = getAddressPredictionCacheKey(prediction);
+  if (!key) return null;
+  if (state.addressPreviewCache.has(key)) {
+    return state.addressPreviewCache.get(key);
+  }
+
+  const previewPromise = (async () => {
+    const place = prediction.toPlace();
+    await place.fetchFields({
+      fields: ["formattedAddress", "addressComponents"],
+    });
+    const parsed = parseGoogleAddress(place);
+    refreshAddressSessionToken();
+    return parsed;
+  })().catch((error) => {
+    console.debug("Address preview could not be enriched", error);
+    return null;
+  });
+
+  state.addressPreviewCache.set(key, previewPromise);
+  return previewPromise;
+}
+
+async function enrichAddressSuggestion(prediction, index, requestId) {
+  const parsed = await getAddressPredictionPreview(prediction);
+  if (!parsed || requestId !== state.addressRequestId) return;
+
+  const result = document.querySelector(
+    `.address-result[data-address-result-index="${index}"]`,
+  );
+  if (!result) return;
+
+  const title = result.querySelector(".address-result-title");
+  const secondary = result.querySelector(".address-result-secondary");
+  if (title) title.textContent = parsed.line1;
+  if (secondary) secondary.textContent = parsed.line2;
+}
+
 function renderAddressSuggestions() {
   const results = document.getElementById("addressSearchResults");
   const search = document.getElementById("deliveryAddressSearch");
@@ -1747,22 +1872,42 @@ function renderAddressSuggestions() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "address-result";
+    button.dataset.addressResultIndex = String(index);
     button.classList.toggle("is-active", index === state.addressPredictionIndex);
     button.setAttribute("role", "option");
     button.setAttribute("aria-selected", index === state.addressPredictionIndex ? "true" : "false");
 
     const text = String(prediction.text || "");
     const [primary, ...rest] = text.split(",");
+    const mainText = String(prediction.mainText || "").trim();
+    const secondaryText = String(prediction.secondaryText || "").trim();
     const title = document.createElement("strong");
-    title.textContent = primary.trim() || text;
+    title.className = "address-result-title";
+    title.textContent = mainText || primary.trim() || text;
     const secondary = document.createElement("span");
-    secondary.textContent = rest.join(",").trim();
-    button.append(title);
-    if (secondary.textContent) button.append(secondary);
+    secondary.className = "address-result-secondary";
+    secondary.textContent = secondaryText || rest.join(",").trim();
+    button.append(title, secondary);
 
+    button.addEventListener("mouseenter", () => {
+      void enrichAddressSuggestion(prediction, index, state.addressRequestId);
+    }, { once: true });
+    button.addEventListener("focus", () => {
+      void enrichAddressSuggestion(prediction, index, state.addressRequestId);
+    }, { once: true });
     button.addEventListener("click", () => void selectAddressPrediction(prediction));
     results.append(button);
   });
+
+  window.clearTimeout(state.addressPreviewTimer);
+  if (state.addressPredictions[0]) {
+    const requestId = state.addressRequestId;
+    const prediction = state.addressPredictions[0];
+    state.addressPreviewTimer = window.setTimeout(() => {
+      if (requestId !== state.addressRequestId) return;
+      void enrichAddressSuggestion(prediction, 0, requestId);
+    }, 320);
+  }
 
   appendGoogleMapsAttribution(results);
   results.hidden = false;
@@ -1782,12 +1927,7 @@ async function selectAddressPrediction(prediction) {
   clearFieldError("deliveryAddress");
 
   try {
-    const place = prediction.toPlace();
-    await place.fetchFields({
-      fields: ["formattedAddress", "addressComponents"],
-    });
-
-    const parsed = parseGoogleAddress(place);
+    const parsed = await getAddressPredictionPreview(prediction);
     if (!parsed || !looksLikeVictorianAddress(parsed.line2)) {
       setFieldError("deliveryAddress", "Choose a complete Victorian street address.");
       return;
@@ -1876,6 +2016,7 @@ function refreshAddressSessionToken() {
 }
 
 function closeAddressSuggestions() {
+  window.clearTimeout(state.addressPreviewTimer);
   const results = document.getElementById("addressSearchResults");
   const search = document.getElementById("deliveryAddressSearch");
   results.hidden = true;
