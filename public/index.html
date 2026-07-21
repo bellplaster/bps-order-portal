@@ -123,7 +123,7 @@
                       autocomplete="off"
                       maxlength="10"
                       placeholder="DD-MM-YYYY"
-                      aria-describedby="requiredDateHelp requiredDateError requiredDateWarning"
+                      aria-describedby="requiredDateError requiredDateWarning"
                       required
                     >
                     <button
@@ -142,9 +142,6 @@
                       aria-hidden="true"
                     >
                   </div>
-                  <small id="requiredDateHelp" class="field-help">
-                    Type eight digits, for example 25072026.
-                  </small>
                   <p id="requiredDateError" class="field-error" hidden></p>
                   <div id="requiredDateWarning" class="field-warning" hidden>
                     <strong id="requiredDateWarningText"></strong>
@@ -192,7 +189,7 @@
                 </div>
 
                 <div class="kiosk-field" id="contactMobileField">
-                  <label for="contactMobile">Contact number *</label>
+                  <label for="contactMobile">Mobile *</label>
                   <input
                     id="contactMobile"
                     type="tel"
@@ -200,12 +197,9 @@
                     inputmode="tel"
                     autocomplete="tel"
                     required
-                    placeholder="03 0000 0000 or 0400 000 000"
-                    aria-describedby="contactMobileHelp contactMobileError"
+                    placeholder="0400 000 000"
+                    aria-describedby="contactMobileError"
                   >
-                  <small id="contactMobileHelp" class="field-help">
-                    Victorian landline or Australian mobile.
-                  </small>
                   <p id="contactMobileError" class="field-error" hidden></p>
                 </div>
 
@@ -221,7 +215,7 @@
                       maxlength="500"
                       autocomplete="street-address"
                       placeholder="Street, suburb, VIC and postcode"
-                      aria-describedby="deliveryAddressHelp deliveryAddressError"
+                      aria-describedby="deliveryAddressError"
                     ></textarea>
 
                     <input id="deliveryAddress" type="hidden">
@@ -236,17 +230,12 @@
                   </div>
 
                   <div class="address-field-footer">
-                    <small id="deliveryAddressHelp" class="field-help">
-                      Search is restricted to Victoria. Select a result rather than typing free text.
-                    </small>
                     <button id="toggleManualAddressButton" class="inline-link-button" type="button">
                       Enter manually
                     </button>
                   </div>
 
-                  <p id="addressSearchStatus" class="address-search-status">
-                    Loading Victorian address search…
-                  </p>
+                  <p id="addressSearchStatus" class="address-search-status" hidden></p>
                   <p id="deliveryAddressError" class="field-error" hidden></p>
                 </div>
 

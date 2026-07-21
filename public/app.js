@@ -797,7 +797,7 @@ function validateOrderDetails() {
   const normalisedNumber = normaliseAustralianContactNumber(details.mobile);
   if (!normalisedNumber) {
     const message =
-      "Enter a valid 03 landline or 04 mobile number.";
+      "Enter a valid Australian mobile number beginning with 04.";
     setFieldError("contactMobile", message);
     throw new Error(message);
   }
@@ -1111,7 +1111,7 @@ function initialiseDeliveryDetails() {
     if (!normalised) {
       setFieldError(
         "contactMobile",
-        "Enter a valid 03 landline or 04 mobile number.",
+        "Enter a valid Australian mobile number beginning with 04.",
       );
       return;
     }
@@ -1278,7 +1278,7 @@ function updateRequiredDateFeedback() {
 
   if (daysAhead >= 180) {
     warningText.textContent =
-      `This required date is ${Math.floor(daysAhead / 30)} months in the future. Confirm that it is correct.`;
+      `Required date is about ${Math.floor(daysAhead / 30)} months away. Confirm it is correct.`;
     confirmation.hidden = false;
     warning.hidden = false;
   }
@@ -1363,13 +1363,6 @@ function formatAustralianContactNumber(value, options = {}) {
     return [first, second, third].filter(Boolean).join(" ");
   }
 
-  if (digits.startsWith("03")) {
-    const first = digits.slice(0, 2);
-    const second = digits.slice(2, 6);
-    const third = digits.slice(6, 10);
-    return [first, second, third].filter(Boolean).join(" ");
-  }
-
   if (options.partial) {
     return digits;
   }
@@ -1382,10 +1375,6 @@ function normaliseAustralianContactNumber(value) {
 
   if (/^04\d{8}$/.test(digits)) {
     return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`;
-  }
-
-  if (/^03\d{8}$/.test(digits)) {
-    return `${digits.slice(0, 2)} ${digits.slice(2, 6)} ${digits.slice(6)}`;
   }
 
   return "";
@@ -1592,11 +1581,6 @@ function enableManualAddressMode(options = {}) {
       ? "Use address search"
       : "Manual entry";
 
-  if (options.reason) {
-    document.getElementById("addressSearchStatus").textContent =
-      options.reason;
-  }
-
   updatePickupAddressRequirement();
 
   if (!options.silent) markDraftChanged();
@@ -1627,25 +1611,10 @@ function setSelectedDeliveryAddress(address, source, options = {}) {
 
 function updateAddressSearchStatus() {
   const status = document.getElementById("addressSearchStatus");
-  const isPickup =
-    selectedRadioValue("deliveryType") ===
-    "Pickup (Customer to collect)";
+  if (!status) return;
 
-  if (isPickup) {
-    status.textContent =
-      "Pickup selected. A delivery address is not required.";
-    return;
-  }
-
-  if (state.manualAddressMode) {
-    status.textContent = state.addressAutocompleteReady
-      ? "Manual entry is active. Include VIC and the four-digit postcode."
-      : "Address search requires a Google Maps key. Manual entry is active.";
-    return;
-  }
-
-  status.textContent =
-    "Search results are restricted to Victoria. Select a result to confirm it.";
+  status.textContent = "";
+  status.hidden = true;
 }
 
 function bindKioskNavigation() {

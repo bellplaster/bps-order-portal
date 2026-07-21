@@ -3874,3 +3874,44 @@ body.kiosk-body {
     gap: 6px;
   }
 }
+
+
+/* ================================================================
+   MOBILE-ONLY CONTACT + DATE WARNING LAYOUT FIX
+   ================================================================ */
+
+/* Grid items must keep their natural height. Without this, the order-date
+   field stretches to match the required-date warning beside it. */
+.details-grid {
+  align-items: start;
+}
+
+.details-grid > .kiosk-field {
+  align-self: start;
+  min-height: 0;
+}
+
+.details-grid > .kiosk-field > input,
+.details-grid > .kiosk-field > textarea,
+.details-grid > .kiosk-field > .date-entry {
+  align-self: start;
+}
+
+/* Keep the six-month warning compact rather than changing the whole row. */
+#requiredDateWarning {
+  gap: 7px;
+  padding: 9px 11px;
+}
+
+#requiredDateWarning .warning-confirmation {
+  min-height: 20px;
+}
+
+#requiredDateWarning .warning-confirmation input {
+  margin: 0;
+}
+
+/* Descriptive helper copy was removed from the first screen. */
+#addressSearchStatus[hidden] {
+  display: none !important;
+}

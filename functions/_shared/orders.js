@@ -958,7 +958,7 @@ function normaliseOrderDetails(rawPayload) {
 
   if (!mobile) {
     throw new Error(
-      "Contact Number must be a valid 03 landline or 04 mobile number.",
+      "Mobile must be a valid Australian mobile number beginning with 04.",
     );
   }
 
@@ -1054,10 +1054,6 @@ function normaliseAustralianContactNumber(value) {
 
   if (/^04\d{8}$/.test(digits)) {
     return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`;
-  }
-
-  if (/^03\d{8}$/.test(digits)) {
-    return `${digits.slice(0, 2)} ${digits.slice(2, 6)} ${digits.slice(6)}`;
   }
 
   return "";
