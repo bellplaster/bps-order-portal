@@ -27,7 +27,7 @@
     >
 
     <div class="header-right">
-      <p id="draftStatus" class="header-save-status" aria-live="polite">
+      <p id="draftStatus" class="header-save-status visually-hidden" aria-live="polite">
         Changes save automatically
       </p>
       <button id="logoutButton" class="header-action header-signout" type="button">
@@ -41,7 +41,6 @@
       <span class="journey-number">1</span>
       <span>
         <strong>Delivery</strong>
-        <small>Order details</small>
       </span>
     </button>
 
@@ -51,7 +50,6 @@
       <span class="journey-number">2</span>
       <span>
         <strong>Products</strong>
-        <small>Build the order</small>
       </span>
     </button>
 
@@ -61,7 +59,6 @@
       <span class="journey-number">3</span>
       <span>
         <strong>Review</strong>
-        <small>Confirm and submit</small>
       </span>
     </button>
   </nav>
@@ -85,20 +82,10 @@
       <section class="kiosk-step-panel is-active" data-kiosk-step="details">
         <div class="details-stage">
           <div class="stage-intro">
-            <p class="stage-eyebrow">BPS Brunswick Plastering Services</p>
             <h1>Where is this order going?</h1>
-            <p>Enter the delivery details once, then add products by floor.</p>
           </div>
 
           <div class="details-layout">
-            <section class="details-card account-card">
-              <div class="account-mark">BPS</div>
-              <div>
-                <span>Trade account</span>
-                <strong>BPS Brunswick Plastering Services</strong>
-              </div>
-            </section>
-
             <section class="details-card delivery-card">
               <div class="details-grid">
                 <label class="kiosk-field">
@@ -132,7 +119,9 @@
                       type="button"
                       aria-label="Open required date calendar"
                     >
-                      <span aria-hidden="true">▦</span>
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M7 3v3M17 3v3M4.5 9h15M5 5.5h14a1 1 0 0 1 1 1V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1Z"/>
+                      </svg>
                     </button>
                     <input
                       id="requiredDatePicker"
@@ -208,13 +197,18 @@
 
                   <div class="address-entry-area">
                     <div id="addressSearchShell" class="address-search-shell">
-                      <span class="address-search-icon" aria-hidden="true">⌕</span>
+                      <span class="address-search-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                          <circle cx="11" cy="11" r="6.5"/>
+                          <path d="m16 16 4 4"/>
+                        </svg>
+                      </span>
                       <input
                         id="deliveryAddressSearch"
                         type="text"
                         maxlength="220"
                         autocomplete="off"
-                        placeholder="Start typing the street address"
+                        placeholder="Start typing the delivery address"
                         role="combobox"
                         aria-autocomplete="list"
                         aria-expanded="false"
@@ -225,29 +219,12 @@
                       <div id="addressSearchResults" class="address-search-results" role="listbox" hidden></div>
                     </div>
 
-                    <textarea
-                      id="deliveryAddressManual"
-                      rows="2"
-                      maxlength="500"
-                      autocomplete="street-address"
-                      placeholder="Street address, suburb VIC postcode"
-                      aria-describedby="deliveryAddressError"
-                      hidden
-                    ></textarea>
-
                     <input id="deliveryAddress" type="hidden">
                     <input id="deliveryAddressLine1" type="hidden">
                     <input id="deliveryAddressLine2" type="hidden">
-
                   </div>
 
-                  <div class="address-field-footer">
-                    <button id="toggleManualAddressButton" class="inline-link-button" type="button">
-                      Enter manually
-                    </button>
-                  </div>
-
-                  <p id="addressSearchStatus" class="address-search-status" hidden></p>
+                  <p id="addressSearchStatus" hidden></p>
                   <p id="deliveryAddressError" class="field-error" hidden></p>
                 </div>
 
@@ -315,7 +292,6 @@
       <section class="kiosk-step-panel product-stage" data-kiosk-step="products" hidden>
         <div class="product-stage-topbar">
           <div class="adding-to-control">
-            <span>Adding products to</span>
             <div class="floor-tabs kiosk-floor-tabs" role="tablist" aria-label="Order floor">
               <button class="floor-tab is-active" type="button" role="tab" aria-selected="true" data-floor-tab="ground">
                 Ground Floor
@@ -328,17 +304,34 @@
             </div>
           </div>
 
-          <div class="global-product-search">
-            <span class="search-icon" aria-hidden="true">⌕</span>
-            <input
-              id="globalProductSearch"
-              type="search"
-              autocomplete="off"
-              placeholder="Search stock code, product or size"
-              aria-label="Search all products"
-              disabled
-            >
-            <div id="globalProductResults" class="catalogue-search-results global-search-results" hidden></div>
+          <div class="product-topbar-actions">
+            <div class="global-product-search">
+              <span class="search-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="11" cy="11" r="6.5"/>
+                  <path d="m16 16 4 4"/>
+                </svg>
+              </span>
+              <input
+                id="globalProductSearch"
+                type="search"
+                autocomplete="off"
+                placeholder="Search stock code, product or size"
+                aria-label="Search all products"
+                disabled
+              >
+              <div id="globalProductResults" class="catalogue-search-results global-search-results" hidden></div>
+            </div>
+
+            <button id="openCartButton" class="cart-button" type="button" aria-label="Open order summary">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M3.5 5h2l1.7 9.2a1.5 1.5 0 0 0 1.5 1.2h8.8a1.5 1.5 0 0 0 1.4-1l1.6-6.2H7"/>
+                <circle cx="9.5" cy="19" r="1.2"/>
+                <circle cx="17.5" cy="19" r="1.2"/>
+              </svg>
+              <span>Order</span>
+              <span id="cartCountBadge" class="cart-count-badge">0</span>
+            </button>
           </div>
         </div>
 
@@ -346,7 +339,6 @@
           <aside class="category-rail" aria-label="Product categories">
             <div class="category-rail-heading">
               <span>Products</span>
-              <small>Choose a category</small>
             </div>
 
             <button class="category-button is-active" type="button" data-category-target="boards" data-category-title="Boards" data-category-description="Standard and specialty plasterboard">
@@ -397,7 +389,6 @@
                 <h2 id="activeCategoryTitle">Boards</h2>
                 <p id="activeCategoryDescription">Standard and specialty plasterboard</p>
               </div>
-              <span id="workspaceFloorLabel" class="workspace-floor-label">Ground Floor</span>
             </header>
 
             <article class="floor-panel is-active" data-floor-panel="ground">
@@ -409,35 +400,40 @@
             </article>
           </section>
 
-          <aside class="current-order-panel" aria-label="Order summary">
-            <header class="current-order-header">
-              <div>
-                <span>Order summary</span>
-                <strong id="currentOrderSummary">0 products</strong>
-              </div>
-              <button id="clearOrderButton" class="text-button" type="button">Clear</button>
-            </header>
-
-            <div id="currentOrderList" class="current-order-list">
-              <div class="basket-empty">
-                <span>＋</span>
-                <strong>Your order is empty</strong>
-                <p>Select a product or use the search above.</p>
-              </div>
-            </div>
-
-            <footer class="current-order-footer">
-              <div class="basket-totals">
-                <span><strong id="currentOrderLineCount">0</strong> product lines</span>
-                <span><strong id="currentOrderUnitCount">0</strong> total units</span>
-              </div>
-              <button id="reviewOrderButton" class="button button-primary button-large" type="button">
-                Review order
-                <span aria-hidden="true">→</span>
-              </button>
-            </footer>
-          </aside>
         </div>
+
+        <div id="cartBackdrop" class="cart-backdrop" hidden></div>
+        <aside id="currentOrderPanel" class="current-order-panel cart-drawer" aria-label="Order summary" aria-hidden="true">
+          <header class="current-order-header">
+            <div>
+              <span>Order</span>
+              <strong id="currentOrderSummary">0 products</strong>
+            </div>
+            <div class="cart-header-actions">
+              <button id="clearOrderButton" class="text-button" type="button">Clear</button>
+              <button id="closeCartButton" class="drawer-close cart-close" type="button" aria-label="Close order summary">×</button>
+            </div>
+          </header>
+
+          <div id="currentOrderList" class="current-order-list">
+            <div class="basket-empty">
+              <span>＋</span>
+              <strong>Your order is empty</strong>
+              <p>Select a product or use the search above.</p>
+            </div>
+          </div>
+
+          <footer class="current-order-footer">
+            <div class="basket-totals">
+              <span><strong id="currentOrderLineCount">0</strong> product lines</span>
+              <span><strong id="currentOrderUnitCount">0</strong> total units</span>
+            </div>
+            <button id="reviewOrderButton" class="button button-primary button-large" type="button">
+              Review order
+              <span aria-hidden="true">→</span>
+            </button>
+          </footer>
+        </aside>
       </section>
 
       <!-- STEP 3: REVIEW -->
@@ -504,7 +500,6 @@
   <aside id="historyDrawer" class="history-drawer" aria-label="Order history" aria-hidden="true">
     <header class="history-drawer-header">
       <div>
-        <span>BPS portal</span>
         <h2>Order history</h2>
       </div>
       <button id="closeHistoryButton" class="drawer-close" type="button" aria-label="Close order history">×</button>

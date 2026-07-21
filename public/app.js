@@ -13,8 +13,8 @@ const state = {
   activeStep: "details",
   activeCategory: "boards",
   addressAutocompleteReady: false,
-  manualAddressMode: true,
-  selectedAddressSource: "manual",
+  manualAddressMode: false,
+  selectedAddressSource: "typed",
   addressAutocompleteApi: null,
   addressSessionToken: null,
   addressSearchTimer: null,
@@ -23,10 +23,11 @@ const state = {
   addressPredictionIndex: -1,
   addressPreviewCache: new Map(),
   addressPreviewTimer: null,
+  cartOpen: false,
 };
 
-const DRAFT_STORAGE_KEY = "bps-knauf-order-form-draft-v9";
-const DRAFT_VERSION = 9;
+const DRAFT_STORAGE_KEY = "bps-knauf-order-form-draft-v10";
+const DRAFT_VERSION = 10;
 const floorLabels = { ground: "Ground Floor", first: "1st Floor" };
 
 document.addEventListener("DOMContentLoaded", initialise);
@@ -42,15 +43,15 @@ async function initialise() {
   bindGlobalProductSearch();
   bindHistoryDrawer();
   bindCurrentOrderActions();
+  bindCartDrawer();
   initialiseDeliveryDetails();
 
   document.getElementById("refreshHistoryButton").addEventListener("click", loadOrderHistory);
   document.getElementById("cancelEditButton").addEventListener("click", cancelEdit);
 
   initialiseAddressAutocomplete().catch((error) => {
-    enableManualAddressMode({
-      reason: error.message || "Victorian address search could not be loaded.",
-    });
+    console.warn("Address autocomplete unavailable", error);
+    enableAddressSearchMode({ silent: true });
   });
 
   await loadCatalog();
@@ -82,10 +83,6 @@ function activateFloorTab(floor) {
   });
   state.activeFloor = floor;
 
-  const workspaceFloorLabel = document.getElementById("workspaceFloorLabel");
-  if (workspaceFloorLabel) {
-    workspaceFloorLabel.textContent = floorLabels[floor];
-  }
 
   const search = document.getElementById("globalProductSearch");
   if (search) {
@@ -126,25 +123,20 @@ function bindOrderDetailInteractions() {
   });
 }
 
+
 function updatePickupAddressRequirement() {
   const isPickup =
     selectedRadioValue("deliveryType") === "Pickup (Customer to collect)";
   const field = document.getElementById("deliveryAddressField");
-  const manual = document.getElementById("deliveryAddressManual");
   const search = document.getElementById("deliveryAddressSearch");
-  const toggle = document.getElementById("toggleManualAddressButton");
 
   field?.classList.toggle("is-pickup", isPickup);
-  manual.required = !isPickup && state.manualAddressMode;
-  manual.disabled = isPickup;
   if (search) search.disabled = isPickup;
-  toggle.disabled = isPickup;
 
   if (isPickup) {
     clearFieldError("deliveryAddress");
+    closeAddressSuggestions();
   }
-
-  updateAddressSearchStatus();
 }
 
 async function loadCatalog() {
@@ -310,14 +302,18 @@ function renderFloorSheet(floor) {
   });
 }
 
+
 function renderMainBoardMatrix(floor, matrix) {
-  const section = createSectionShell("main-board-section", matrix.title);
+  const section = document.createElement("section");
+  section.className = "flat-product-section main-board-section";
+
   const scroller = document.createElement("div");
   scroller.className = "table-scroller";
+
   const table = document.createElement("table");
   table.className = "product-table main-board-table";
-  const thead = document.createElement("thead");
 
+  const thead = document.createElement("thead");
   const groupRow = document.createElement("tr");
   const lengthTitle = document.createElement("th");
   lengthTitle.className = "sticky-left";
@@ -330,10 +326,7 @@ function renderMainBoardMatrix(floor, matrix) {
     if (previous && previous.group === group.group) {
       previous.span += group.span;
     } else {
-      mergedGroups.push({
-        group: group.group,
-        span: group.span,
-      });
+      mergedGroups.push({ group: group.group, span: group.span });
     }
   });
 
@@ -362,11 +355,13 @@ function renderMainBoardMatrix(floor, matrix) {
   mm.className = "sticky-left unit-heading";
   mm.textContent = "mm";
   widthRow.append(mm);
+
   matrix.columns.forEach((column) => {
     const th = document.createElement("th");
     th.textContent = column.variant;
     widthRow.append(th);
   });
+
   thead.append(groupRow, thicknessRow, widthRow);
   table.append(thead);
 
@@ -380,23 +375,23 @@ function renderMainBoardMatrix(floor, matrix) {
     row.cells.forEach((key) => tr.append(createQuantityCell(floor, key)));
     tbody.append(tr);
   });
+
   table.append(tbody);
   scroller.append(table);
-  section.body.append(scroller);
-  return section.root;
+  section.append(scroller);
+  return section;
 }
 
+
 function renderSpecialtyBoards(floor, groups) {
-  const section = createSectionShell("specialty-board-strip", "SPECIALTY BOARDS");
   const grid = document.createElement("div");
-  grid.className = "specialty-board-grid";
+  grid.className = "specialty-board-grid flat-specialty-grid";
 
   groups.forEach((group) => {
     const card = document.createElement("section");
-    card.className = "specialty-board-card";
-    if (group.rows.length > 1) card.classList.add("has-multiple-variants");
+    card.className = "specialty-board-card flat-specialty-group";
 
-    const heading = document.createElement("h4");
+    const heading = document.createElement("h3");
     heading.textContent = group.title;
 
     const variants = document.createElement("div");
@@ -423,8 +418,7 @@ function renderSpecialtyBoards(floor, groups) {
     grid.append(card);
   });
 
-  section.body.append(grid);
-  return section.root;
+  return grid;
 }
 
 function renderSection(floor, def) {
@@ -435,123 +429,155 @@ function renderSection(floor, def) {
   return document.createElement("div");
 }
 
+
 function renderMatrixSection(floor, def) {
-  const section = createSectionShell("compact-section", def.title);
+  const section = document.createElement("section");
+  section.className = "flat-product-section flat-matrix-section";
+
+  const heading = document.createElement("h3");
+  heading.textContent = def.title;
+
   const scroller = document.createElement("div");
   scroller.className = "table-scroller";
+
   const table = document.createElement("table");
   table.className = "product-table compact-table";
+
   const thead = document.createElement("thead");
   const trh = document.createElement("tr");
-  const first = document.createElement("th"); first.textContent = def.rowHeader || "Product"; trh.append(first);
-  def.columns.forEach((column) => { const th=document.createElement("th"); th.textContent=column; trh.append(th); });
-  thead.append(trh); table.append(thead);
-  const tbody=document.createElement("tbody");
+  const first = document.createElement("th");
+  first.textContent = def.rowHeader || "Product";
+  trh.append(first);
+
+  def.columns.forEach((column) => {
+    const th = document.createElement("th");
+    th.textContent = column;
+    trh.append(th);
+  });
+
+  thead.append(trh);
+  table.append(thead);
+
+  const tbody = document.createElement("tbody");
   def.rows.forEach((row) => {
-    const tr=document.createElement("tr");
-    const th=document.createElement("th");
-    const s=document.createElement("span"); s.textContent=row.label; th.append(s);
-    if (row.detail) { const small=document.createElement("small"); small.textContent=row.detail; th.append(small); }
+    const tr = document.createElement("tr");
+    const th = document.createElement("th");
+    const label = document.createElement("strong");
+    label.textContent = row.label;
+    th.append(label);
+
+    if (row.detail) {
+      const detail = document.createElement("small");
+      detail.textContent = row.detail;
+      th.append(detail);
+    }
+
     tr.append(th);
-    row.cells.forEach((key)=>tr.append(createQuantityCell(floor,key)));
+    row.cells.forEach((key) => tr.append(createQuantityCell(floor, key)));
     tbody.append(tr);
   });
-  table.append(tbody); scroller.append(table); section.body.append(scroller); return section.root;
+
+  table.append(tbody);
+  scroller.append(table);
+  section.append(heading, scroller);
+  return section;
 }
+
 
 function renderListSection(floor, def) {
-  const section=createSectionShell("compact-section",def.title);
-  def.rows.forEach((row)=>{
-    const line=document.createElement("div"); line.className="list-product-row";
-    const label=document.createElement("div");
-    const strong=document.createElement("strong"); strong.textContent=row.label; label.append(strong);
-    if(row.detail){const span=document.createElement("span");span.textContent=row.detail;label.append(span);}
-    line.append(label,createStandaloneQuantity(floor,row.key)); section.body.append(line);
+  const section = document.createElement("section");
+  section.className = "flat-product-section flat-list-section";
+
+  const heading = document.createElement("h3");
+  heading.textContent = def.title;
+
+  const list = document.createElement("div");
+  list.className = "flat-product-list";
+
+  def.rows.forEach((row) => {
+    const line = document.createElement("div");
+    line.className = "list-product-row flat-product-row";
+
+    const label = document.createElement("div");
+    const strong = document.createElement("strong");
+    strong.textContent = row.label;
+    label.append(strong);
+
+    if (row.detail) {
+      const detail = document.createElement("span");
+      detail.textContent = row.detail;
+      label.append(detail);
+    }
+
+    line.append(label, createStandaloneQuantity(floor, row.key));
+    list.append(line);
   });
-  return section.root;
+
+  section.append(heading, list);
+  return section;
 }
 
+
 function renderInsulationSection(floor, def) {
-  const section = createSectionShell("insulation-section", "KNAUF INSULATION");
-  const groups = document.createElement("div");
-  groups.className = "insulation-groups";
+  const layout = document.createElement("div");
+  layout.className = "insulation-flat-layout";
 
   [
-    {
-      title: "THERMAL BATTS",
-      description: "Wall and ceiling thermal insulation",
-      rows: def.thermalRows,
-    },
-    {
-      title: "ACOUSTIC",
-      description: "Standard acoustic insulation",
-      rows: def.acousticRows,
-    },
+    { title: "Thermal batts", rows: def.thermalRows },
+    { title: "Acoustic", rows: def.acousticRows },
   ].forEach((definition) => {
     const group = document.createElement("section");
-    group.className = "insulation-group";
+    group.className = "flat-product-section insulation-flat-section";
 
-    const header = document.createElement("header");
-    const title = document.createElement("h4");
-    title.textContent = definition.title;
-    const description = document.createElement("p");
-    description.textContent = definition.description;
-    header.append(title, description);
+    const heading = document.createElement("h3");
+    heading.textContent = definition.title;
 
-    const productGrid = document.createElement("div");
-    productGrid.className = "insulation-product-grid";
+    const list = document.createElement("div");
+    list.className = "insulation-flat-list";
 
     definition.rows.forEach((row) => {
-      const card = document.createElement("article");
-      card.className = "insulation-product-card";
+      const product = document.createElement("div");
+      product.className = "insulation-flat-row";
 
-      const productName = document.createElement("strong");
-      productName.className = "insulation-product-name";
-      productName.textContent = row.label;
+      const name = document.createElement("strong");
+      name.textContent = row.label;
 
       const variants = document.createElement("div");
-      variants.className = "insulation-variants";
+      variants.className = "insulation-flat-variants";
 
       row.cells.forEach((key, index) => {
         const variant = document.createElement("div");
-        variant.className = "insulation-variant";
+        variant.className = "insulation-flat-variant";
 
-        const variantLabel = document.createElement("span");
-        variantLabel.textContent = index === 0 ? "430 mm" : "580 mm";
-        variant.append(variantLabel, createStandaloneQuantity(floor, key));
+        const label = document.createElement("span");
+        label.textContent = index === 0 ? "430 mm" : "580 mm";
+        variant.append(label, createStandaloneQuantity(floor, key));
         variants.append(variant);
       });
 
-      card.append(productName, variants);
-      productGrid.append(card);
+      product.append(name, variants);
+      list.append(product);
     });
 
-    group.append(header, productGrid);
-    groups.append(group);
+    group.append(heading, list);
+    layout.append(group);
   });
 
-  section.body.append(groups);
-  return section.root;
+  return layout;
 }
 
-function renderOtherMaterialsSection(floor, def) {
-  const section = createSectionShell(
-    "compact-section other-materials-section searchable-materials-section",
-    "PRODUCTS ADDED FROM SEARCH",
-  );
 
-  const intro = document.createElement("p");
-  intro.className = "other-materials-intro";
-  intro.textContent =
-    `Use the search bar above to add any product to ${floorLabels[floor]}.`;
+function renderOtherMaterialsSection(floor) {
+  const section = document.createElement("section");
+  section.className = "additional-products-section";
 
   const selected = document.createElement("div");
   selected.className = "selected-materials";
   selected.dataset.selectedMaterials = floor;
 
-  section.body.append(intro, selected);
+  section.append(selected);
   renderSelectedOtherMaterials(floor);
-  return section.root;
+  return section;
 }
 
 function renderProductSearchResults(floor, query, search, results) {
@@ -669,40 +695,49 @@ function addOtherMaterial(floor, product, search, results) {
   renderCurrentOrder();
 }
 
-function renderSelectedOtherMaterials(floor) {
-  const container = document.querySelector(`[data-selected-materials="${floor}"]`);
-  if (!container) return;
-  container.replaceChildren();
 
+function renderSelectedOtherMaterials(floor) {
+  const container = document.querySelector(
+    `[data-selected-materials="${floor}"]`,
+  );
+  if (!container) return;
+
+  container.replaceChildren();
   const items = state.otherMaterials[floor];
+
   if (!items.length) {
     const empty = document.createElement("div");
     empty.className = "selected-materials-empty";
-    empty.textContent = "No additional products added.";
+    empty.innerHTML =
+      "<strong>No additional products yet</strong><span>Use the search above to add any product from the catalogue.</span>";
     container.append(empty);
     return;
   }
 
-  const header = document.createElement("div");
-  header.className = "selected-materials-header";
-  header.innerHTML = "<span>Stock code</span><span>Description</span><span>Qty</span><span></span>";
-  container.append(header);
+  const list = document.createElement("div");
+  list.className = "selected-materials-list";
 
   items.forEach((item) => {
-    const row = document.createElement("div");
+    const row = document.createElement("article");
     row.className = "selected-material-row";
 
-    const sku = document.createElement("strong");
-    sku.textContent = item.sku;
-    const description = document.createElement("span");
-    description.className = "selected-material-description";
+    const copy = document.createElement("div");
+    copy.className = "selected-material-copy";
+
+    const description = document.createElement("strong");
     description.textContent = humaniseProductDescription(item.description);
+    const sku = document.createElement("span");
+    sku.textContent = item.sku;
+    copy.append(description, sku);
+
+    const controls = document.createElement("div");
+    controls.className = "selected-material-controls";
 
     const quantity = document.createElement("input");
-    quantity.type = "number";
-    quantity.min = "1";
-    quantity.max = "999";
-    quantity.step = "1";
+    quantity.type = "text";
+    quantity.inputMode = "numeric";
+    quantity.pattern = "[0-9]*";
+    quantity.maxLength = 3;
     quantity.value = String(item.quantity || 1);
     quantity.className = "other-material-quantity";
     quantity.dataset.otherMaterialSku = `${floor}:${item.sku}`;
@@ -721,16 +756,21 @@ function renderSelectedOtherMaterials(floor) {
     remove.className = "remove-material-button";
     remove.textContent = "Remove";
     remove.addEventListener("click", () => {
-      state.otherMaterials[floor] = state.otherMaterials[floor].filter((candidate) => candidate.sku !== item.sku);
+      state.otherMaterials[floor] = state.otherMaterials[floor].filter(
+        (candidate) => candidate.sku !== item.sku,
+      );
       renderSelectedOtherMaterials(floor);
       updateFloorCount(floor);
       renderCurrentOrder();
       markDraftChanged();
     });
 
-    row.append(sku, description, quantity, remove);
-    container.append(row);
+    controls.append(quantity, remove);
+    row.append(copy, controls);
+    list.append(row);
   });
+
+  container.append(list);
 }
 
 function findProductMatches(query) {
@@ -818,7 +858,16 @@ function compactSearch(value) {
   return normaliseSearch(value).replace(/\s+/g, "");
 }
 
-function createSectionShell(className,title){const root=document.createElement("section");root.className=`product-section ${className}`;const heading=document.createElement("h3");heading.textContent=title;const body=document.createElement("div");body.className="product-section-body";root.append(heading,body);return{root,body};}
+function createSectionShell(className,title){
+  const root=document.createElement("section");
+  root.className=`flat-product-section ${className}`;
+  const heading=document.createElement("h3");
+  heading.textContent=title;
+  const body=document.createElement("div");
+  body.className="product-section-body";
+  root.append(heading,body);
+  return{root,body};
+}
 
 function createQuantityCell(floor,key){
   const td=document.createElement("td");
@@ -953,28 +1002,58 @@ function updateFloorCount(floor) {
 }
 function updateAllFloorCounts(){updateFloorCount("ground");updateFloorCount("first");}
 
-function getOrderDetails(){
-  const deliveryAddress=document.getElementById("deliveryAddress").value.trim();
-  const addressLine1=document.getElementById("deliveryAddressLine1").value.trim();
-  const addressLine2=document.getElementById("deliveryAddressLine2").value.trim();
-  return{
-    orderDate:document.getElementById("orderDateIso").value||todayLocal(),
-    reference:document.getElementById("accountReference").value.trim(),
-    customer:document.getElementById("customerName").value.trim(),
-    contact:document.getElementById("contactName").value.trim(),
-    mobile:normaliseAustralianContactNumber(document.getElementById("contactMobile").value)||document.getElementById("contactMobile").value.trim(),
-    deliveryAddress,
-    addressLine1,
-    addressLine2,
-    addressSource:state.selectedAddressSource,
-    deliveryInstructions:document.getElementById("deliveryInstructions").value.trim(),
-    requiredDate:parseAustralianDate(document.getElementById("requiredDate").value)||"",
-    requiredTime:document.getElementById("requiredTime").value,
-    futureDateConfirmed:document.getElementById("confirmFutureRequiredDate").checked,
-    unusualTimeConfirmed:document.getElementById("confirmUnusualRequiredTime").checked,
-    timeSlot:selectedRadioValue("timeSlot"),
-    deliveryType:selectedRadioValue("deliveryType"),
-    extras:Array.from(document.querySelectorAll('input[name="deliveryExtra"]:checked')).map((f)=>f.value),
+
+function getOrderDetails() {
+  const searchValue =
+    document.getElementById("deliveryAddressSearch").value.trim();
+  const parsed =
+    selectedRadioValue("deliveryType") === "Pickup (Customer to collect)"
+      ? { full: "", line1: "", line2: "" }
+      : splitTypedDeliveryAddress(searchValue);
+
+  if (searchValue) {
+    document.getElementById("deliveryAddress").value = parsed.full;
+    document.getElementById("deliveryAddressLine1").value = parsed.line1;
+    document.getElementById("deliveryAddressLine2").value = parsed.line2;
+  }
+
+  return {
+    orderDate:
+      document.getElementById("orderDateIso").value || todayLocal(),
+    reference:
+      document.getElementById("accountReference").value.trim(),
+    customer:
+      document.getElementById("customerName").value.trim(),
+    contact:
+      document.getElementById("contactName").value.trim(),
+    mobile:
+      normaliseAustralianContactNumber(
+        document.getElementById("contactMobile").value,
+      ) ||
+      document.getElementById("contactMobile").value.trim(),
+    deliveryAddress: parsed.full,
+    addressLine1: parsed.line1,
+    addressLine2: parsed.line2,
+    addressSource: state.selectedAddressSource,
+    deliveryInstructions:
+      document.getElementById("deliveryInstructions").value.trim(),
+    requiredDate:
+      parseAustralianDate(
+        document.getElementById("requiredDate").value,
+      ) || "",
+    requiredTime:
+      document.getElementById("requiredTime").value,
+    futureDateConfirmed:
+      document.getElementById("confirmFutureRequiredDate").checked,
+    unusualTimeConfirmed:
+      document.getElementById("confirmUnusualRequiredTime").checked,
+    timeSlot: selectedRadioValue("timeSlot"),
+    deliveryType: selectedRadioValue("deliveryType"),
+    extras: Array.from(
+      document.querySelectorAll(
+        'input[name="deliveryExtra"]:checked',
+      ),
+    ).map((field) => field.value),
   };
 }
 function selectedRadioValue(name){return document.querySelector(`input[name="${name}"]:checked`)?.value||"";}
@@ -986,6 +1065,7 @@ async function submitOrder(event){
     showSuccess(result);await loadOrderHistory();clearSavedDraft({statusText:result.updated?"Revision saved. Local draft cleared.":"Order submitted. Local draft cleared."});if(editing){state.editingOrder=null;document.getElementById("editModeBanner").hidden=true;document.getElementById("editOrderNumber").textContent="";document.getElementById("editRevisionText").textContent="";}state.suppressDraftUntilInput=true;
   }catch(error){showMessage(error.message||String(error),"error");}finally{state.isSubmitting=false;const button=document.getElementById("submitButton");button.disabled=false;button.textContent=state.editingOrder?"Save changes":"Submit order";}}
 
+
 function validateOrderDetails() {
   clearDeliveryDetailErrors();
   const details = getOrderDetails();
@@ -996,7 +1076,8 @@ function validateOrderDetails() {
     throw new Error(contactError);
   }
 
-  const normalisedNumber = normaliseAustralianContactNumber(details.mobile);
+  const normalisedNumber =
+    normaliseAustralianContactNumber(details.mobile);
   if (!normalisedNumber) {
     const message =
       "Enter a valid Australian mobile number beginning with 04.";
@@ -1004,24 +1085,28 @@ function validateOrderDetails() {
     throw new Error(message);
   }
 
-  document.getElementById("contactMobile").value = normalisedNumber;
+  document.getElementById("contactMobile").value =
+    normalisedNumber;
 
   const requiredDateText =
     document.getElementById("requiredDate").value.trim();
   const requiredDate = parseAustralianDate(requiredDateText);
 
   if (!requiredDate) {
-    const message = "Enter a valid required date in DD-MM-YYYY format.";
+    const message =
+      "Enter a valid required date in DD-MM-YYYY format.";
     setFieldError("requiredDate", message);
     throw new Error(message);
   }
 
   const orderDate =
     document.getElementById("orderDateIso").value || todayLocal();
-  const daysAhead = differenceInCalendarDays(orderDate, requiredDate);
+  const daysAhead =
+    differenceInCalendarDays(orderDate, requiredDate);
 
   if (daysAhead < 0) {
-    const message = "Required date cannot be earlier than the order date.";
+    const message =
+      "Required date cannot be earlier than the order date.";
     setFieldError("requiredDate", message);
     throw new Error(message);
   }
@@ -1059,27 +1144,19 @@ function validateOrderDetails() {
     throw new Error(message);
   }
 
-  if (!details.timeSlot) throw new Error("Select a time slot.");
-  if (!details.deliveryType) throw new Error("Select the delivery type.");
+  if (!details.timeSlot) {
+    throw new Error("Select a time slot.");
+  }
 
-  if (
-    details.deliveryType !== "Pickup (Customer to collect)" &&
-    (!details.addressLine1 || !details.addressLine2)
-  ) {
-    const message =
-      state.manualAddressMode
-        ? "Enter the street address and suburb, VIC postcode."
-        : "Choose a complete address from the suggestions.";
-    setFieldError("deliveryAddress", message);
-    throw new Error(message);
+  if (!details.deliveryType) {
+    throw new Error("Select the delivery type.");
   }
 
   if (
     details.deliveryType !== "Pickup (Customer to collect)" &&
-    !looksLikeVictorianAddress(details.addressLine2)
+    !document.getElementById("deliveryAddressSearch").value.trim()
   ) {
-    const message =
-      "Choose a complete Victorian address with suburb and postcode.";
+    const message = "Enter the delivery address.";
     setFieldError("deliveryAddress", message);
     throw new Error(message);
   }
@@ -1150,8 +1227,8 @@ function createHistoryOrderCard(order){
   ].forEach(([label,value])=>{if(!value)return;const item=document.createElement("div");item.innerHTML=`<span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong>`;detailGrid.append(item);});if(detailGrid.children.length)card.append(detailGrid);
   if(d.delivery_instructions){const instructions=document.createElement("div");instructions.className="history-note-block";instructions.innerHTML=`<strong>Delivery instructions</strong><span>${escapeHtml(d.delivery_instructions)}</span>`;card.append(instructions);}
 
-  if(Array.isArray(order.other_materials)&&order.other_materials.length){const block=document.createElement("div");block.className="history-note-block";const h=document.createElement("strong");h.textContent="Other materials";block.append(h);order.other_materials.forEach((floor)=>floor.items.forEach((item)=>{const line=document.createElement("span");line.textContent=`${floor.floor_label}: ${item.sku ? `${item.sku} — ` : ""}${item.description || "Product"} × ${item.quantity}`;block.append(line);}));card.append(block);}
-  if(Array.isArray(order.pending_mapping)&&order.pending_mapping.length){const details=document.createElement("details");details.className="history-mapping-block";const count=order.pending_mapping.reduce((t,f)=>t+(f.items?.length||0),0);const summary=document.createElement("summary");summary.textContent=`${count} product line${count===1?"":"s"} for manual processing`;details.append(summary);order.pending_mapping.forEach((floor)=>floor.items.forEach((item)=>{const line=document.createElement("span");line.textContent=`${floor.floor_label}: ${item.label} × ${item.quantity}`;details.append(line);}));card.append(details);}
+  if(Array.isArray(order.other_materials)&&order.other_materials.length){const block=document.createElement("div");block.className="history-note-block";const h=document.createElement("strong");h.textContent="Additional products";block.append(h);order.other_materials.forEach((floor)=>floor.items.forEach((item)=>{const line=document.createElement("span");line.textContent=`${floor.floor_label}: ${item.sku ? `${item.sku} — ` : ""}${item.description || "Product"} × ${item.quantity}`;block.append(line);}));card.append(block);}
+  if(Array.isArray(order.pending_mapping)&&order.pending_mapping.length){const details=document.createElement("details");details.className="history-mapping-block";const count=order.pending_mapping.reduce((t,f)=>t+(f.items?.length||0),0);const summary=document.createElement("summary");summary.textContent=`${count} standard form product line${count===1?"":"s"} awaiting stock-code mapping`;details.append(summary);order.pending_mapping.forEach((floor)=>floor.items.forEach((item)=>{const line=document.createElement("span");line.textContent=`${floor.floor_label}: ${item.label} × ${item.quantity}`;details.append(line);}));card.append(details);}
   if(Array.isArray(order.files)&&order.files.length){const files=document.createElement("div");files.className="history-files";order.files.forEach((file)=>{const row=document.createElement("div");row.className="history-file-row";const info=document.createElement("div");info.className="history-file-info";const name=document.createElement("strong");name.textContent=file.filename;const detail=document.createElement("span");detail.textContent=[`Revision ${file.revision||1}`,file.floor_label,`${file.item_count} line${file.item_count===1?"":"s"}`].join(" · ");info.append(name,detail);row.append(info);if(file.download_url)row.append(createDownloadLink(file.download_url,file.filename));files.append(row);});card.append(files);}
   return card;
 }
@@ -1229,6 +1306,7 @@ async function deleteOrder(submissionId,orderNumber){if(!window.confirm(`Permane
 
 
 
+
 function initialiseDeliveryDetails() {
   const today = todayLocal();
   const requiredDatePicker = document.getElementById("requiredDatePicker");
@@ -1249,6 +1327,7 @@ function initialiseDeliveryDetails() {
     clearFieldError("requiredDate");
     updateRequiredDateFeedback();
   });
+
   requiredDate.addEventListener("blur", () => {
     if (requiredDate.value && !parseAustralianDate(requiredDate.value)) {
       setFieldError(
@@ -1321,24 +1400,6 @@ function initialiseDeliveryDetails() {
     contactMobile.value = normalised;
   });
 
-  const manualAddress = document.getElementById("deliveryAddressManual");
-  manualAddress.addEventListener("input", () => {
-    if (!state.manualAddressMode) return;
-    const parsed = parseVictorianAddress(manualAddress.value);
-    setSelectedDeliveryAddress(parsed || {full:manualAddress.value,line1:"",line2:""},"manual",{silent:true,preserveManual:true});
-    clearFieldError("deliveryAddress");
-  });
-
-  document
-    .getElementById("toggleManualAddressButton")
-    .addEventListener("click", () => {
-      if (state.manualAddressMode && state.addressAutocompleteReady) {
-        enableAddressSearchMode();
-      } else {
-        enableManualAddressMode();
-      }
-    });
-
   document
     .getElementById("confirmFutureRequiredDate")
     .addEventListener("change", clearRequiredDateConfirmationError);
@@ -1349,10 +1410,7 @@ function initialiseDeliveryDetails() {
 
   updateRequiredDateFeedback();
   updateRequiredTimeFeedback();
-  enableManualAddressMode({
-    reason: "Victorian address search is loading. Manual entry remains available.",
-    silent: true,
-  });
+  enableAddressSearchMode({ silent: true });
 }
 
 function clearRequiredDateConfirmationError() {
@@ -1620,6 +1678,7 @@ function clearDeliveryDetailErrors() {
   ].forEach(clearFieldError);
 }
 
+
 async function initialiseAddressAutocomplete() {
   bindAddressSearchInteractions();
 
@@ -1639,7 +1698,7 @@ async function initialiseAddressAutocomplete() {
   }));
 
   if (!response.ok || !config.ok || !config.configured || !config.apiKey) {
-    enableManualAddressMode({ silent: true });
+    enableAddressSearchMode({ silent: true });
     return;
   }
 
@@ -1687,6 +1746,7 @@ function loadGoogleMapsJavaScript(apiKey) {
   return loadGoogleMapsJavaScript.promise;
 }
 
+
 function bindAddressSearchInteractions() {
   const search = document.getElementById("deliveryAddressSearch");
   const results = document.getElementById("addressSearchResults");
@@ -1695,8 +1755,21 @@ function bindAddressSearchInteractions() {
   search.addEventListener("input", () => {
     clearFieldError("deliveryAddress");
     clear.hidden = !search.value;
-    clearSelectedAddress({ preserveSearch: true, silent: true });
+    setSelectedDeliveryAddress(
+      splitTypedDeliveryAddress(search.value),
+      "typed",
+      { silent: true, preserveSearch: true },
+    );
     queueAddressSuggestions(search.value);
+  });
+
+  search.addEventListener("blur", () => {
+    setSelectedDeliveryAddress(
+      splitTypedDeliveryAddress(search.value),
+      state.selectedAddressSource === "google" ? "google" : "typed",
+      { silent: true, preserveSearch: true },
+    );
+    window.setTimeout(closeAddressSuggestions, 140);
   });
 
   search.addEventListener("keydown", (event) => {
@@ -1722,16 +1795,17 @@ function bindAddressSearchInteractions() {
 
     if (event.key === "Enter") {
       event.preventDefault();
-      const prediction = predictions[state.addressPredictionIndex < 0 ? 0 : state.addressPredictionIndex];
+      const prediction =
+        predictions[
+          state.addressPredictionIndex < 0
+            ? 0
+            : state.addressPredictionIndex
+        ];
       if (prediction) void selectAddressPrediction(prediction);
       return;
     }
 
     if (event.key === "Escape") closeAddressSuggestions();
-  });
-
-  search.addEventListener("blur", () => {
-    window.setTimeout(closeAddressSuggestions, 140);
   });
 
   clear.addEventListener("click", () => {
@@ -1838,6 +1912,7 @@ async function getAddressPredictionPreview(prediction) {
   return previewPromise;
 }
 
+
 async function enrichAddressSuggestion(prediction, index, requestId) {
   const parsed = await getAddressPredictionPreview(prediction);
   if (!parsed || requestId !== state.addressRequestId) return;
@@ -1847,11 +1922,10 @@ async function enrichAddressSuggestion(prediction, index, requestId) {
   );
   if (!result) return;
 
-  const title = result.querySelector(".address-result-title");
-  const secondary = result.querySelector(".address-result-secondary");
-  if (title) title.textContent = parsed.line1;
-  if (secondary) secondary.textContent = parsed.line2;
+  const line = result.querySelector(".address-result-line");
+  if (line) line.textContent = formatAddressDisplay(parsed.full);
 }
+
 
 function renderAddressSuggestions() {
   const results = document.getElementById("addressSearchResults");
@@ -1861,8 +1935,9 @@ function renderAddressSuggestions() {
   if (!state.addressPredictions.length) {
     const empty = document.createElement("div");
     empty.className = "address-no-results";
-    empty.textContent = "No matching Victorian address.";
+    empty.textContent = "NO MATCHING ADDRESS";
     results.append(empty);
+    appendGoogleMapsAttribution(results);
     results.hidden = false;
     search.setAttribute("aria-expanded", "true");
     return;
@@ -1873,29 +1948,47 @@ function renderAddressSuggestions() {
     button.type = "button";
     button.className = "address-result";
     button.dataset.addressResultIndex = String(index);
-    button.classList.toggle("is-active", index === state.addressPredictionIndex);
+    button.classList.toggle(
+      "is-active",
+      index === state.addressPredictionIndex,
+    );
     button.setAttribute("role", "option");
-    button.setAttribute("aria-selected", index === state.addressPredictionIndex ? "true" : "false");
+    button.setAttribute(
+      "aria-selected",
+      index === state.addressPredictionIndex ? "true" : "false",
+    );
 
-    const text = String(prediction.text || "");
-    const [primary, ...rest] = text.split(",");
-    const mainText = String(prediction.mainText || "").trim();
-    const secondaryText = String(prediction.secondaryText || "").trim();
-    const title = document.createElement("strong");
-    title.className = "address-result-title";
-    title.textContent = mainText || primary.trim() || text;
-    const secondary = document.createElement("span");
-    secondary.className = "address-result-secondary";
-    secondary.textContent = secondaryText || rest.join(",").trim();
-    button.append(title, secondary);
+    const line = document.createElement("span");
+    line.className = "address-result-line";
+    line.textContent = formatAddressDisplay(prediction.text || "");
+    button.append(line);
 
-    button.addEventListener("mouseenter", () => {
-      void enrichAddressSuggestion(prediction, index, state.addressRequestId);
-    }, { once: true });
-    button.addEventListener("focus", () => {
-      void enrichAddressSuggestion(prediction, index, state.addressRequestId);
-    }, { once: true });
-    button.addEventListener("click", () => void selectAddressPrediction(prediction));
+    button.addEventListener(
+      "mouseenter",
+      () => {
+        void enrichAddressSuggestion(
+          prediction,
+          index,
+          state.addressRequestId,
+        );
+      },
+      { once: true },
+    );
+    button.addEventListener(
+      "focus",
+      () => {
+        void enrichAddressSuggestion(
+          prediction,
+          index,
+          state.addressRequestId,
+        );
+      },
+      { once: true },
+    );
+    button.addEventListener(
+      "click",
+      () => void selectAddressPrediction(prediction),
+    );
     results.append(button);
   });
 
@@ -1906,7 +1999,7 @@ function renderAddressSuggestions() {
     state.addressPreviewTimer = window.setTimeout(() => {
       if (requestId !== state.addressRequestId) return;
       void enrichAddressSuggestion(prediction, 0, requestId);
-    }, 320);
+    }, 240);
   }
 
   appendGoogleMapsAttribution(results);
@@ -1923,26 +2016,25 @@ function updateActiveAddressSuggestion() {
   });
 }
 
+
 async function selectAddressPrediction(prediction) {
   clearFieldError("deliveryAddress");
 
   try {
     const parsed = await getAddressPredictionPreview(prediction);
-    if (!parsed || !looksLikeVictorianAddress(parsed.line2)) {
-      setFieldError("deliveryAddress", "Choose a complete Victorian street address.");
-      return;
-    }
+    if (!parsed) return;
 
     setSelectedDeliveryAddress(parsed, "google");
-    document.getElementById("deliveryAddressSearch").value = parsed.full;
+    document.getElementById("deliveryAddressSearch").value =
+      formatAddressDisplay(parsed.full);
     document.getElementById("clearAddressSearchButton").hidden = false;
     closeAddressSuggestions();
     refreshAddressSessionToken();
   } catch (error) {
     console.error("Address selection failed", error);
-    setFieldError("deliveryAddress", "That address could not be confirmed. Choose another result.");
   }
 }
+
 
 function parseGoogleAddress(place) {
   const components = Array.isArray(place.addressComponents)
@@ -1953,61 +2045,191 @@ function parseGoogleAddress(place) {
     const match = components.find((entry) =>
       types.some((type) => entry.types?.includes(type)),
     );
-    return String(match?.shortText || match?.longText || "").trim();
+    return String(match?.longText || match?.shortText || "").trim();
   };
 
   const unit = component("subpremise");
   const streetNumber = component("street_number");
   const route = component("route");
   const premise = component("premise");
-  const suburb = component("locality", "postal_town", "sublocality_level_1", "sublocality");
-  const stateCode = component("administrative_area_level_1").toUpperCase();
+  const suburb = component(
+    "locality",
+    "postal_town",
+    "sublocality_level_1",
+    "sublocality",
+  );
+  const stateCode = component("administrative_area_level_1")
+    .replace(/\bVICTORIA\b/i, "VIC")
+    .toUpperCase();
   const postcode = component("postal_code");
 
   let line1 = [streetNumber, route].filter(Boolean).join(" ");
-  if (unit && line1) line1 = `${unit}/${line1}`;
+  if (unit && line1) line1 = `UNIT ${unit}, ${line1}`;
   if (!line1) line1 = premise;
 
   const formatted = String(place.formattedAddress || "")
     .replace(/,\s*Australia$/i, "")
     .trim();
-  const formattedParts = formatted.split(",").map((part) => part.trim()).filter(Boolean);
 
-  if (!line1 && formattedParts.length > 1) line1 = formattedParts[0];
-  const line2 = [suburb, stateCode, postcode].filter(Boolean).join(" ");
-
-  if (!line1 || !suburb || !["VIC", "VICTORIA"].includes(stateCode) || !/^(?:3|8)\d{3}$/.test(postcode)) {
-    return null;
+  if (!line1) {
+    line1 = formatted.split(",")[0]?.trim() || formatted;
   }
 
+  const line2 = [suburb, stateCode, postcode]
+    .filter(Boolean)
+    .join(" ");
+
   return {
-    full: `${line1}, ${line2}`,
-    line1,
-    line2,
+    full: [line1, line2].filter(Boolean).join(", "),
+    line1: expandStreetAddress(line1),
+    line2: line2.replace(/\s+/g, " ").trim(),
   };
 }
 
-function parseVictorianAddress(value) {
-  const text = String(value || "")
-    .replace(/,?\s*Australia\s*$/i, "")
-    .trim();
-  if (!text) return null;
 
-  const parts = text
-    .split(/\n+|,\s*/)
-    .map((part) => part.replace(/\s+/g, " ").trim())
+function parseVictorianAddress(value) {
+  const parsed = splitTypedDeliveryAddress(value);
+  if (!parsed.full || !parsed.line1 || !parsed.line2) return null;
+  return parsed;
+}
+
+
+const STREET_TYPE_EXPANSIONS = new Map([
+  ["ST", "STREET"],
+  ["RD", "ROAD"],
+  ["PL", "PLACE"],
+  ["AVE", "AVENUE"],
+  ["AV", "AVENUE"],
+  ["DR", "DRIVE"],
+  ["CT", "COURT"],
+  ["CRES", "CRESCENT"],
+  ["CR", "CRESCENT"],
+  ["PDE", "PARADE"],
+  ["HWY", "HIGHWAY"],
+  ["BLVD", "BOULEVARD"],
+  ["TCE", "TERRACE"],
+  ["LN", "LANE"],
+  ["CL", "CLOSE"],
+  ["GR", "GROVE"],
+  ["CCT", "CIRCUIT"],
+]);
+
+function expandStreetAddress(value) {
+  const text = String(value || "").replace(/\s+/g, " ").trim();
+  if (!text) return "";
+
+  return text.replace(
+    /\b(ST|RD|PL|AVE|AV|DR|CT|CRES|CR|PDE|HWY|BLVD|TCE|LN|CL|GR|CCT)\b(?=\s*(?:,|$))/gi,
+    (match) =>
+      STREET_TYPE_EXPANSIONS.get(match.toUpperCase()) || match,
+  );
+}
+
+function formatAddressDisplay(value) {
+  const text = String(value || "")
+    .replace(/,?\s*AUSTRALIA\s*$/i, "")
+    .replace(/\bVICTORIA\b/gi, "VIC")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const parts = text.split(",").map((part) => part.trim()).filter(Boolean);
+  if (parts.length) {
+    parts[0] = expandStreetAddress(parts[0]);
+  }
+
+  return parts.join(", ").toUpperCase();
+}
+
+function splitTypedDeliveryAddress(value) {
+  const original = String(value || "")
+    .replace(/,?\s*Australia\s*$/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!original) {
+    return { full: "", line1: "", line2: "" };
+  }
+
+  const commaParts = original
+    .split(/\s*,\s*/)
+    .map((part) => part.trim())
     .filter(Boolean);
 
-  if (parts.length < 2) return null;
+  let line1 = "";
+  let line2 = "";
 
-  const line1 = parts.slice(0, -1).join(", ");
-  const line2 = parts.at(-1)
+  if (commaParts.length >= 2) {
+    const finalPart = commaParts.at(-1);
+    const penultimate = commaParts.at(-2);
+
+    if (/^(?:VIC|VICTORIA)\s+\d{4}$/i.test(finalPart)) {
+      line2 = `${penultimate} ${finalPart}`;
+      line1 = commaParts.slice(0, -2).join(", ");
+    } else if (
+      /\b(?:VIC|VICTORIA)\s+\d{4}\b/i.test(finalPart)
+    ) {
+      line2 = finalPart;
+      line1 = commaParts.slice(0, -1).join(", ");
+    } else {
+      line1 = commaParts.slice(0, -1).join(", ");
+      line2 = finalPart;
+    }
+  } else {
+    const stateMatch = original.match(
+      /^(.*?)\s+(VIC|VICTORIA)\s+(\d{4})$/i,
+    );
+
+    if (stateMatch) {
+      const beforeState = stateMatch[1].trim();
+      const tokens = beforeState.split(/\s+/);
+      const suffixes = new Set([
+        "ST", "STREET", "RD", "ROAD", "PL", "PLACE",
+        "AVE", "AV", "AVENUE", "DR", "DRIVE", "CT",
+        "COURT", "CRES", "CR", "CRESCENT", "PDE",
+        "PARADE", "HWY", "HIGHWAY", "BLVD", "BOULEVARD",
+        "TCE", "TERRACE", "LN", "LANE", "CL", "CLOSE",
+        "GR", "GROVE", "CCT", "CIRCUIT", "WAY",
+      ]);
+
+      const candidates = tokens
+        .map((token, index) => ({
+          token: token.toUpperCase().replace(/[^A-Z]/g, ""),
+          index,
+        }))
+        .filter(
+          ({ token, index }) =>
+            suffixes.has(token) &&
+            index >= 2 &&
+            index < tokens.length - 1,
+        )
+        .sort((left, right) => {
+          const leftAmbiguous = left.token === "ST" ? 1 : 0;
+          const rightAmbiguous = right.token === "ST" ? 1 : 0;
+          return leftAmbiguous - rightAmbiguous || left.index - right.index;
+        });
+
+      const suffix = candidates[0];
+      if (suffix) {
+        line1 = tokens.slice(0, suffix.index + 1).join(" ");
+        line2 = `${tokens.slice(suffix.index + 1).join(" ")} ${stateMatch[2]} ${stateMatch[3]}`;
+      } else {
+        line1 = original;
+      }
+    } else {
+      line1 = original;
+    }
+  }
+
+  line1 = expandStreetAddress(line1 || original)
+    .replace(/\bUNIT\s+(\w+)\s*\/\s*/i, "UNIT $1, ")
+    .trim();
+  line2 = String(line2 || "")
     .replace(/\bVICTORIA\b/i, "VIC")
     .replace(/\s+/g, " ")
     .trim();
 
-  if (!line1 || !looksLikeVictorianAddress(line2)) return null;
-  return { full: `${line1}, ${line2}`, line1, line2 };
+  const full = [line1, line2].filter(Boolean).join(", ");
+  return { full, line1, line2 };
 }
 
 function refreshAddressSessionToken() {
@@ -2026,57 +2248,43 @@ function closeAddressSuggestions() {
   state.addressPredictionIndex = -1;
 }
 
-function enableAddressSearchMode(options = {}) {
-  if (!state.addressAutocompleteReady) {
-    enableManualAddressMode({ silent: true });
-    return;
-  }
 
+function enableAddressSearchMode(options = {}) {
   state.manualAddressMode = false;
   const searchShell = document.getElementById("addressSearchShell");
-  const manual = document.getElementById("deliveryAddressManual");
-  searchShell.hidden = false;
-  manual.hidden = true;
-  manual.required = false;
-  document.getElementById("toggleManualAddressButton").textContent = "Enter manually";
-  hideAddressSearchStatus();
+  if (searchShell) searchShell.hidden = false;
   updatePickupAddressRequirement();
   if (!options.silent) markDraftChanged();
 }
 
 function enableManualAddressMode(options = {}) {
-  state.manualAddressMode = true;
-  state.selectedAddressSource = "manual";
-  closeAddressSuggestions();
-  document.getElementById("addressSearchShell").hidden = true;
-  const manual = document.getElementById("deliveryAddressManual");
-  manual.hidden = false;
-  document.getElementById("toggleManualAddressButton").textContent =
-    state.addressAutocompleteReady ? "Use address search" : "Manual entry";
-  hideAddressSearchStatus();
-  updatePickupAddressRequirement();
+  enableAddressSearchMode({ silent: true });
+  state.selectedAddressSource = "typed";
   if (!options.silent) markDraftChanged();
 }
 
 function setSelectedDeliveryAddress(address, source, options = {}) {
-  const parsed = typeof address === "string"
-    ? parseVictorianAddress(address) || { full: String(address || "").trim(), line1: "", line2: "" }
-    : {
-        full: String(address?.full || "").trim(),
-        line1: String(address?.line1 || "").trim(),
-        line2: String(address?.line2 || "").trim(),
-      };
+  const parsed =
+    typeof address === "string"
+      ? splitTypedDeliveryAddress(address)
+      : {
+          full: String(address?.full || "").trim(),
+          line1: String(address?.line1 || "").trim(),
+          line2: String(address?.line2 || "").trim(),
+        };
 
   document.getElementById("deliveryAddress").value = parsed.full;
   document.getElementById("deliveryAddressLine1").value = parsed.line1;
   document.getElementById("deliveryAddressLine2").value = parsed.line2;
-  state.selectedAddressSource = source || "manual";
+  state.selectedAddressSource = source || "typed";
 
-  const manual = document.getElementById("deliveryAddressManual");
   const search = document.getElementById("deliveryAddressSearch");
-  if (!options.preserveManual) manual.value = parsed.full;
-  if (source !== "manual" && parsed.full && !options.preserveSearch) {
-    search.value = parsed.full;
+  if (
+    parsed.full &&
+    !options.preserveSearch &&
+    source !== "typed"
+  ) {
+    search.value = formatAddressDisplay(parsed.full);
     document.getElementById("clearAddressSearchButton").hidden = false;
   }
 
@@ -2085,13 +2293,20 @@ function setSelectedDeliveryAddress(address, source, options = {}) {
 }
 
 function clearSelectedAddress(options = {}) {
-  setSelectedDeliveryAddress({ full: "", line1: "", line2: "" }, state.manualAddressMode ? "manual" : "google", { silent: true, preserveManual: state.manualAddressMode });
-  if (!options.preserveSearch) document.getElementById("deliveryAddressSearch").value = "";
+  setSelectedDeliveryAddress(
+    { full: "", line1: "", line2: "" },
+    "typed",
+    { silent: true, preserveSearch: true },
+  );
+  if (!options.preserveSearch) {
+    document.getElementById("deliveryAddressSearch").value = "";
+  }
   if (!options.silent) markDraftChanged();
 }
 
 function showAddressSearchStatus(message, type = "info") {
   const status = document.getElementById("addressSearchStatus");
+  if (!status) return;
   status.textContent = message;
   status.dataset.type = type;
   status.hidden = false;
@@ -2099,6 +2314,7 @@ function showAddressSearchStatus(message, type = "info") {
 
 function hideAddressSearchStatus() {
   const status = document.getElementById("addressSearchStatus");
+  if (!status) return;
   status.textContent = "";
   status.hidden = true;
 }
@@ -2145,6 +2361,7 @@ function bindKioskNavigation() {
       try {
         validateOrder();
         renderReviewStep();
+        closeCartDrawer();
         setActiveStep("review");
       } catch (error) {
         showMessage(error.message || String(error), "error");
@@ -2198,6 +2415,10 @@ function setActiveStep(step, options = {}) {
   });
 
   state.activeStep = step;
+
+  if (step !== "products" && state.cartOpen) {
+    closeCartDrawer();
+  }
 
   if (step === "review") {
     renderReviewStep();
@@ -2357,13 +2578,15 @@ function closeHistoryDrawer() {
   }, 220);
 }
 
+
 function bindCurrentOrderActions() {
   document
     .getElementById("clearOrderButton")
     .addEventListener("click", () => {
       const hasProducts =
         getOrderLines("ground").length +
-        getOrderLines("first").length > 0;
+          getOrderLines("first").length >
+        0;
 
       if (
         hasProducts &&
@@ -2377,6 +2600,53 @@ function bindCurrentOrderActions() {
       markDraftChanged();
     });
 }
+
+function bindCartDrawer() {
+  const openButton = document.getElementById("openCartButton");
+  const closeButton = document.getElementById("closeCartButton");
+  const backdrop = document.getElementById("cartBackdrop");
+
+  openButton.addEventListener("click", openCartDrawer);
+  closeButton.addEventListener("click", closeCartDrawer);
+  backdrop.addEventListener("click", closeCartDrawer);
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && state.cartOpen) {
+      closeCartDrawer();
+    }
+  });
+}
+
+function openCartDrawer() {
+  const panel = document.getElementById("currentOrderPanel");
+  const backdrop = document.getElementById("cartBackdrop");
+
+  state.cartOpen = true;
+  backdrop.hidden = false;
+
+  requestAnimationFrame(() => {
+    backdrop.classList.add("is-open");
+    panel.classList.add("is-open");
+    panel.setAttribute("aria-hidden", "false");
+  });
+}
+
+function closeCartDrawer() {
+  const panel = document.getElementById("currentOrderPanel");
+  const backdrop = document.getElementById("cartBackdrop");
+
+  state.cartOpen = false;
+  panel.classList.remove("is-open");
+  backdrop.classList.remove("is-open");
+  panel.setAttribute("aria-hidden", "true");
+
+  window.setTimeout(() => {
+    if (!backdrop.classList.contains("is-open")) {
+      backdrop.hidden = true;
+    }
+  }, 180);
+}
+
 
 function getOrderLines(floor) {
   const standard = getFloorItems(floor).map((item) => {
@@ -2417,6 +2687,20 @@ function renderCurrentOrder() {
   const unitCount =
     [...allLines.ground, ...allLines.first]
       .reduce((total, item) => total + item.quantity, 0);
+
+  const cartBadge = document.getElementById("cartCountBadge");
+  if (cartBadge) {
+    cartBadge.textContent = String(lineCount);
+    cartBadge.classList.toggle("is-empty", lineCount === 0);
+  }
+
+  const cartButton = document.getElementById("openCartButton");
+  if (cartButton) {
+    cartButton.setAttribute(
+      "aria-label",
+      `Open order summary, ${lineCount} product${lineCount === 1 ? "" : "s"}`,
+    );
+  }
 
   document.getElementById("currentOrderSummary").textContent =
     `${lineCount} product${lineCount === 1 ? "" : "s"}`;
@@ -2561,11 +2845,11 @@ function setOrderLineQuantity(floor, item, value) {
   markDraftChanged();
 }
 
+
 function updateQuantityAppearance(input) {
-  input.classList.toggle(
-    "has-value",
-    Number(input.value || 0) > 0,
-  );
+  const hasValue = Number(input.value || 0) > 0;
+  input.classList.toggle("has-value", hasValue);
+  input.closest(".quantity-cell")?.classList.toggle("has-value", hasValue);
 }
 
 function updateCategoryBadges() {
