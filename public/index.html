@@ -8,8 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css?v=20260721-3">
-  <link rel="stylesheet" href="/refinement.css?v=20260721-3">
+  <link rel="stylesheet" href="/styles.css?v=20260721-4">
+  <link rel="stylesheet" href="/refinement.css?v=20260721-4">
 </head>
 <body class="kiosk-body">
   <header class="kiosk-header">
@@ -125,18 +125,31 @@
                       class="date-picker-button"
                       type="button"
                       aria-label="Open required date calendar"
+                      aria-haspopup="dialog"
+                      aria-expanded="false"
                     >
                       <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M7 3v3M17 3v3M4.5 9h15M5 5.5h14a1 1 0 0 1 1 1V19a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1Z"/>
                       </svg>
                     </button>
-                    <input
-                      id="requiredDatePicker"
-                      class="native-date-picker"
-                      type="date"
-                      tabindex="-1"
-                      aria-hidden="true"
+                    <input id="requiredDatePicker" type="hidden">
+                    <div
+                      id="requiredDatePopover"
+                      class="field-popover date-popover"
+                      role="dialog"
+                      aria-label="Choose required date"
+                      hidden
                     >
+                      <div class="date-popover-header">
+                        <button id="previousCalendarMonth" class="popover-icon-button" type="button" aria-label="Previous month">←</button>
+                        <strong id="calendarMonthLabel"></strong>
+                        <button id="nextCalendarMonth" class="popover-icon-button" type="button" aria-label="Next month">→</button>
+                      </div>
+                      <div class="calendar-weekdays" aria-hidden="true">
+                        <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+                      </div>
+                      <div id="calendarDays" class="calendar-days"></div>
+                    </div>
                   </div>
                   <p id="requiredDateError" class="field-error" hidden></p>
                   <div id="requiredDateWarning" class="field-warning" hidden>
@@ -149,14 +162,44 @@
                 </div>
 
                 <div class="kiosk-field" id="requiredTimeField">
-                  <label for="requiredTime">Required time *</label>
-                  <input
-                    id="requiredTime"
-                    type="time"
-                    step="300"
-                    aria-describedby="requiredTimeError requiredTimeWarning"
-                    required
-                  >
+                  <label for="requiredTimeDisplay">Required time *</label>
+                  <div class="time-entry">
+                    <input
+                      id="requiredTimeDisplay"
+                      type="text"
+                      autocomplete="off"
+                      placeholder="Select time"
+                      readonly
+                      aria-haspopup="listbox"
+                      aria-expanded="false"
+                      aria-controls="requiredTimePopover"
+                      aria-describedby="requiredTimeError requiredTimeWarning"
+                    >
+                    <button
+                      id="requiredTimeButton"
+                      class="time-picker-button"
+                      type="button"
+                      aria-label="Choose required time"
+                      aria-haspopup="listbox"
+                      aria-expanded="false"
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="12" cy="12" r="8.5"/>
+                        <path d="M12 7.5v5l3.25 2"/>
+                      </svg>
+                    </button>
+                    <input id="requiredTime" type="hidden" required>
+                    <div
+                      id="requiredTimePopover"
+                      class="field-popover time-popover"
+                      role="listbox"
+                      aria-label="Required time in 15 minute intervals"
+                      hidden
+                    >
+                      <div class="time-popover-header">Choose a time</div>
+                      <div id="requiredTimeOptions" class="time-options"></div>
+                    </div>
+                  </div>
                   <p id="requiredTimeError" class="field-error" hidden></p>
                   <div id="requiredTimeWarning" class="field-warning" hidden>
                     <strong>
@@ -467,8 +510,9 @@
           <div id="formMessage" class="message" hidden role="alert"></div>
 
           <div class="stage-actions review-actions">
-            <button id="backToProductsButton" class="button button-secondary button-large" type="button">
-              ← Back to products
+            <button id="backToProductsButton" class="button button-secondary button-large back-button" type="button">
+              <span aria-hidden="true">←</span>
+              <span>Back to products</span>
             </button>
             <button id="submitButton" class="button button-primary button-large" type="submit">
               Submit order
@@ -510,6 +554,6 @@
     <div id="orderHistoryList" class="order-history-list history-drawer-list"></div>
   </aside>
 
-  <script src="/app.js?v=20260721-3" defer></script>
+  <script src="/app.js?v=20260721-4" defer></script>
 </body>
 </html>

@@ -24,6 +24,7 @@ const state = {
   addressPreviewCache: new Map(),
   addressPreviewTimer: null,
   cartOpen: false,
+  calendarCursor: null,
 };
 
 const DRAFT_STORAGE_KEY = "bps-knauf-order-form-draft-v10";
@@ -296,6 +297,7 @@ function renderFloorSheet(floor) {
       definition.id === "boards"
         ? "category-content category-content-boards"
         : "category-content";
+    content.classList.add(`category-content-${definition.id}`);
 
     definition.nodes.filter(Boolean).forEach((node) => content.append(node));
     panel.append(content);
@@ -410,10 +412,9 @@ function renderSpecialtyBoards(floor, groups) {
       copy.className = "specialty-board-copy";
 
       const label = document.createElement("strong");
-      label.textContent = row.label;
-      const detail = document.createElement("span");
-      detail.textContent = row.detail;
-      copy.append(label, detail);
+      label.textContent = combinedProductLabel(row.label, row.detail);
+      label.title = label.textContent;
+      copy.append(label);
 
       variant.append(copy, createStandaloneQuantity(floor, row.key));
       variants.append(variant);
@@ -438,6 +439,7 @@ function renderSection(floor, def) {
 function renderMatrixSection(floor, def) {
   const section = document.createElement("section");
   section.className = "flat-product-section flat-matrix-section";
+  section.dataset.sectionTitle = String(def.title || "").trim().toLowerCase();
 
   const heading = document.createElement("h3");
   heading.textContent = def.title;
@@ -468,14 +470,9 @@ function renderMatrixSection(floor, def) {
     const tr = document.createElement("tr");
     const th = document.createElement("th");
     const label = document.createElement("strong");
-    label.textContent = row.label;
+    label.textContent = combinedProductLabel(row.label, row.detail);
+    label.title = label.textContent;
     th.append(label);
-
-    if (row.detail) {
-      const detail = document.createElement("small");
-      detail.textContent = row.detail;
-      th.append(detail);
-    }
 
     tr.append(th);
     row.cells.forEach((key) => tr.append(createQuantityCell(floor, key)));
@@ -505,14 +502,9 @@ function renderListSection(floor, def) {
 
     const label = document.createElement("div");
     const strong = document.createElement("strong");
-    strong.textContent = row.label;
+    strong.textContent = combinedProductLabel(row.label, row.detail);
+    strong.title = strong.textContent;
     label.append(strong);
-
-    if (row.detail) {
-      const detail = document.createElement("span");
-      detail.textContent = row.detail;
-      label.append(detail);
-    }
 
     line.append(label, createStandaloneQuantity(floor, row.key));
     list.append(line);
@@ -522,6 +514,13 @@ function renderListSection(floor, def) {
   return section;
 }
 
+
+function combinedProductLabel(label, detail) {
+  const primary = String(label || "").trim();
+  const secondary = String(detail || "").trim();
+  if (!secondary || primary.toLowerCase().includes(secondary.toLowerCase())) return primary;
+  return `${primary} · ${secondary}`;
+}
 
 function renderInsulationSection(floor, def) {
   const layout = document.createElement("div");
@@ -604,6 +603,11 @@ function renderProductSearchResults(floor, query, search, results) {
     results.hidden = false;
     return;
   }
+
+  const heading = document.createElement("div");
+  heading.className = "catalogue-results-header";
+  heading.innerHTML = "<span>SKU</span><span>Product</span><span></span>";
+  results.append(heading);
 
   matches.forEach((product, index) => {
     const button = document.createElement("button");
@@ -702,9 +706,7 @@ function addOtherMaterial(floor, product, search, results) {
 
 
 function renderSelectedOtherMaterials(floor) {
-  const container = document.querySelector(
-    `[data-selected-materials="${floor}"]`,
-  );
+  const container = document.querySelector(`[data-selected-materials="${floor}"]`);
   if (!container) return;
 
   container.replaceChildren();
@@ -713,11 +715,14 @@ function renderSelectedOtherMaterials(floor) {
   if (!items.length) {
     const empty = document.createElement("div");
     empty.className = "selected-materials-empty";
-    empty.innerHTML =
-      "<strong>No additional products</strong><span>Search the catalogue above to add an item.</span>";
+    empty.innerHTML = "<strong>No additional products</strong><span>Use the search above to add an item.</span>";
     container.append(empty);
     return;
   }
+
+  const heading = document.createElement("div");
+  heading.className = "selected-materials-header";
+  heading.innerHTML = "<span>SKU</span><span>Product</span><span>Quantity</span><span></span>";
 
   const list = document.createElement("div");
   list.className = "selected-materials-list";
@@ -735,8 +740,14 @@ function renderSelectedOtherMaterials(floor) {
     description.textContent = humaniseProductDescription(item.description);
     description.title = description.textContent;
 
-    const controls = document.createElement("div");
-    controls.className = "selected-material-controls";
+    const quantityControl = document.createElement("div");
+    quantityControl.className = "additional-quantity-control";
+
+    const decrease = document.createElement("button");
+    decrease.type = "button";
+    decrease.className = "additional-quantity-step";
+    decrease.textContent = "−";
+    decrease.setAttribute("aria-label", `Decrease ${item.sku}`);
 
     const quantity = document.createElement("input");
     quantity.type = "text";
@@ -748,34 +759,53 @@ function renderSelectedOtherMaterials(floor) {
     quantity.dataset.otherMaterialSku = `${floor}:${item.sku}`;
     quantity.setAttribute("aria-label", `${item.sku} quantity`);
     quantity.addEventListener("focus", () => quantity.select());
-    quantity.addEventListener("input", () => {
+
+    const increase = document.createElement("button");
+    increase.type = "button";
+    increase.className = "additional-quantity-step";
+    increase.textContent = "+";
+    increase.setAttribute("aria-label", `Increase ${item.sku}`);
+
+    const commitQuantity = () => {
       normaliseQuantityField(quantity);
-      item.quantity = Number(quantity.value || 0);
+      item.quantity = Math.max(1, Number(quantity.value || 1));
+      quantity.value = String(item.quantity);
       updateFloorCount(floor);
       renderCurrentOrder();
       markDraftChanged();
-    });
+    };
+
+    quantity.addEventListener("input", commitQuantity);
+    const adjust = (amount) => {
+      item.quantity = Math.max(1, Math.min(999, Number(item.quantity || 1) + amount));
+      quantity.value = String(item.quantity);
+      updateFloorCount(floor);
+      renderCurrentOrder();
+      markDraftChanged();
+    };
+    decrease.addEventListener("click", () => adjust(-1));
+    increase.addEventListener("click", () => adjust(1));
+    quantityControl.append(decrease, quantity, increase);
 
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "remove-material-button";
-    remove.textContent = "Remove";
+    remove.textContent = "×";
+    remove.title = `Remove ${item.sku}`;
+    remove.setAttribute("aria-label", `Remove ${item.sku}`);
     remove.addEventListener("click", () => {
-      state.otherMaterials[floor] = state.otherMaterials[floor].filter(
-        (candidate) => candidate.sku !== item.sku,
-      );
+      state.otherMaterials[floor] = state.otherMaterials[floor].filter((candidate) => candidate.sku !== item.sku);
       renderSelectedOtherMaterials(floor);
       updateFloorCount(floor);
       renderCurrentOrder();
       markDraftChanged();
     });
 
-    controls.append(quantity, remove);
-    row.append(sku, description, controls);
+    row.append(sku, description, quantityControl, remove);
     list.append(row);
   });
 
-  container.append(list);
+  container.append(heading, list);
 }
 
 function findProductMatches(query) {
@@ -895,22 +925,19 @@ function createQuantityControl(floor,key){
   control.className="quantity-control";
 
   const input=createQuantityInput(floor,key);
-  const steppers=document.createElement("span");
-  steppers.className="quantity-steppers";
+  const decrease=document.createElement("button");
+  decrease.type="button";
+  decrease.className="quantity-step quantity-step-minus";
+  decrease.tabIndex=-1;
+  decrease.textContent="−";
+  decrease.setAttribute("aria-label",`Decrease ${product?.label||key}`);
 
   const increase=document.createElement("button");
   increase.type="button";
-  increase.className="quantity-step quantity-step-up";
+  increase.className="quantity-step quantity-step-plus";
   increase.tabIndex=-1;
-  increase.textContent="▴";
+  increase.textContent="+";
   increase.setAttribute("aria-label",`Increase ${product?.label||key}`);
-
-  const decrease=document.createElement("button");
-  decrease.type="button";
-  decrease.className="quantity-step quantity-step-down";
-  decrease.tabIndex=-1;
-  decrease.textContent="▾";
-  decrease.setAttribute("aria-label",`Decrease ${product?.label||key}`);
 
   const adjust=(amount)=>{
     const current=Number(input.value||0);
@@ -921,13 +948,12 @@ function createQuantityControl(floor,key){
     input.select();
   };
 
-  increase.addEventListener("mousedown",(event)=>event.preventDefault());
   decrease.addEventListener("mousedown",(event)=>event.preventDefault());
-  increase.addEventListener("click",()=>adjust(1));
+  increase.addEventListener("mousedown",(event)=>event.preventDefault());
   decrease.addEventListener("click",()=>adjust(-1));
+  increase.addEventListener("click",()=>adjust(1));
 
-  steppers.append(increase,decrease);
-  control.append(input,steppers);
+  control.append(decrease,input,increase);
   return control;
 }
 
@@ -1134,7 +1160,7 @@ function validateOrderDetails() {
   }
 
   if (!isValidRequiredTime(details.requiredTime)) {
-    const message = "Enter a valid required time.";
+    const message = "Choose a required time in a 15-minute interval.";
     setFieldError("requiredTime", message);
     throw new Error(message);
   }
@@ -1209,10 +1235,21 @@ function buildPayload(){
 
 function showSuccess(result){
   setActiveStep("review", { skipValidation: true, silent: true });
-  clearMessage();const panel=document.getElementById("successPanel");const title=document.getElementById("successTitle");const summary=document.getElementById("successSummary");const files=document.getElementById("generatedFiles");files.replaceChildren();const generated=Array.isArray(result.generatedFiles)?result.generatedFiles:[];title.textContent=result.updated?"Order updated":"Order created";
-  summary.textContent=generated.length>0?(result.updated?`${generated.length} replacement file${generated.length===1?" was":"s were"} generated for Revision ${result.revisionNo}.`:`${generated.length} order file${generated.length===1?" was":"s were"} generated and saved.`):"The order was saved successfully. Bell Plaster will process the selected lines.";
+  clearMessage();
+  const stage=document.querySelector(".review-stage");
+  const panel=document.getElementById("successPanel");
+  const title=document.getElementById("successTitle");
+  const summary=document.getElementById("successSummary");
+  const files=document.getElementById("generatedFiles");
+  files.replaceChildren();
+  const generated=Array.isArray(result.generatedFiles)?result.generatedFiles:[];
+  title.textContent=result.updated?"Order updated":"Order created";
+  summary.textContent=generated.length>0?(result.updated?`${generated.length} replacement file${generated.length===1?" was":"s were"} generated for Revision ${result.revisionNo}.`:`${generated.length} order file${generated.length===1?" was":"s were"} generated and saved.`):"The order was saved successfully.";
   generated.forEach((file)=>{const item=document.createElement("div");item.className="generated-file";const info=document.createElement("div");info.className="generated-file-info";const name=document.createElement("strong");name.textContent=file.filename;const detail=document.createElement("span");detail.textContent=`${file.floorLabel} · ${file.itemCount} line${file.itemCount===1?"":"s"}`;info.append(name,detail);item.append(info);if(file.downloadUrl)item.append(createDownloadLink(file.downloadUrl,file.filename));files.append(item);});
-  document.getElementById("orderNumberDisplay").textContent=result.customerReference||result.submissionId||"Not returned";panel.hidden=false;panel.scrollIntoView({behavior:"smooth",block:"center"});
+  document.getElementById("orderNumberDisplay").textContent=result.customerReference||result.submissionId||"Not returned";
+  stage?.classList.add("is-success");
+  panel.hidden=false;
+  window.scrollTo({top:0,left:0,behavior:"smooth"});
 }
 
 async function loadOrderHistory(){
@@ -1248,7 +1285,7 @@ function createHistoryOrderCard(order) {
   summary.className = "history-order-summary";
 
   [
-    ["Required", [details.required_date, details.required_time, details.time_slot].filter(Boolean).join(" · ")],
+    ["Required", [formatIsoDateForAustralia(details.required_date), formatTimeForDisplay(normaliseTimeToQuarterHour(details.required_time)), details.time_slot].filter(Boolean).join(" · ")],
     ["Delivery", details.delivery_type],
     ["Address", details.delivery_address],
   ].forEach(([label, value]) => {
@@ -1404,7 +1441,8 @@ function setOrderDetails(p){
   document.getElementById("deliveryInstructions").value=p.deliveryInstructions||p.comments||"";
   document.getElementById("requiredDate").value=formatIsoDateForAustralia(requiredDate);
   document.getElementById("requiredDatePicker").value=requiredDate;
-  document.getElementById("requiredTime").value=p.requiredTime||"";
+  document.getElementById("requiredTime").value=normaliseTimeToQuarterHour(p.requiredTime||"");
+  syncRequiredTimeDisplay();
   document.getElementById("confirmFutureRequiredDate").checked=Boolean(p.futureDateConfirmed);
   document.getElementById("confirmUnusualRequiredTime").checked=Boolean(p.unusualTimeConfirmed);
 
@@ -1426,7 +1464,7 @@ function setOrderDetails(p){
 }
 function setRadio(name,value){document.querySelectorAll(`input[name="${name}"]`).forEach((f)=>{f.checked=f.value===value;});}
 function cancelEdit(){resetOrderForm();clearMessage();document.getElementById("successPanel").hidden=true;}
-function resetOrderForm(){state.editingOrder=null;clearProductSelections();clearOrderDetails();activateFloorTab("ground");activateCategory("boards",{silent:true});setActiveStep("details",{skipValidation:true,silent:true});document.getElementById("editModeBanner").hidden=true;document.getElementById("editOrderNumber").textContent="";document.getElementById("editRevisionText").textContent="";document.getElementById("submitButton").textContent="Submit order";document.getElementById("successPanel").hidden=true;clearSavedDraft({statusText:"Form cleared."});state.suppressDraftUntilInput=true;renderCurrentOrder();}
+function resetOrderForm(){state.editingOrder=null;clearProductSelections();clearOrderDetails();activateFloorTab("ground");activateCategory("boards",{silent:true});setActiveStep("details",{skipValidation:true,silent:true});document.getElementById("editModeBanner").hidden=true;document.getElementById("editOrderNumber").textContent="";document.getElementById("editRevisionText").textContent="";document.getElementById("submitButton").textContent="Submit order";document.getElementById("successPanel").hidden=true;document.querySelector(".review-stage")?.classList.remove("is-success");clearSavedDraft({statusText:"Form cleared."});state.suppressDraftUntilInput=true;renderCurrentOrder();}
 function clearOrderDetails(){
   const today=todayLocal();
   document.getElementById("orderDateIso").value=today;
@@ -1435,6 +1473,7 @@ function clearOrderDetails(){
   document.getElementById("customerName").value="BPS Brunswick Plastering Services";
   ["contactName","contactMobile","deliveryInstructions","requiredDate","requiredTime"].forEach((id)=>document.getElementById(id).value="");
   document.getElementById("requiredDatePicker").value="";
+  syncRequiredTimeDisplay();
   document.getElementById("confirmFutureRequiredDate").checked=false;
   document.getElementById("confirmUnusualRequiredTime").checked=false;
   setSelectedDeliveryAddress("", "manual", {silent:true});
@@ -1457,19 +1496,26 @@ async function deleteOrder(submissionId,orderNumber){if(!window.confirm(`Permane
 function initialiseDeliveryDetails() {
   const today = todayLocal();
   const requiredDatePicker = document.getElementById("requiredDatePicker");
+  const requiredDate = document.getElementById("requiredDate");
+  const requiredTime = document.getElementById("requiredTime");
+  const requiredTimeDisplay = document.getElementById("requiredTimeDisplay");
 
   document.getElementById("orderDateIso").value = today;
-  document.getElementById("orderDate").value =
-    formatIsoDateForAustralia(today);
+  document.getElementById("orderDate").value = formatIsoDateForAustralia(today);
+  requiredDatePicker.dataset.min = today;
+  requiredDatePicker.dataset.max = addYearsToIsoDate(today, 1);
+  state.calendarCursor = isoDateToUtc(today);
+  state.calendarCursor.setUTCDate(1);
 
-  requiredDatePicker.min = today;
-  requiredDatePicker.max = addYearsToIsoDate(today, 1);
-
-  const requiredDate = document.getElementById("requiredDate");
   requiredDate.addEventListener("input", () => {
     requiredDate.value = formatAustralianDateTyping(requiredDate.value);
     const iso = parseAustralianDate(requiredDate.value);
     requiredDatePicker.value = iso || "";
+    if (iso) {
+      state.calendarCursor = isoDateToUtc(iso);
+      state.calendarCursor.setUTCDate(1);
+      renderRequiredDateCalendar();
+    }
     document.getElementById("confirmFutureRequiredDate").checked = false;
     clearFieldError("requiredDate");
     updateRequiredDateFeedback();
@@ -1477,40 +1523,43 @@ function initialiseDeliveryDetails() {
 
   requiredDate.addEventListener("blur", () => {
     if (requiredDate.value && !parseAustralianDate(requiredDate.value)) {
-      setFieldError(
-        "requiredDate",
-        "Enter a valid date in DD-MM-YYYY format.",
-      );
+      setFieldError("requiredDate", "Enter a valid date in DD-MM-YYYY format.");
     }
   });
 
-  document
-    .getElementById("requiredDateCalendarButton")
-    .addEventListener("click", () => {
-      if (typeof requiredDatePicker.showPicker === "function") {
-        requiredDatePicker.showPicker();
-      } else {
-        requiredDatePicker.focus();
-        requiredDatePicker.click();
-      }
-    });
+  document.getElementById("requiredDateCalendarButton").addEventListener("click", () => {
+    toggleFieldPopover("requiredDatePopover", "requiredDateCalendarButton");
+    renderRequiredDateCalendar();
+  });
+  document.getElementById("previousCalendarMonth").addEventListener("click", () => changeCalendarMonth(-1));
+  document.getElementById("nextCalendarMonth").addEventListener("click", () => changeCalendarMonth(1));
 
-  requiredDatePicker.addEventListener("change", () => {
-    requiredDate.value =
-      formatIsoDateForAustralia(requiredDatePicker.value);
-    document.getElementById("confirmFutureRequiredDate").checked = false;
-    clearFieldError("requiredDate");
-    updateRequiredDateFeedback();
-    markDraftChanged();
+  buildRequiredTimeOptions();
+  const openTime = () => {
+    toggleFieldPopover("requiredTimePopover", "requiredTimeButton");
+    scrollSelectedTimeIntoView();
+  };
+  document.getElementById("requiredTimeButton").addEventListener("click", openTime);
+  requiredTimeDisplay.addEventListener("click", openTime);
+  requiredTimeDisplay.addEventListener("keydown", (event) => {
+    if (["Enter", " ", "ArrowDown"].includes(event.key)) {
+      event.preventDefault();
+      openTime();
+    }
   });
 
-  const requiredTime = document.getElementById("requiredTime");
-  ["input", "change"].forEach((eventName) => {
-    requiredTime.addEventListener(eventName, () => {
-      document.getElementById("confirmUnusualRequiredTime").checked = false;
-      clearFieldError("requiredTime");
-      updateRequiredTimeFeedback();
-    });
+  document.addEventListener("pointerdown", (event) => {
+    if (!event.target.closest(".date-entry") && !event.target.closest(".time-entry")) closeFieldPopovers();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeFieldPopovers();
+  });
+
+  requiredTime.addEventListener("change", () => {
+    syncRequiredTimeDisplay();
+    document.getElementById("confirmUnusualRequiredTime").checked = false;
+    clearFieldError("requiredTime");
+    updateRequiredTimeFeedback();
   });
 
   const contactName = document.getElementById("contactName");
@@ -1525,39 +1574,151 @@ function initialiseDeliveryDetails() {
 
   const contactMobile = document.getElementById("contactMobile");
   contactMobile.addEventListener("input", () => {
-    contactMobile.value = formatAustralianContactNumber(
-      contactMobile.value,
-      { partial: true },
-    );
+    contactMobile.value = formatAustralianContactNumber(contactMobile.value, { partial: true });
     clearFieldError("contactMobile");
   });
   contactMobile.addEventListener("blur", () => {
-    const normalised = normaliseAustralianContactNumber(
-      contactMobile.value,
-    );
-
+    const normalised = normaliseAustralianContactNumber(contactMobile.value);
     if (!normalised) {
-      setFieldError(
-        "contactMobile",
-        "Enter a valid Australian mobile number beginning with 04.",
-      );
+      setFieldError("contactMobile", "Enter a valid Australian mobile number beginning with 04.");
       return;
     }
-
     contactMobile.value = normalised;
   });
 
-  document
-    .getElementById("confirmFutureRequiredDate")
-    .addEventListener("change", clearRequiredDateConfirmationError);
+  document.getElementById("confirmFutureRequiredDate").addEventListener("change", clearRequiredDateConfirmationError);
+  document.getElementById("confirmUnusualRequiredTime").addEventListener("change", () => clearFieldError("requiredTime"));
 
-  document
-    .getElementById("confirmUnusualRequiredTime")
-    .addEventListener("change", () => clearFieldError("requiredTime"));
-
+  renderRequiredDateCalendar();
+  syncRequiredTimeDisplay();
   updateRequiredDateFeedback();
   updateRequiredTimeFeedback();
   enableAddressSearchMode({ silent: true });
+}
+
+function toggleFieldPopover(popoverId, buttonId) {
+  const target = document.getElementById(popoverId);
+  const willOpen = target.hidden;
+  closeFieldPopovers();
+  if (!willOpen) return;
+  target.hidden = false;
+  target.classList.add("is-open");
+  document.getElementById(buttonId)?.setAttribute("aria-expanded", "true");
+  if (popoverId === "requiredTimePopover") document.getElementById("requiredTimeDisplay")?.setAttribute("aria-expanded", "true");
+}
+
+function closeFieldPopovers() {
+  ["requiredDatePopover", "requiredTimePopover"].forEach((id) => {
+    const popover = document.getElementById(id);
+    if (!popover) return;
+    popover.hidden = true;
+    popover.classList.remove("is-open");
+  });
+  document.getElementById("requiredDateCalendarButton")?.setAttribute("aria-expanded", "false");
+  document.getElementById("requiredTimeButton")?.setAttribute("aria-expanded", "false");
+  document.getElementById("requiredTimeDisplay")?.setAttribute("aria-expanded", "false");
+}
+
+function changeCalendarMonth(amount) {
+  const cursor = state.calendarCursor || isoDateToUtc(todayLocal());
+  state.calendarCursor = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + amount, 1));
+  renderRequiredDateCalendar();
+}
+
+function renderRequiredDateCalendar() {
+  const grid = document.getElementById("calendarDays");
+  const label = document.getElementById("calendarMonthLabel");
+  if (!grid || !label) return;
+  const minIso = document.getElementById("requiredDatePicker").dataset.min || todayLocal();
+  const maxIso = document.getElementById("requiredDatePicker").dataset.max || addYearsToIsoDate(minIso, 1);
+  const selectedIso = parseAustralianDate(document.getElementById("requiredDate").value);
+  const cursor = state.calendarCursor || isoDateToUtc(selectedIso || minIso);
+  const year = cursor.getUTCFullYear();
+  const month = cursor.getUTCMonth();
+  state.calendarCursor = new Date(Date.UTC(year, month, 1));
+  label.textContent = new Intl.DateTimeFormat("en-AU", { month: "long", year: "numeric", timeZone: "UTC" }).format(state.calendarCursor);
+  grid.replaceChildren();
+  const offset = (state.calendarCursor.getUTCDay() + 6) % 7;
+  const days = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  for (let i = 0; i < offset; i += 1) grid.append(document.createElement("span"));
+  for (let day = 1; day <= days; day += 1) {
+    const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "calendar-day";
+    button.textContent = String(day);
+    button.disabled = iso < minIso || iso > maxIso;
+    button.classList.toggle("is-selected", iso === selectedIso);
+    button.classList.toggle("is-today", iso === todayLocal());
+    button.addEventListener("click", () => selectRequiredDate(iso));
+    grid.append(button);
+  }
+  const previousMonthEnd = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
+  const nextMonthStart = new Date(Date.UTC(year, month + 1, 1)).toISOString().slice(0, 10);
+  document.getElementById("previousCalendarMonth").disabled = previousMonthEnd < minIso;
+  document.getElementById("nextCalendarMonth").disabled = nextMonthStart > maxIso;
+}
+
+function selectRequiredDate(iso) {
+  document.getElementById("requiredDate").value = formatIsoDateForAustralia(iso);
+  document.getElementById("requiredDatePicker").value = iso;
+  document.getElementById("confirmFutureRequiredDate").checked = false;
+  clearFieldError("requiredDate");
+  updateRequiredDateFeedback();
+  markDraftChanged();
+  closeFieldPopovers();
+  document.getElementById("requiredDate").focus();
+}
+
+function buildRequiredTimeOptions() {
+  const container = document.getElementById("requiredTimeOptions");
+  if (!container || container.children.length) return;
+  for (let total = 0; total < 1440; total += 15) {
+    const value = `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "time-option";
+    button.dataset.timeValue = value;
+    button.setAttribute("role", "option");
+    button.textContent = formatTimeForDisplay(value);
+    button.addEventListener("click", () => selectRequiredTime(value));
+    container.append(button);
+  }
+}
+
+function selectRequiredTime(value) {
+  document.getElementById("requiredTime").value = value;
+  document.getElementById("requiredTime").dispatchEvent(new Event("change", { bubbles: true }));
+  markDraftChanged();
+  closeFieldPopovers();
+  document.getElementById("requiredTimeDisplay").focus();
+}
+
+function syncRequiredTimeDisplay() {
+  const value = document.getElementById("requiredTime").value;
+  const display = document.getElementById("requiredTimeDisplay");
+  if (display) display.value = value ? formatTimeForDisplay(value) : "";
+  document.querySelectorAll(".time-option").forEach((button) => {
+    const selected = button.dataset.timeValue === value;
+    button.classList.toggle("is-selected", selected);
+    button.setAttribute("aria-selected", selected ? "true" : "false");
+  });
+}
+
+function scrollSelectedTimeIntoView() {
+  requestAnimationFrame(() => {
+    const selected = document.querySelector(".time-option.is-selected");
+    const fallback = document.querySelector('.time-option[data-time-value="07:00"]');
+    (selected || fallback)?.scrollIntoView({ block: "center" });
+  });
+}
+
+function normaliseTimeToQuarterHour(value) {
+  if (!/^\d{2}:\d{2}$/.test(String(value || ""))) return "";
+  const [hour, minute] = value.split(":").map(Number);
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return "";
+  const rounded = Math.min(1425, Math.max(0, Math.round((hour * 60 + minute) / 15) * 15));
+  return `${String(Math.floor(rounded / 60)).padStart(2, "0")}:${String(rounded % 60).padStart(2, "0")}`;
 }
 
 function clearRequiredDateConfirmationError() {
@@ -1692,7 +1853,7 @@ function isValidRequiredTime(value) {
   if (!/^\d{2}:\d{2}$/.test(String(value || ""))) return false;
 
   const [hour, minute] = value.split(":").map(Number);
-  return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59;
+  return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59 && minute % 15 === 0;
 }
 
 function timeToMinutes(value) {
@@ -1716,7 +1877,7 @@ function formatTimeForDisplay(value) {
   if (!isValidRequiredTime(value)) return value || "";
 
   const [hour, minute] = value.split(":").map(Number);
-  const suffix = hour >= 12 ? "pm" : "am";
+  const suffix = hour >= 12 ? "PM" : "AM";
   const displayHour = hour % 12 || 12;
 
   return `${displayHour}:${String(minute).padStart(2, "0")} ${suffix}`;
@@ -2537,6 +2698,8 @@ function setActiveStep(step, options = {}) {
   });
 
   state.activeStep = step;
+  const reviewStage = document.querySelector(".review-stage");
+  if (step !== "review") reviewStage?.classList.remove("is-success");
 
   const headerOrderButton = document.getElementById("openCartButton");
   if (headerOrderButton) headerOrderButton.hidden = step === "details";
