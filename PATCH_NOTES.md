@@ -1,25 +1,46 @@
-# BPS Order Portal kiosk UI patch
+# BPS Order Portal — delivery details refinement
 
-Replace only:
+Replace/add only:
 
 - public/index.html
 - public/app.js
 - public/styles.css
+- functions/_shared/orders.js
+- functions/api/address-config.js
 
-What changed:
+Changes:
 
-- Converts the long form into a three-stage kiosk flow: Delivery, Products, Review.
-- Uses Bell Plaster maroon #A62B45 as the primary action colour.
-- Uses green #006557 for saved status, floor context and complementary accents.
-- Moves product categories into a left navigation rail.
-- Keeps the board matrix for familiar board ordering.
-- Adds a large global Accrivia product search at the top of the product screen.
-- Search results show SKU and description only; no warehouse availability wording.
-- Adds a persistent Current Order basket with quantity controls.
-- Groups the basket by Ground Floor and 1st Floor.
-- Adds a clean review screen before submission.
-- Moves Order History into a slide-out drawer.
-- Retains local browser autosave, order editing, XLSX downloads, archive and delete.
-- Removes the double-border appearance from board quantity cells.
+- Dates display and type as DD-MM-YYYY.
+- Required-date input automatically inserts hyphens while typing digits.
+- Required date cannot be earlier than the order date.
+- Dates six months or more in the future require confirmation.
+- Dates more than 12 months in the future are blocked.
+- Required times outside 5:00 am–6:00 pm require confirmation.
+- Contact name rejects numbers and requires at least two letters.
+- Contact number accepts and formats only:
+  - 03 0000 0000
+  - 0400 000 000
+  - +61 equivalents are converted to local format.
+- Delivery addresses can use Google Places autocomplete restricted to Victoria.
+- Manual address entry remains available as a fallback.
+- Non-pickup addresses must contain VIC/Victoria and a Victorian postcode.
+- Backend validation mirrors the browser rules.
+- First-page scrolling was rebuilt so the lower delivery controls are not clipped.
 
-No D1 migration or backend changes are required.
+Google address setup:
+
+1. In Google Cloud, enable:
+   - Maps JavaScript API
+   - Places API (New)
+2. Create a website API key.
+3. Restrict the website key to:
+   - https://bps-order-portal.pages.dev/*
+   - add the final custom domain later, if used.
+4. Restrict the key to:
+   - Maps JavaScript API
+   - Places API (New)
+5. In Cloudflare Pages > Settings > Variables and Secrets, add:
+   GOOGLE_MAPS_BROWSER_KEY
+6. Redeploy the project.
+
+The portal still works with manual address entry when the key is absent.

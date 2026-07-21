@@ -812,51 +812,255 @@ function inferRevisionFromFilename(filename) {
 }
 
 function normaliseOrderDetails(rawPayload) {
-  const deliveryType = cleanRequiredText(rawPayload?.deliveryType, "Delivery Type", 120);
+  const deliveryType = cleanRequiredText(
+    rawPayload?.deliveryType,
+    "Delivery Type",
+    120,
+  );
   const pickup = deliveryType === "Pickup (Customer to collect)";
-  const deliveryAddress = cleanOptionalText(rawPayload?.deliveryAddress || rawPayload?.siteAddress1, 500);
+  const deliveryAddress = cleanOptionalText(
+    rawPayload?.deliveryAddress || rawPayload?.siteAddress1,
+    500,
+  );
 
   if (!pickup && !deliveryAddress) {
-    throw new Error("Delivery Address is required unless the order is pickup.");
+    throw new Error(
+      "Delivery Address is required unless the order is pickup.",
+    );
   }
 
-  const requiredDate = cleanRequiredText(rawPayload?.requiredDate, "Required Date", 20);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(requiredDate)) {
+  if (
+    !pickup &&
+    !/\b(?:VIC|VICTORIA)\b/i.test(deliveryAddress)
+  ) {
+    throw new Error("Delivery Address must be located in Victoria.");
+  }
+
+  if (
+    !pickup &&
+    !/\b(?:3\d{3}|8\d{3})\b/.test(deliveryAddress)
+  ) {
+    throw new Error(
+      "Delivery Address must contain a valid Victorian postcode.",
+    );
+  }
+
+  const orderDate =
+    cleanOptionalText(rawPayload?.orderDate, 20) ||
+    todayInMelbourne();
+
+  if (!isValidIsoDate(orderDate)) {
+    throw new Error("Order Date is invalid.");
+  }
+
+  const requiredDate = cleanRequiredText(
+    rawPayload?.requiredDate,
+    "Required Date",
+    20,
+  );
+
+  if (!isValidIsoDate(requiredDate)) {
     throw new Error("Required Date is invalid.");
   }
 
-  const requiredTime = cleanRequiredText(rawPayload?.requiredTime, "Required Time", 20);
-  const timeSlot = cleanRequiredText(rawPayload?.timeSlot, "Time Slot", 10).toUpperCase();
+  const daysAhead = differenceInIsoCalendarDays(
+    orderDate,
+    requiredDate,
+  );
+
+  if (daysAhead < 0) {
+    throw new Error(
+      "Required Date cannot be earlier than the Order Date.",
+    );
+  }
+
+  if (daysAhead > 365) {
+    throw new Error(
+      "Required Date cannot be more than 12 months after the Order Date.",
+    );
+  }
+
+  if (
+    daysAhead >= 180 &&
+    rawPayload?.futureDateConfirmed !== true
+  ) {
+    throw new Error(
+      "The Required Date is six months or more in the future and must be confirmed.",
+    );
+  }
+
+  const requiredTime = cleanRequiredText(
+    rawPayload?.requiredTime,
+    "Required Time",
+    20,
+  );
+
+  if (!isValidTime24(requiredTime)) {
+    throw new Error("Required Time is invalid.");
+  }
+
+  if (
+    isUnusualTradeTime(requiredTime) &&
+    rawPayload?.unusualTimeConfirmed !== true
+  ) {
+    throw new Error(
+      "The Required Time is outside typical trade delivery hours and must be confirmed.",
+    );
+  }
+
+  const timeSlot = cleanRequiredText(
+    rawPayload?.timeSlot,
+    "Time Slot",
+    10,
+  ).toUpperCase();
+
   if (!["1ST", "2ND", "AM", "PM", "ANY"].includes(timeSlot)) {
     throw new Error("Time Slot is invalid.");
   }
 
   const extras = Array.isArray(rawPayload?.extras)
-    ? [...new Set(rawPayload.extras.map((value) => cleanOptionalText(value, 40)).filter(Boolean))]
+    ? [
+        ...new Set(
+          rawPayload.extras
+            .map((value) => cleanOptionalText(value, 40))
+            .filter(Boolean),
+        ),
+      ]
     : [];
-  const allowedExtras = new Set(["Downstairs", "Upstairs", "Wrap", "Strap", "Extra Labour"]);
+
+  const allowedExtras = new Set([
+    "Downstairs",
+    "Upstairs",
+    "Wrap",
+    "Strap",
+    "Extra Labour",
+  ]);
+
   if (extras.some((value) => !allowedExtras.has(value))) {
     throw new Error("A delivery extra is invalid.");
   }
 
-  const addressLines = deliveryAddress.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+  const contact = cleanRequiredText(
+    rawPayload?.contact || rawPayload?.siteContact,
+    "Contact Name",
+    120,
+  );
+
+  if (!isValidContactName(contact)) {
+    throw new Error(
+      "Contact Name must contain at least two letters and cannot contain numbers.",
+    );
+  }
+
+  const mobile = normaliseAustralianContactNumber(
+    rawPayload?.mobile || rawPayload?.siteContactPhone,
+  );
+
+  if (!mobile) {
+    throw new Error(
+      "Contact Number must be a valid 03 landline or 04 mobile number.",
+    );
+  }
+
+  const addressLines = deliveryAddress
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
 
   return {
-    orderDate: cleanOptionalText(rawPayload?.orderDate, 20) || todayInMelbourne(),
-    reference: cleanOptionalText(rawPayload?.reference || rawPayload?.customerReference, 80) || CONFIG.debtorCode,
+    orderDate,
+    reference:
+      cleanOptionalText(
+        rawPayload?.reference || rawPayload?.customerReference,
+        80,
+      ) || CONFIG.debtorCode,
     customer: CONFIG.companyName,
-    contact: cleanRequiredText(rawPayload?.contact || rawPayload?.siteContact, "Contact", 120),
-    mobile: cleanRequiredText(rawPayload?.mobile || rawPayload?.siteContactPhone, "Mobile", 40),
+    contact,
+    mobile,
     deliveryAddress,
-    deliveryInstructions: cleanOptionalText(rawPayload?.deliveryInstructions || rawPayload?.comments, 1500),
+    deliveryInstructions: cleanOptionalText(
+      rawPayload?.deliveryInstructions || rawPayload?.comments,
+      1500,
+    ),
     requiredDate,
     requiredTime,
     timeSlot,
     deliveryType,
     extras,
-    addressLine1: addressLines[0] || (pickup ? "Pickup" : CONFIG.addressLine1),
+    addressLine1:
+      addressLines[0] || (pickup ? "Pickup" : CONFIG.addressLine1),
     addressLine2: addressLines.slice(1).join(", ").slice(0, 240),
   };
+}
+
+function isValidIsoDate(value) {
+  const match = String(value || "").match(
+    /^(\d{4})-(\d{2})-(\d{2})$/,
+  );
+
+  if (!match) return false;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}
+
+function differenceInIsoCalendarDays(fromValue, toValue) {
+  const from = new Date(`${fromValue}T00:00:00Z`);
+  const to = new Date(`${toValue}T00:00:00Z`);
+  return Math.round((to.getTime() - from.getTime()) / 86400000);
+}
+
+function isValidTime24(value) {
+  const match = String(value || "").match(/^(\d{2}):(\d{2})$/);
+  if (!match) return false;
+
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59;
+}
+
+function isUnusualTradeTime(value) {
+  if (!isValidTime24(value)) return false;
+
+  const [hour, minute] = value.split(":").map(Number);
+  const minutes = hour * 60 + minute;
+  return minutes < 300 || minutes > 1080;
+}
+
+function isValidContactName(value) {
+  const name = String(value || "").trim();
+  const letters = name.match(/\p{L}/gu) || [];
+
+  return (
+    letters.length >= 2 &&
+    /^[\p{L}\p{M}'’.\-\s]+$/u.test(name)
+  );
+}
+
+function normaliseAustralianContactNumber(value) {
+  let digits = String(value || "").replace(/\D/g, "");
+
+  if (digits.startsWith("61") && digits.length >= 11) {
+    digits = `0${digits.slice(2)}`;
+  }
+
+  if (/^04\d{8}$/.test(digits)) {
+    return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`;
+  }
+
+  if (/^03\d{8}$/.test(digits)) {
+    return `${digits.slice(0, 2)} ${digits.slice(2, 6)} ${digits.slice(6)}`;
+  }
+
+  return "";
 }
 
 async function normaliseOtherMaterials(env, floorKey, rawItems) {

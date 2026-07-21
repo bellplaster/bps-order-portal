@@ -12,10 +12,13 @@ const state = {
   otherMaterials: { ground: [], first: [] },
   activeStep: "details",
   activeCategory: "boards",
+  addressAutocompleteReady: false,
+  manualAddressMode: true,
+  selectedAddressSource: "manual",
 };
 
-const DRAFT_STORAGE_KEY = "bps-knauf-order-form-draft-v7";
-const DRAFT_VERSION = 7;
+const DRAFT_STORAGE_KEY = "bps-knauf-order-form-draft-v8";
+const DRAFT_VERSION = 8;
 const floorLabels = { ground: "Ground Floor", first: "1st Floor" };
 
 document.addEventListener("DOMContentLoaded", initialise);
@@ -31,10 +34,16 @@ async function initialise() {
   bindGlobalProductSearch();
   bindHistoryDrawer();
   bindCurrentOrderActions();
+  initialiseDeliveryDetails();
 
   document.getElementById("refreshHistoryButton").addEventListener("click", loadOrderHistory);
   document.getElementById("cancelEditButton").addEventListener("click", cancelEdit);
-  document.getElementById("orderDate").value = todayLocal();
+
+  initialiseAddressAutocomplete().catch((error) => {
+    enableManualAddressMode({
+      reason: error.message || "Victorian address search could not be loaded.",
+    });
+  });
 
   await loadCatalog();
   await loadProductDirectory();
@@ -110,10 +119,22 @@ function bindOrderDetailInteractions() {
 }
 
 function updatePickupAddressRequirement() {
-  const isPickup = selectedRadioValue("deliveryType") === "Pickup (Customer to collect)";
-  const address = document.getElementById("deliveryAddress");
-  address.required = !isPickup;
-  address.closest("label")?.classList.toggle("is-optional", isPickup);
+  const isPickup =
+    selectedRadioValue("deliveryType") === "Pickup (Customer to collect)";
+  const field = document.getElementById("deliveryAddressField");
+  const manual = document.getElementById("deliveryAddressManual");
+  const toggle = document.getElementById("toggleManualAddressButton");
+
+  field?.classList.toggle("is-pickup", isPickup);
+  manual.required = !isPickup && state.manualAddressMode;
+  manual.disabled = isPickup;
+  toggle.disabled = isPickup;
+
+  if (isPickup) {
+    clearFieldError("deliveryAddress");
+  }
+
+  updateAddressSearchStatus();
 }
 
 async function loadCatalog() {
@@ -738,15 +759,18 @@ function updateFloorCount(floor) {
 function updateAllFloorCounts(){updateFloorCount("ground");updateFloorCount("first");}
 
 function getOrderDetails(){return{
-  orderDate:document.getElementById("orderDate").value,
+  orderDate:document.getElementById("orderDateIso").value||todayLocal(),
   reference:document.getElementById("accountReference").value.trim(),
   customer:document.getElementById("customerName").value.trim(),
   contact:document.getElementById("contactName").value.trim(),
-  mobile:document.getElementById("contactMobile").value.trim(),
+  mobile:normaliseAustralianContactNumber(document.getElementById("contactMobile").value)||document.getElementById("contactMobile").value.trim(),
   deliveryAddress:document.getElementById("deliveryAddress").value.trim(),
+  addressSource:state.selectedAddressSource,
   deliveryInstructions:document.getElementById("deliveryInstructions").value.trim(),
-  requiredDate:document.getElementById("requiredDate").value,
+  requiredDate:parseAustralianDate(document.getElementById("requiredDate").value)||"",
   requiredTime:document.getElementById("requiredTime").value,
+  futureDateConfirmed:document.getElementById("confirmFutureRequiredDate").checked,
+  unusualTimeConfirmed:document.getElementById("confirmUnusualRequiredTime").checked,
   timeSlot:selectedRadioValue("timeSlot"),
   deliveryType:selectedRadioValue("deliveryType"),
   extras:Array.from(document.querySelectorAll('input[name="deliveryExtra"]:checked')).map((f)=>f.value),
@@ -761,12 +785,78 @@ async function submitOrder(event){
   }catch(error){showMessage(error.message||String(error),"error");}finally{state.isSubmitting=false;const button=document.getElementById("submitButton");button.disabled=false;button.textContent=state.editingOrder?"Save changes":"Submit order";}}
 
 function validateOrderDetails() {
+  clearDeliveryDetailErrors();
   const details = getOrderDetails();
 
-  if (!details.contact) throw new Error("Enter the contact name.");
-  if (!details.mobile) throw new Error("Enter the contact mobile number.");
-  if (!details.requiredDate) throw new Error("Select the required date.");
-  if (!details.requiredTime) throw new Error("Select the required time.");
+  const contactError = validateContactName(details.contact);
+  if (contactError) {
+    setFieldError("contactName", contactError);
+    throw new Error(contactError);
+  }
+
+  const normalisedNumber = normaliseAustralianContactNumber(details.mobile);
+  if (!normalisedNumber) {
+    const message =
+      "Enter a valid 03 landline or 04 mobile number.";
+    setFieldError("contactMobile", message);
+    throw new Error(message);
+  }
+
+  document.getElementById("contactMobile").value = normalisedNumber;
+
+  const requiredDateText =
+    document.getElementById("requiredDate").value.trim();
+  const requiredDate = parseAustralianDate(requiredDateText);
+
+  if (!requiredDate) {
+    const message = "Enter a valid required date in DD-MM-YYYY format.";
+    setFieldError("requiredDate", message);
+    throw new Error(message);
+  }
+
+  const orderDate =
+    document.getElementById("orderDateIso").value || todayLocal();
+  const daysAhead = differenceInCalendarDays(orderDate, requiredDate);
+
+  if (daysAhead < 0) {
+    const message = "Required date cannot be earlier than the order date.";
+    setFieldError("requiredDate", message);
+    throw new Error(message);
+  }
+
+  if (daysAhead > 365) {
+    const message =
+      "Required date cannot be more than 12 months after the order date.";
+    setFieldError("requiredDate", message);
+    throw new Error(message);
+  }
+
+  if (
+    daysAhead >= 180 &&
+    !document.getElementById("confirmFutureRequiredDate").checked
+  ) {
+    const message =
+      "Confirm the required date because it is six months or more in the future.";
+    setFieldError("requiredDate", message);
+    throw new Error(message);
+  }
+
+  if (!isValidRequiredTime(details.requiredTime)) {
+    const message = "Enter a valid required time.";
+    setFieldError("requiredTime", message);
+    throw new Error(message);
+  }
+
+  if (
+    isUnusualRequiredTime(details.requiredTime) &&
+    !document.getElementById("confirmUnusualRequiredTime").checked
+  ) {
+    const message =
+      "Confirm the required time because it is outside typical trade delivery hours.";
+    setFieldError("requiredTime", message);
+    throw new Error(message);
+  }
+
   if (!details.timeSlot) throw new Error("Select a time slot.");
   if (!details.deliveryType) throw new Error("Select the delivery type.");
 
@@ -774,7 +864,22 @@ function validateOrderDetails() {
     details.deliveryType !== "Pickup (Customer to collect)" &&
     !details.deliveryAddress
   ) {
-    throw new Error("Enter the delivery address.");
+    const message =
+      state.manualAddressMode
+        ? "Enter a Victorian delivery address."
+        : "Search for and select a Victorian delivery address.";
+    setFieldError("deliveryAddress", message);
+    throw new Error(message);
+  }
+
+  if (
+    details.deliveryType !== "Pickup (Customer to collect)" &&
+    !looksLikeVictorianAddress(details.deliveryAddress)
+  ) {
+    const message =
+      "Delivery address must contain VIC and a valid Victorian postcode.";
+    setFieldError("deliveryAddress", message);
+    throw new Error(message);
   }
 }
 
@@ -856,23 +961,692 @@ async function editOrder(submissionId){clearMessage();document.getElementById("s
 
 function populateOrderForEditing(result){
   clearProductSelections();const payload=result.payload||{};setOrderDetails(payload);const floors=payload.floors||{};
-  ["ground","first"].forEach((floor)=>{const p=floors[floor];if(!p)return;(p.items||[]).forEach((item)=>{const field=document.querySelector(`.quantity-input[data-floor="${floor}"][data-product-key="${cssEscape(item.key)}"]`);if(field)field.value=String(item.quantity);});state.otherMaterials[floor]=(p.otherMaterials||[]).map((item)=>({sku:item.sku||"",description:item.description||item.description_raw||state.productDirectory.find((product)=>product.sku.toUpperCase()===String(item.sku||"").toUpperCase())?.description||"",quantity:Number(item.quantity||1)})).filter((item)=>item.sku);renderSelectedOtherMaterials(floor);const acoustic=document.querySelector(`input[name="${floor}AcousticFormat"][value="${cssEscape(p.acousticFormat||"Roll")}"]`);if(acoustic)acoustic.checked=true;updateFloorCount(floor);});
+  ["ground","first"].forEach((floor)=>{const p=floors[floor];if(!p)return;(p.items||[]).forEach((item)=>{const field=document.querySelector(`.quantity-input[data-floor="${floor}"][data-product-key="${cssEscape(item.key)}"]`);if(field){field.value=String(item.quantity);updateQuantityAppearance(field);}});state.otherMaterials[floor]=(p.otherMaterials||[]).map((item)=>({sku:item.sku||"",description:item.description||item.description_raw||state.productDirectory.find((product)=>product.sku.toUpperCase()===String(item.sku||"").toUpperCase())?.description||"",quantity:Number(item.quantity||1)})).filter((item)=>item.sku);renderSelectedOtherMaterials(floor);const acoustic=document.querySelector(`input[name="${floor}AcousticFormat"][value="${cssEscape(p.acousticFormat||"Roll")}"]`);if(acoustic)acoustic.checked=true;updateFloorCount(floor);});
   state.editingOrder={submissionId:result.order.submissionId,orderNumber:result.order.orderNumber,latestRevision:result.order.latestRevision};document.getElementById("editOrderNumber").textContent=result.order.orderNumber;document.getElementById("editRevisionText").textContent=`Saving will create Revision ${result.order.latestRevision+1}. Earlier files will remain available.`;document.getElementById("editModeBanner").hidden=false;document.getElementById("submitButton").textContent="Save changes";activateFloorTab(floors.ground?"ground":"first");state.suppressDraftUntilInput=false;saveDraftNow();closeHistoryDrawer();setActiveStep("products",{skipValidation:true});renderCurrentOrder();window.scrollTo({top:0,behavior:"smooth"});
 }
 
 function setOrderDetails(p){
-  document.getElementById("orderDate").value=p.orderDate||todayLocal();document.getElementById("accountReference").value=p.reference||p.customerReference||"BPS BRUNSW17";document.getElementById("customerName").value=p.customer||p.jobName||"BPS Brunswick Plastering Services";document.getElementById("contactName").value=p.contact||p.siteContact||"";document.getElementById("contactMobile").value=p.mobile||p.siteContactPhone||"";document.getElementById("deliveryAddress").value=p.deliveryAddress||p.siteAddress1||"";document.getElementById("deliveryInstructions").value=p.deliveryInstructions||p.comments||"";document.getElementById("requiredDate").value=p.requiredDate||"";document.getElementById("requiredTime").value=p.requiredTime||"";
-  setRadio("timeSlot",p.timeSlot||"ANY");setRadio("deliveryType",p.deliveryType||"");document.querySelectorAll('input[name="deliveryExtra"]').forEach((field)=>{field.checked=(p.extras||[]).includes(field.value);});updatePickupAddressRequirement();
+  const orderDate=p.orderDate||todayLocal();
+  const requiredDate=p.requiredDate||"";
+
+  document.getElementById("orderDateIso").value=orderDate;
+  document.getElementById("orderDate").value=formatIsoDateForAustralia(orderDate);
+  document.getElementById("accountReference").value=p.reference||p.customerReference||"BPS BRUNSW17";
+  document.getElementById("customerName").value=p.customer||p.jobName||"BPS Brunswick Plastering Services";
+  document.getElementById("contactName").value=p.contact||p.siteContact||"";
+  document.getElementById("contactMobile").value=formatAustralianContactNumber(p.mobile||p.siteContactPhone||"");
+  document.getElementById("deliveryInstructions").value=p.deliveryInstructions||p.comments||"";
+  document.getElementById("requiredDate").value=formatIsoDateForAustralia(requiredDate);
+  document.getElementById("requiredDatePicker").value=requiredDate;
+  document.getElementById("requiredTime").value=p.requiredTime||"";
+  document.getElementById("confirmFutureRequiredDate").checked=Boolean(p.futureDateConfirmed);
+  document.getElementById("confirmUnusualRequiredTime").checked=Boolean(p.unusualTimeConfirmed);
+
+  setSelectedDeliveryAddress(
+    p.deliveryAddress||p.siteAddress1||"",
+    p.addressSource||"saved",
+    {silent:true},
+  );
+
+  setRadio("timeSlot",p.timeSlot||"ANY");
+  setRadio("deliveryType",p.deliveryType||"");
+  document.querySelectorAll('input[name="deliveryExtra"]').forEach((field)=>{
+    field.checked=(p.extras||[]).includes(field.value);
+  });
+
+  updateRequiredDateFeedback();
+  updateRequiredTimeFeedback();
+  updatePickupAddressRequirement();
 }
 function setRadio(name,value){document.querySelectorAll(`input[name="${name}"]`).forEach((f)=>{f.checked=f.value===value;});}
 function cancelEdit(){resetOrderForm();clearMessage();document.getElementById("successPanel").hidden=true;}
 function resetOrderForm(){state.editingOrder=null;clearProductSelections();clearOrderDetails();activateFloorTab("ground");activateCategory("boards",{silent:true});setActiveStep("details",{skipValidation:true,silent:true});document.getElementById("editModeBanner").hidden=true;document.getElementById("editOrderNumber").textContent="";document.getElementById("editRevisionText").textContent="";document.getElementById("submitButton").textContent="Submit order";document.getElementById("successPanel").hidden=true;clearSavedDraft({statusText:"Form cleared."});state.suppressDraftUntilInput=true;renderCurrentOrder();}
-function clearOrderDetails(){document.getElementById("orderDate").value=todayLocal();document.getElementById("accountReference").value="BPS BRUNSW17";document.getElementById("customerName").value="BPS Brunswick Plastering Services";["contactName","contactMobile","deliveryAddress","deliveryInstructions","requiredDate","requiredTime"].forEach((id)=>document.getElementById(id).value="");setRadio("timeSlot","ANY");setRadio("deliveryType","");document.querySelectorAll('input[name="deliveryExtra"]').forEach((f)=>f.checked=false);updatePickupAddressRequirement();}
+function clearOrderDetails(){
+  const today=todayLocal();
+  document.getElementById("orderDateIso").value=today;
+  document.getElementById("orderDate").value=formatIsoDateForAustralia(today);
+  document.getElementById("accountReference").value="BPS BRUNSW17";
+  document.getElementById("customerName").value="BPS Brunswick Plastering Services";
+  ["contactName","contactMobile","deliveryInstructions","requiredDate","requiredTime"].forEach((id)=>document.getElementById(id).value="");
+  document.getElementById("requiredDatePicker").value="";
+  document.getElementById("confirmFutureRequiredDate").checked=false;
+  document.getElementById("confirmUnusualRequiredTime").checked=false;
+  setSelectedDeliveryAddress("", "manual", {silent:true});
+  setRadio("timeSlot","ANY");
+  setRadio("deliveryType","");
+  document.querySelectorAll('input[name="deliveryExtra"]').forEach((f)=>f.checked=false);
+  clearDeliveryDetailErrors();
+  updateRequiredDateFeedback();
+  updateRequiredTimeFeedback();
+  updatePickupAddressRequirement();
+}
 function clearProductSelections(){document.querySelectorAll(".quantity-input").forEach((f)=>f.value="");["ground","first"].forEach((floor)=>{state.otherMaterials[floor]=[];renderSelectedOtherMaterials(floor);setRadio(`${floor}AcousticFormat`,"Roll");updateFloorCount(floor);});}
 
 async function changeOrderArchiveStatus(submissionId,orderNumber,action){const verb=action==="archive"?"archive":"restore";if(action==="archive"&&!window.confirm(`Archive ${orderNumber}? The order and files will remain available.`))return;try{const response=await fetch(`/api/orders/${encodeURIComponent(submissionId)}`,{method:"PATCH",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({action})});const result=await response.json().catch(()=>({ok:false,error:`The order could not be ${verb}d.`}));if(!response.ok||!result.ok)throw new Error(result.error||`The order could not be ${verb}d.`);if(state.editingOrder?.submissionId===submissionId&&action==="archive")cancelEdit();await loadOrderHistory();}catch(error){showMessage(error.message||String(error),"error");}}
 async function deleteOrder(submissionId,orderNumber){if(!window.confirm(`Permanently delete ${orderNumber}? This removes its order history and every generated file. This cannot be undone.`))return;const typed=window.prompt(`Type ${orderNumber} to confirm permanent deletion.`);if(typed!==orderNumber){showMessage("Deletion cancelled because the order number did not match.","error");return;}try{const response=await fetch(`/api/orders/${encodeURIComponent(submissionId)}`,{method:"DELETE",headers:{Accept:"application/json"}});const result=await response.json().catch(()=>({ok:false,error:"The order could not be deleted."}));if(!response.ok||!result.ok)throw new Error(result.error||"The order could not be deleted.");if(state.editingOrder?.submissionId===submissionId)cancelEdit();document.getElementById("successPanel").hidden=true;clearMessage();await loadOrderHistory();}catch(error){showMessage(error.message||String(error),"error");}}
 
+
+
+function initialiseDeliveryDetails() {
+  const today = todayLocal();
+  const requiredDatePicker = document.getElementById("requiredDatePicker");
+
+  document.getElementById("orderDateIso").value = today;
+  document.getElementById("orderDate").value =
+    formatIsoDateForAustralia(today);
+
+  requiredDatePicker.min = today;
+  requiredDatePicker.max = addYearsToIsoDate(today, 1);
+
+  const requiredDate = document.getElementById("requiredDate");
+  requiredDate.addEventListener("input", () => {
+    requiredDate.value = formatAustralianDateTyping(requiredDate.value);
+    const iso = parseAustralianDate(requiredDate.value);
+    requiredDatePicker.value = iso || "";
+    document.getElementById("confirmFutureRequiredDate").checked = false;
+    clearFieldError("requiredDate");
+    updateRequiredDateFeedback();
+  });
+  requiredDate.addEventListener("blur", () => {
+    if (requiredDate.value && !parseAustralianDate(requiredDate.value)) {
+      setFieldError(
+        "requiredDate",
+        "Enter a valid date in DD-MM-YYYY format.",
+      );
+    }
+  });
+
+  document
+    .getElementById("requiredDateCalendarButton")
+    .addEventListener("click", () => {
+      if (typeof requiredDatePicker.showPicker === "function") {
+        requiredDatePicker.showPicker();
+      } else {
+        requiredDatePicker.focus();
+        requiredDatePicker.click();
+      }
+    });
+
+  requiredDatePicker.addEventListener("change", () => {
+    requiredDate.value =
+      formatIsoDateForAustralia(requiredDatePicker.value);
+    document.getElementById("confirmFutureRequiredDate").checked = false;
+    clearFieldError("requiredDate");
+    updateRequiredDateFeedback();
+    markDraftChanged();
+  });
+
+  const requiredTime = document.getElementById("requiredTime");
+  ["input", "change"].forEach((eventName) => {
+    requiredTime.addEventListener(eventName, () => {
+      document.getElementById("confirmUnusualRequiredTime").checked = false;
+      clearFieldError("requiredTime");
+      updateRequiredTimeFeedback();
+    });
+  });
+
+  const contactName = document.getElementById("contactName");
+  contactName.addEventListener("input", () => {
+    contactName.value = sanitiseContactName(contactName.value);
+    clearFieldError("contactName");
+  });
+  contactName.addEventListener("blur", () => {
+    const message = validateContactName(contactName.value.trim());
+    if (message) setFieldError("contactName", message);
+  });
+
+  const contactMobile = document.getElementById("contactMobile");
+  contactMobile.addEventListener("input", () => {
+    contactMobile.value = formatAustralianContactNumber(
+      contactMobile.value,
+      { partial: true },
+    );
+    clearFieldError("contactMobile");
+  });
+  contactMobile.addEventListener("blur", () => {
+    const normalised = normaliseAustralianContactNumber(
+      contactMobile.value,
+    );
+
+    if (!normalised) {
+      setFieldError(
+        "contactMobile",
+        "Enter a valid 03 landline or 04 mobile number.",
+      );
+      return;
+    }
+
+    contactMobile.value = normalised;
+  });
+
+  const manualAddress = document.getElementById("deliveryAddressManual");
+  manualAddress.addEventListener("input", () => {
+    if (!state.manualAddressMode) return;
+    setSelectedDeliveryAddress(
+      manualAddress.value,
+      "manual",
+      {silent:true, preserveManual:true},
+    );
+    clearFieldError("deliveryAddress");
+  });
+
+  document
+    .getElementById("toggleManualAddressButton")
+    .addEventListener("click", () => {
+      if (state.manualAddressMode && state.addressAutocompleteReady) {
+        enableAddressSearchMode();
+      } else {
+        enableManualAddressMode();
+      }
+    });
+
+  document
+    .getElementById("confirmFutureRequiredDate")
+    .addEventListener("change", clearRequiredDateConfirmationError);
+
+  document
+    .getElementById("confirmUnusualRequiredTime")
+    .addEventListener("change", () => clearFieldError("requiredTime"));
+
+  updateRequiredDateFeedback();
+  updateRequiredTimeFeedback();
+  enableManualAddressMode({
+    reason: "Victorian address search is loading. Manual entry remains available.",
+    silent: true,
+  });
+}
+
+function clearRequiredDateConfirmationError() {
+  if (document.getElementById("confirmFutureRequiredDate").checked) {
+    clearFieldError("requiredDate");
+  }
+}
+
+function formatAustralianDateTyping(value) {
+  const digits = String(value || "").replace(/\D/g, "").slice(0, 8);
+
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) {
+    return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+  }
+
+  return `${digits.slice(0, 2)}-${digits.slice(2, 4)}-${digits.slice(4)}`;
+}
+
+function parseAustralianDate(value) {
+  const match = String(value || "").trim().match(
+    /^(\d{2})-(\d{2})-(\d{4})$/,
+  );
+
+  if (!match) return "";
+
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return "";
+  }
+
+  return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function formatIsoDateForAustralia(value) {
+  const match = String(value || "").match(
+    /^(\d{4})-(\d{2})-(\d{2})$/,
+  );
+
+  if (!match) return "";
+  return `${match[3]}-${match[2]}-${match[1]}`;
+}
+
+function isoDateToUtc(value) {
+  const match = String(value || "").match(
+    /^(\d{4})-(\d{2})-(\d{2})$/,
+  );
+
+  if (!match) return null;
+
+  return new Date(
+    Date.UTC(
+      Number(match[1]),
+      Number(match[2]) - 1,
+      Number(match[3]),
+    ),
+  );
+}
+
+function differenceInCalendarDays(fromIso, toIso) {
+  const from = isoDateToUtc(fromIso);
+  const to = isoDateToUtc(toIso);
+
+  if (!from || !to) return Number.NaN;
+  return Math.round((to.getTime() - from.getTime()) / 86400000);
+}
+
+function addYearsToIsoDate(value, years) {
+  const date = isoDateToUtc(value);
+  if (!date) return "";
+
+  date.setUTCFullYear(date.getUTCFullYear() + years);
+  return date.toISOString().slice(0, 10);
+}
+
+function updateRequiredDateFeedback() {
+  const warning = document.getElementById("requiredDateWarning");
+  const warningText = document.getElementById(
+    "requiredDateWarningText",
+  );
+  const confirmation = document.getElementById(
+    "requiredDateConfirmationRow",
+  );
+  const value = parseAustralianDate(
+    document.getElementById("requiredDate").value,
+  );
+
+  warning.hidden = true;
+  confirmation.hidden = true;
+
+  if (!value) return;
+
+  const orderDate =
+    document.getElementById("orderDateIso").value || todayLocal();
+  const daysAhead = differenceInCalendarDays(orderDate, value);
+
+  if (daysAhead < 0) {
+    setFieldError(
+      "requiredDate",
+      "Required date cannot be earlier than the order date.",
+    );
+    return;
+  }
+
+  if (daysAhead > 365) {
+    setFieldError(
+      "requiredDate",
+      "Required date cannot be more than 12 months after the order date.",
+    );
+    return;
+  }
+
+  clearFieldError("requiredDate");
+
+  if (daysAhead >= 180) {
+    warningText.textContent =
+      `This required date is ${Math.floor(daysAhead / 30)} months in the future. Confirm that it is correct.`;
+    confirmation.hidden = false;
+    warning.hidden = false;
+  }
+}
+
+function isValidRequiredTime(value) {
+  if (!/^\d{2}:\d{2}$/.test(String(value || ""))) return false;
+
+  const [hour, minute] = value.split(":").map(Number);
+  return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59;
+}
+
+function timeToMinutes(value) {
+  if (!isValidRequiredTime(value)) return Number.NaN;
+  const [hour, minute] = value.split(":").map(Number);
+  return hour * 60 + minute;
+}
+
+function isUnusualRequiredTime(value) {
+  const minutes = timeToMinutes(value);
+  return Number.isFinite(minutes) && (minutes < 300 || minutes > 1080);
+}
+
+function updateRequiredTimeFeedback() {
+  const warning = document.getElementById("requiredTimeWarning");
+  const value = document.getElementById("requiredTime").value;
+  warning.hidden = !isUnusualRequiredTime(value);
+}
+
+function formatTimeForDisplay(value) {
+  if (!isValidRequiredTime(value)) return value || "";
+
+  const [hour, minute] = value.split(":").map(Number);
+  const suffix = hour >= 12 ? "pm" : "am";
+  const displayHour = hour % 12 || 12;
+
+  return `${displayHour}:${String(minute).padStart(2, "0")} ${suffix}`;
+}
+
+function sanitiseContactName(value) {
+  return String(value || "")
+    .replace(/[^\p{L}\p{M}'’.\-\s]/gu, "")
+    .replace(/\s{2,}/g, " ")
+    .slice(0, 80);
+}
+
+function validateContactName(value) {
+  const name = String(value || "").trim();
+  const letters = name.match(/\p{L}/gu) || [];
+
+  if (!name) return "Enter the contact name.";
+  if (letters.length < 2) {
+    return "Contact name must contain at least two letters.";
+  }
+
+  if (!/^[\p{L}\p{M}'’.\-\s]+$/u.test(name)) {
+    return "Contact name can contain letters, spaces, apostrophes and hyphens only.";
+  }
+
+  return "";
+}
+
+function contactNumberDigits(value) {
+  let digits = String(value || "").replace(/\D/g, "");
+
+  if (digits.startsWith("61") && digits.length >= 11) {
+    digits = `0${digits.slice(2)}`;
+  }
+
+  return digits.slice(0, 10);
+}
+
+function formatAustralianContactNumber(value, options = {}) {
+  const digits = contactNumberDigits(value);
+
+  if (!digits) return "";
+
+  if (digits.startsWith("04")) {
+    const first = digits.slice(0, 4);
+    const second = digits.slice(4, 7);
+    const third = digits.slice(7, 10);
+    return [first, second, third].filter(Boolean).join(" ");
+  }
+
+  if (digits.startsWith("03")) {
+    const first = digits.slice(0, 2);
+    const second = digits.slice(2, 6);
+    const third = digits.slice(6, 10);
+    return [first, second, third].filter(Boolean).join(" ");
+  }
+
+  if (options.partial) {
+    return digits;
+  }
+
+  return "";
+}
+
+function normaliseAustralianContactNumber(value) {
+  const digits = contactNumberDigits(value);
+
+  if (/^04\d{8}$/.test(digits)) {
+    return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`;
+  }
+
+  if (/^03\d{8}$/.test(digits)) {
+    return `${digits.slice(0, 2)} ${digits.slice(2, 6)} ${digits.slice(6)}`;
+  }
+
+  return "";
+}
+
+function looksLikeVictorianAddress(value) {
+  const address = String(value || "").toUpperCase();
+  const hasState = /\b(?:VIC|VICTORIA)\b/.test(address);
+  const hasPostcode = /\b(?:3\d{3}|8\d{3})\b/.test(address);
+  return hasState && hasPostcode;
+}
+
+function setFieldError(fieldName, message) {
+  const field = document.getElementById(`${fieldName}Field`);
+  const error = document.getElementById(`${fieldName}Error`);
+
+  field?.classList.add("has-error");
+
+  if (error) {
+    error.textContent = message;
+    error.hidden = false;
+  }
+}
+
+function clearFieldError(fieldName) {
+  const field = document.getElementById(`${fieldName}Field`);
+  const error = document.getElementById(`${fieldName}Error`);
+
+  field?.classList.remove("has-error");
+
+  if (error) {
+    error.textContent = "";
+    error.hidden = true;
+  }
+}
+
+function clearDeliveryDetailErrors() {
+  [
+    "requiredDate",
+    "requiredTime",
+    "contactName",
+    "contactMobile",
+    "deliveryAddress",
+  ].forEach(clearFieldError);
+}
+
+async function initialiseAddressAutocomplete() {
+  const response = await fetch("/api/address-config", {
+    headers: { Accept: "application/json" },
+    cache: "no-store",
+  });
+
+  if (response.status === 401) {
+    window.location.replace("/signin/");
+    return;
+  }
+
+  const config = await response.json().catch(() => ({
+    ok: false,
+    configured: false,
+  }));
+
+  if (!response.ok || !config.ok || !config.configured || !config.apiKey) {
+    enableManualAddressMode({
+      reason:
+        "Victorian address search is not configured yet. Manual entry is available.",
+    });
+    return;
+  }
+
+  await loadGoogleMapsJavaScript(config.apiKey);
+
+  const { PlaceAutocompleteElement } =
+    await google.maps.importLibrary("places");
+
+  const autocomplete = new PlaceAutocompleteElement();
+  autocomplete.placeholder = "Start typing a Victorian delivery address";
+  autocomplete.includedRegionCodes = ["au"];
+  autocomplete.locationRestriction = {
+    west: 140.90,
+    south: -39.25,
+    east: 150.10,
+    north: -33.80,
+  };
+
+  autocomplete.addEventListener(
+    "gmp-select",
+    async ({ placePrediction }) => {
+      clearFieldError("deliveryAddress");
+
+      const place = placePrediction.toPlace();
+      await place.fetchFields({
+        fields: ["formattedAddress", "addressComponents"],
+      });
+
+      const stateComponent = (place.addressComponents || []).find(
+        (component) =>
+          component.types?.includes("administrative_area_level_1"),
+      );
+      const selectedState = String(
+        stateComponent?.shortText || stateComponent?.longText || "",
+      ).toUpperCase();
+
+      if (!["VIC", "VICTORIA"].includes(selectedState)) {
+        setSelectedDeliveryAddress("", "google", { silent: true });
+        setFieldError(
+          "deliveryAddress",
+          "Select an address located in Victoria.",
+        );
+        return;
+      }
+
+      const formattedAddress = String(place.formattedAddress || "")
+        .replace(/,\s*Australia$/i, "")
+        .trim();
+
+      if (!formattedAddress) {
+        setFieldError(
+          "deliveryAddress",
+          "The selected address could not be read. Select another result.",
+        );
+        return;
+      }
+
+      setSelectedDeliveryAddress(formattedAddress, "google");
+      markDraftChanged();
+    },
+  );
+
+  const mount = document.getElementById("addressAutocompleteMount");
+  mount.replaceChildren(autocomplete);
+  mount.hidden = false;
+
+  state.addressAutocompleteReady = true;
+  enableAddressSearchMode({ silent: true });
+  updateAddressSearchStatus();
+}
+
+function loadGoogleMapsJavaScript(apiKey) {
+  if (window.google?.maps?.importLibrary) {
+    return Promise.resolve();
+  }
+
+  if (loadGoogleMapsJavaScript.promise) {
+    return loadGoogleMapsJavaScript.promise;
+  }
+
+  loadGoogleMapsJavaScript.promise = new Promise((resolve, reject) => {
+    const callbackName = "__bpsGoogleMapsReady";
+    window[callbackName] = () => {
+      delete window[callbackName];
+      resolve();
+    };
+
+    const script = document.createElement("script");
+    script.src =
+      `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}` +
+      `&v=weekly&loading=async&callback=${callbackName}`;
+    script.async = true;
+    script.onerror = () => {
+      delete window[callbackName];
+      reject(new Error("Google address search could not be loaded."));
+    };
+
+    document.head.append(script);
+  });
+
+  return loadGoogleMapsJavaScript.promise;
+}
+
+function enableAddressSearchMode(options = {}) {
+  if (!state.addressAutocompleteReady) {
+    enableManualAddressMode({
+      reason: "Victorian address search is not configured yet.",
+    });
+    return;
+  }
+
+  state.manualAddressMode = false;
+  state.selectedAddressSource =
+    state.selectedAddressSource === "manual"
+      ? "google"
+      : state.selectedAddressSource;
+
+  document.getElementById("addressAutocompleteMount").hidden = false;
+  document.getElementById("deliveryAddressManual").hidden = true;
+  document.getElementById("toggleManualAddressButton").textContent =
+    "Enter manually";
+
+  updatePickupAddressRequirement();
+  updateAddressSearchStatus();
+
+  if (!options.silent) markDraftChanged();
+}
+
+function enableManualAddressMode(options = {}) {
+  state.manualAddressMode = true;
+  state.selectedAddressSource = "manual";
+
+  document.getElementById("addressAutocompleteMount").hidden = true;
+  document.getElementById("deliveryAddressManual").hidden = false;
+  document.getElementById("toggleManualAddressButton").textContent =
+    state.addressAutocompleteReady
+      ? "Use address search"
+      : "Manual entry";
+
+  if (options.reason) {
+    document.getElementById("addressSearchStatus").textContent =
+      options.reason;
+  }
+
+  updatePickupAddressRequirement();
+
+  if (!options.silent) markDraftChanged();
+}
+
+function setSelectedDeliveryAddress(address, source, options = {}) {
+  const value = String(address || "").trim();
+  const hidden = document.getElementById("deliveryAddress");
+  const manual = document.getElementById("deliveryAddressManual");
+  const summary = document.getElementById("addressSelectedSummary");
+  const summaryText = document.getElementById("addressSelectedText");
+
+  hidden.value = value;
+  state.selectedAddressSource = source || "manual";
+
+  if (!options.preserveManual) {
+    manual.value = value;
+  }
+
+  summaryText.textContent = value;
+  summary.hidden = !value;
+
+  clearFieldError("deliveryAddress");
+  updateAddressSearchStatus();
+
+  if (!options.silent) markDraftChanged();
+}
+
+function updateAddressSearchStatus() {
+  const status = document.getElementById("addressSearchStatus");
+  const isPickup =
+    selectedRadioValue("deliveryType") ===
+    "Pickup (Customer to collect)";
+
+  if (isPickup) {
+    status.textContent =
+      "Pickup selected. A delivery address is not required.";
+    return;
+  }
+
+  if (state.manualAddressMode) {
+    status.textContent = state.addressAutocompleteReady
+      ? "Manual entry is active. Include VIC and the four-digit postcode."
+      : "Address search requires a Google Maps key. Manual entry is active.";
+    return;
+  }
+
+  status.textContent =
+    "Search results are restricted to Victoria. Select a result to confirm it.";
+}
 
 function bindKioskNavigation() {
   document.querySelectorAll("[data-step-target]").forEach((button) => {
@@ -1379,7 +2153,7 @@ function renderReviewStep() {
   const detailRows = [
     ["Customer", details.customer],
     ["Contact", [details.contact, details.mobile].filter(Boolean).join(" · ")],
-    ["Required", [details.requiredDate, details.requiredTime, details.timeSlot].filter(Boolean).join(" · ")],
+    ["Required", [formatIsoDateForAustralia(details.requiredDate),formatTimeForDisplay(details.requiredTime),details.timeSlot].filter(Boolean).join(" · ")],
     ["Delivery", details.deliveryType],
     ["Address", details.deliveryAddress || "Pickup from Bell Plaster"],
     ["Extras", details.extras.join(", ")],
@@ -1452,7 +2226,7 @@ function scheduleDraftSave(){if(state.isRestoringDraft||state.suppressDraftUntil
 function saveDraftNow(options={}){if(state.isRestoringDraft||state.suppressDraftUntilInput||!state.layout)return;window.clearTimeout(state.draftSaveTimer);const draft=collectDraft();if(!draftHasContent(draft)){try{localStorage.removeItem(DRAFT_STORAGE_KEY);}catch{}if(!options.silent)setDraftStatus("Changes save automatically","idle");return;}try{localStorage.setItem(DRAFT_STORAGE_KEY,JSON.stringify(draft));if(!options.silent)setDraftStatus(`Draft saved ${formatDraftTime(draft.updatedAt)}.`,"saved");}catch{if(!options.silent)setDraftStatus("Draft saving is unavailable in this browser.","error");}}
 function collectDraft(){const floors={};["ground","first"].forEach((floor)=>{const quantities={};document.querySelectorAll(`.quantity-input[data-floor="${floor}"]`).forEach((f)=>{const value=Number(f.value||0);if(Number.isInteger(value)&&value>0&&value<=999)quantities[f.dataset.productKey]=value;});floors[floor]={quantities,otherMaterials:getOtherMaterials(floor),acousticFormat:selectedRadioValue(`${floor}AcousticFormat`)||"Roll"};});return{version:DRAFT_VERSION,updatedAt:new Date().toISOString(),activeFloor:state.activeFloor,activeStep:state.activeStep,activeCategory:state.activeCategory,editingOrder:state.editingOrder,details:getOrderDetails(),floors};}
 function draftHasContent(draft){const d=draft.details||{};if(draft.editingOrder)return true;if(d.contact||d.mobile||d.deliveryAddress||d.deliveryInstructions||d.requiredDate||d.requiredTime||d.deliveryType||(d.extras||[]).length)return true;return Object.values(draft.floors||{}).some((f)=>Object.keys(f.quantities||{}).length||(f.otherMaterials||[]).length);}
-function restoreDraft(){let draft;try{const raw=localStorage.getItem(DRAFT_STORAGE_KEY);if(!raw){setDraftStatus("Changes save automatically","idle");return;}draft=JSON.parse(raw);}catch{setDraftStatus("The previous browser draft could not be read.","error");return;}if(!draft||draft.version!==DRAFT_VERSION){clearSavedDraft();return;}state.isRestoringDraft=true;try{setOrderDetails(draft.details||{});["ground","first"].forEach((floor)=>{const f=draft.floors?.[floor]||{};Object.entries(f.quantities||{}).forEach(([key,q])=>{const field=document.querySelector(`.quantity-input[data-floor="${floor}"][data-product-key="${cssEscape(key)}"]`);if(field)field.value=String(q);});state.otherMaterials[floor]=(f.otherMaterials||[]).map((item)=>({sku:item.sku||"",description:item.description||state.productDirectory.find((product)=>product.sku.toUpperCase()===String(item.sku||"").toUpperCase())?.description||"",quantity:Number(item.quantity||1)})).filter((item)=>item.sku);renderSelectedOtherMaterials(floor);setRadio(`${floor}AcousticFormat`,f.acousticFormat||"Roll");});state.editingOrder=draft.editingOrder||null;if(state.editingOrder){document.getElementById("editOrderNumber").textContent=state.editingOrder.orderNumber||"";document.getElementById("editRevisionText").textContent=`Saving will create Revision ${(state.editingOrder.latestRevision||0)+1}. Earlier files will remain available.`;document.getElementById("editModeBanner").hidden=false;document.getElementById("submitButton").textContent="Save changes";}activateFloorTab(["ground","first"].includes(draft.activeFloor)?draft.activeFloor:"ground");activateCategory(draft.activeCategory||"boards",{silent:true});setActiveStep(draft.activeStep||"details",{skipValidation:true,silent:true});updateAllFloorCounts();renderCurrentOrder();state.suppressDraftUntilInput=false;setDraftStatus(`Draft restored from ${formatDraftTime(draft.updatedAt)}.`,"restored");}finally{state.isRestoringDraft=false;}}
+function restoreDraft(){let draft;try{const raw=localStorage.getItem(DRAFT_STORAGE_KEY);if(!raw){setDraftStatus("Changes save automatically","idle");return;}draft=JSON.parse(raw);}catch{setDraftStatus("The previous browser draft could not be read.","error");return;}if(!draft||draft.version!==DRAFT_VERSION){clearSavedDraft();return;}state.isRestoringDraft=true;try{setOrderDetails(draft.details||{});["ground","first"].forEach((floor)=>{const f=draft.floors?.[floor]||{};Object.entries(f.quantities||{}).forEach(([key,q])=>{const field=document.querySelector(`.quantity-input[data-floor="${floor}"][data-product-key="${cssEscape(key)}"]`);if(field){field.value=String(q);updateQuantityAppearance(field);}});state.otherMaterials[floor]=(f.otherMaterials||[]).map((item)=>({sku:item.sku||"",description:item.description||state.productDirectory.find((product)=>product.sku.toUpperCase()===String(item.sku||"").toUpperCase())?.description||"",quantity:Number(item.quantity||1)})).filter((item)=>item.sku);renderSelectedOtherMaterials(floor);setRadio(`${floor}AcousticFormat`,f.acousticFormat||"Roll");});state.editingOrder=draft.editingOrder||null;if(state.editingOrder){document.getElementById("editOrderNumber").textContent=state.editingOrder.orderNumber||"";document.getElementById("editRevisionText").textContent=`Saving will create Revision ${(state.editingOrder.latestRevision||0)+1}. Earlier files will remain available.`;document.getElementById("editModeBanner").hidden=false;document.getElementById("submitButton").textContent="Save changes";}activateFloorTab(["ground","first"].includes(draft.activeFloor)?draft.activeFloor:"ground");activateCategory(draft.activeCategory||"boards",{silent:true});setActiveStep(draft.activeStep||"details",{skipValidation:true,silent:true});updateAllFloorCounts();renderCurrentOrder();state.suppressDraftUntilInput=false;setDraftStatus(`Draft restored from ${formatDraftTime(draft.updatedAt)}.`,"restored");}finally{state.isRestoringDraft=false;}}
 function clearSavedDraft(options={}){window.clearTimeout(state.draftSaveTimer);try{localStorage.removeItem(DRAFT_STORAGE_KEY);}catch{}if(options.statusText)setDraftStatus(options.statusText,"saved");}
 function setDraftStatus(text,status){const e=document.getElementById("draftStatus");if(!e)return;e.textContent=text;e.dataset.status=status||"idle";}
 function formatDraftTime(value){const date=new Date(value);if(Number.isNaN(date.getTime()))return"recently";return new Intl.DateTimeFormat("en-AU",{hour:"numeric",minute:"2-digit"}).format(date);}

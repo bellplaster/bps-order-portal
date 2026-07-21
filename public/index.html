@@ -103,37 +103,161 @@
               <div class="details-grid">
                 <label class="kiosk-field">
                   <span>Order date</span>
-                  <input id="orderDate" type="date" readonly>
+                  <input
+                    id="orderDate"
+                    type="text"
+                    value=""
+                    readonly
+                    aria-readonly="true"
+                  >
+                  <input id="orderDateIso" type="hidden">
                 </label>
 
-                <label class="kiosk-field">
-                  <span>Required date *</span>
-                  <input id="requiredDate" type="date" required>
-                </label>
+                <div class="kiosk-field" id="requiredDateField">
+                  <label for="requiredDate">Required date *</label>
+                  <div class="date-entry">
+                    <input
+                      id="requiredDate"
+                      type="text"
+                      inputmode="numeric"
+                      autocomplete="off"
+                      maxlength="10"
+                      placeholder="DD-MM-YYYY"
+                      aria-describedby="requiredDateHelp requiredDateError requiredDateWarning"
+                      required
+                    >
+                    <button
+                      id="requiredDateCalendarButton"
+                      class="date-picker-button"
+                      type="button"
+                      aria-label="Open required date calendar"
+                    >
+                      <span aria-hidden="true">▦</span>
+                    </button>
+                    <input
+                      id="requiredDatePicker"
+                      class="native-date-picker"
+                      type="date"
+                      tabindex="-1"
+                      aria-hidden="true"
+                    >
+                  </div>
+                  <small id="requiredDateHelp" class="field-help">
+                    Type eight digits, for example 25072026.
+                  </small>
+                  <p id="requiredDateError" class="field-error" hidden></p>
+                  <div id="requiredDateWarning" class="field-warning" hidden>
+                    <strong id="requiredDateWarningText"></strong>
+                    <label id="requiredDateConfirmationRow" class="warning-confirmation" hidden>
+                      <input id="confirmFutureRequiredDate" type="checkbox">
+                      <span>I checked this required date.</span>
+                    </label>
+                  </div>
+                </div>
 
-                <label class="kiosk-field">
-                  <span>Required time *</span>
-                  <input id="requiredTime" type="time" required>
-                </label>
+                <div class="kiosk-field" id="requiredTimeField">
+                  <label for="requiredTime">Required time *</label>
+                  <input
+                    id="requiredTime"
+                    type="time"
+                    step="300"
+                    aria-describedby="requiredTimeError requiredTimeWarning"
+                    required
+                  >
+                  <p id="requiredTimeError" class="field-error" hidden></p>
+                  <div id="requiredTimeWarning" class="field-warning" hidden>
+                    <strong>
+                      This time is outside typical trade delivery hours
+                      of 5:00 am–6:00 pm.
+                    </strong>
+                    <label class="warning-confirmation">
+                      <input id="confirmUnusualRequiredTime" type="checkbox">
+                      <span>I checked this required time.</span>
+                    </label>
+                  </div>
+                </div>
 
-                <label class="kiosk-field">
-                  <span>Contact *</span>
-                  <input id="contactName" maxlength="120" autocomplete="name" required placeholder="Name">
-                </label>
+                <div class="kiosk-field" id="contactNameField">
+                  <label for="contactName">Contact name *</label>
+                  <input
+                    id="contactName"
+                    type="text"
+                    maxlength="80"
+                    autocomplete="name"
+                    required
+                    placeholder="Name"
+                    aria-describedby="contactNameError"
+                  >
+                  <p id="contactNameError" class="field-error" hidden></p>
+                </div>
 
-                <label class="kiosk-field">
-                  <span>Mobile *</span>
-                  <input id="contactMobile" maxlength="30" inputmode="tel" autocomplete="tel" required placeholder="04xx xxx xxx">
-                </label>
+                <div class="kiosk-field" id="contactMobileField">
+                  <label for="contactMobile">Contact number *</label>
+                  <input
+                    id="contactMobile"
+                    type="tel"
+                    maxlength="14"
+                    inputmode="tel"
+                    autocomplete="tel"
+                    required
+                    placeholder="03 0000 0000 or 0400 000 000"
+                    aria-describedby="contactMobileHelp contactMobileError"
+                  >
+                  <small id="contactMobileHelp" class="field-help">
+                    Victorian landline or Australian mobile.
+                  </small>
+                  <p id="contactMobileError" class="field-error" hidden></p>
+                </div>
 
-                <label class="kiosk-field field-span-2">
-                  <span>Delivery address *</span>
-                  <textarea id="deliveryAddress" rows="2" maxlength="500" required placeholder="Street, suburb, state and postcode"></textarea>
-                </label>
+                <div class="kiosk-field field-span-2 delivery-address-field" id="deliveryAddressField">
+                  <label for="deliveryAddressManual">Delivery address *</label>
+
+                  <div class="address-entry-area">
+                    <div id="addressAutocompleteMount" class="address-autocomplete-mount" hidden></div>
+
+                    <textarea
+                      id="deliveryAddressManual"
+                      rows="2"
+                      maxlength="500"
+                      autocomplete="street-address"
+                      placeholder="Street, suburb, VIC and postcode"
+                      aria-describedby="deliveryAddressHelp deliveryAddressError"
+                    ></textarea>
+
+                    <input id="deliveryAddress" type="hidden">
+
+                    <div id="addressSelectedSummary" class="address-selected-summary" hidden>
+                      <span class="address-selected-icon" aria-hidden="true">✓</span>
+                      <span>
+                        <small>Selected Victorian address</small>
+                        <strong id="addressSelectedText"></strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="address-field-footer">
+                    <small id="deliveryAddressHelp" class="field-help">
+                      Search is restricted to Victoria. Select a result rather than typing free text.
+                    </small>
+                    <button id="toggleManualAddressButton" class="inline-link-button" type="button">
+                      Enter manually
+                    </button>
+                  </div>
+
+                  <p id="addressSearchStatus" class="address-search-status">
+                    Loading Victorian address search…
+                  </p>
+                  <p id="deliveryAddressError" class="field-error" hidden></p>
+                </div>
 
                 <label class="kiosk-field field-span-2">
                   <span>Delivery instructions</span>
-                  <textarea id="deliveryInstructions" rows="3" maxlength="1500" placeholder="Access, unloading or site instructions"></textarea>
+                  <textarea
+                    id="deliveryInstructions"
+                    rows="3"
+                    maxlength="1500"
+                    placeholder="Access, unloading or site instructions"
+                  ></textarea>
                 </label>
 
                 <input id="accountReference" value="BPS BRUNSW17" type="hidden">
