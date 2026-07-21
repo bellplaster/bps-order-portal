@@ -371,16 +371,27 @@
    ================================================================ */
 
 .google-maps-attribution {
-  position: sticky;
-  bottom: 0;
-  padding: 7px 12px;
-  border-top: 1px solid #E7ECEA;
-  background: #FAFBFB;
-  color: #5F6368;
-  font-size: 9px;
-  font-weight: 700;
+  position: absolute;
+  right: 10px;
+  bottom: 5px;
+  z-index: 2;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #6A716F;
+  font-size: 8px;
+  font-weight: 650;
   letter-spacing: .01em;
-  text-align: right;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.address-search-results {
+  padding-bottom: 16px;
+}
+
+.address-result:last-of-type {
+  border-bottom: 0;
 }
 
 /* Prevent the option-group headings from sitting on the card border. */
@@ -577,3 +588,215 @@
     grid-template-columns: 1fr !important;
   }
 }
+
+/* ================================================================
+   PRODUCT GRID AND QUANTITY CONTROL REFINEMENT — 2026-07-21
+   ================================================================ */
+
+/* Product ordering tables are deliberately square and Excel-like. Rounded
+   outer cards were clipping square table cells and leaving awkward corners. */
+.product-workspace .product-section {
+  overflow: hidden;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.category-content,
+.category-content-boards,
+.main-board-section,
+.main-board-section .product-section-body,
+.main-board-section .table-scroller {
+  width: 100%;
+  min-width: 0;
+}
+
+.category-content,
+.specialty-stack {
+  align-items: start !important;
+}
+
+.specialty-stack .product-section {
+  align-self: start;
+  height: max-content;
+}
+
+/* Tables expand to the available workspace. They only scroll when the actual
+   number of columns cannot fit, rather than stopping early and leaving a
+   large blank strip on the right. */
+.product-table {
+  width: 100% !important;
+  min-width: 100% !important;
+  table-layout: fixed !important;
+}
+
+.main-board-table {
+  width: 100% !important;
+  min-width: 940px !important;
+}
+
+.main-board-table th:first-child,
+.main-board-table td:first-child {
+  width: 74px !important;
+  min-width: 74px !important;
+}
+
+.main-board-table th:not(:first-child),
+.main-board-table td:not(:first-child) {
+  width: auto !important;
+  min-width: 60px !important;
+}
+
+.compact-table {
+  width: 100% !important;
+  min-width: 100% !important;
+}
+
+.compact-table th:first-child,
+.compact-table td:first-child {
+  width: auto !important;
+  min-width: 150px !important;
+}
+
+.compact-table th:not(:first-child),
+.compact-table td:not(:first-child) {
+  width: 66px !important;
+  min-width: 66px !important;
+}
+
+.specialty-row,
+.list-product-row {
+  grid-template-columns: minmax(0, 1fr) 66px !important;
+}
+
+/* A dedicated right-side stepper replaces the browser's native number
+   spinner. The quantity remains readable and centred, while the arrows sit
+   against the far-right edge instead of covering the number. */
+.quantity-cell,
+.standalone-quantity.quantity-cell {
+  position: relative;
+  width: 66px !important;
+  min-width: 66px !important;
+  height: 42px !important;
+  padding: 0 !important;
+  overflow: hidden;
+  border: 1px solid #CBD4D1 !important;
+  border-radius: 0 !important;
+  background: #F3F5FF !important;
+  box-shadow: none !important;
+}
+
+.quantity-cell:focus-within,
+.standalone-quantity.quantity-cell:focus-within {
+  z-index: 5;
+  border-color: var(--bps-maroon) !important;
+  box-shadow: inset 0 0 0 1px var(--bps-maroon) !important;
+}
+
+.quantity-control {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  grid-template-columns: minmax(0, 1fr) 17px;
+  align-items: stretch;
+}
+
+.quantity-cell .quantity-input,
+.standalone-quantity.quantity-cell .quantity-input {
+  display: block;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  margin: 0 !important;
+  padding: 0 2px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  appearance: none !important;
+  color: #24302D;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 40px;
+  text-align: center !important;
+}
+
+.quantity-cell .quantity-input:focus,
+.standalone-quantity.quantity-cell .quantity-input:focus {
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+
+.quantity-cell .quantity-input.has-value,
+.standalone-quantity.quantity-cell .quantity-input.has-value {
+  background: var(--bps-maroon-soft) !important;
+  color: var(--bps-maroon);
+}
+
+.quantity-steppers {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  overflow: hidden;
+  border-left: 1px solid #CBD4D1;
+  background: rgba(255, 255, 255, .54);
+  opacity: .42;
+  transition: opacity 120ms ease;
+}
+
+.quantity-cell:hover .quantity-steppers,
+.quantity-cell:focus-within .quantity-steppers,
+.standalone-quantity.quantity-cell:hover .quantity-steppers,
+.standalone-quantity.quantity-cell:focus-within .quantity-steppers {
+  opacity: 1;
+}
+
+.quantity-step {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #5C6763;
+  font: inherit;
+  font-size: 8px;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.quantity-step + .quantity-step {
+  border-top: 1px solid #CBD4D1;
+}
+
+.quantity-step:hover {
+  background: #FFFFFF;
+  color: var(--bps-maroon);
+}
+
+.quantity-step:active {
+  background: var(--bps-maroon-soft);
+}
+
+/* Short specialty cards no longer stretch to match taller neighbours and
+   therefore do not create fake blank rows. */
+.specialty-stack {
+  grid-template-columns: repeat(4, minmax(150px, 1fr)) !important;
+}
+
+@media (max-width: 1180px) {
+  .specialty-stack {
+    grid-template-columns: repeat(2, minmax(170px, 1fr)) !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .specialty-stack {
+    grid-template-columns: 1fr !important;
+  }
+}
+

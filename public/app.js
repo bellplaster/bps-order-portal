@@ -743,10 +743,77 @@ function compactSearch(value) {
 
 function createSectionShell(className,title){const root=document.createElement("section");root.className=`product-section ${className}`;const heading=document.createElement("h3");heading.textContent=title;const body=document.createElement("div");body.className="product-section-body";root.append(heading,body);return{root,body};}
 
-function createQuantityCell(floor,key){const td=document.createElement("td");if(!key){td.className="unavailable-cell";return td;}td.className="quantity-cell";td.append(createQuantityInput(floor,key));return td;}
-function createStandaloneQuantity(floor,key){const wrap=document.createElement("div");wrap.className="standalone-quantity quantity-cell";wrap.append(createQuantityInput(floor,key));return wrap;}
+function createQuantityCell(floor,key){
+  const td=document.createElement("td");
+  if(!key){td.className="unavailable-cell";return td;}
+  td.className="quantity-cell";
+  td.append(createQuantityControl(floor,key));
+  return td;
+}
+
+function createStandaloneQuantity(floor,key){
+  const wrap=document.createElement("div");
+  wrap.className="standalone-quantity quantity-cell";
+  wrap.append(createQuantityControl(floor,key));
+  return wrap;
+}
+
+function createQuantityControl(floor,key){
+  const product=state.catalog[key];
+  const control=document.createElement("div");
+  control.className="quantity-control";
+
+  const input=createQuantityInput(floor,key);
+  const steppers=document.createElement("span");
+  steppers.className="quantity-steppers";
+
+  const increase=document.createElement("button");
+  increase.type="button";
+  increase.className="quantity-step quantity-step-up";
+  increase.tabIndex=-1;
+  increase.textContent="▴";
+  increase.setAttribute("aria-label",`Increase ${product?.label||key}`);
+
+  const decrease=document.createElement("button");
+  decrease.type="button";
+  decrease.className="quantity-step quantity-step-down";
+  decrease.tabIndex=-1;
+  decrease.textContent="▾";
+  decrease.setAttribute("aria-label",`Decrease ${product?.label||key}`);
+
+  const adjust=(amount)=>{
+    const current=Number(input.value||0);
+    const next=Math.max(0,Math.min(999,current+amount));
+    input.value=next>0?String(next):"";
+    input.dispatchEvent(new Event("input",{bubbles:true}));
+    input.focus({preventScroll:true});
+    input.select();
+  };
+
+  increase.addEventListener("mousedown",(event)=>event.preventDefault());
+  decrease.addEventListener("mousedown",(event)=>event.preventDefault());
+  increase.addEventListener("click",()=>adjust(1));
+  decrease.addEventListener("click",()=>adjust(-1));
+
+  steppers.append(increase,decrease);
+  control.append(input,steppers);
+  return control;
+}
+
 function createQuantityInput(floor,key){
-  const product=state.catalog[key]; const input=document.createElement("input");input.className="quantity-input";input.type="number";input.min="0";input.max="999";input.step="1";input.inputMode="numeric";input.autocomplete="off";input.placeholder="0";input.dataset.productKey=key;input.dataset.floor=floor;input.title=product?.label||key;input.setAttribute("aria-label",`${product?.label||key} quantity for ${floorLabels[floor]}`);
+  const product=state.catalog[key];
+  const input=document.createElement("input");
+  input.className="quantity-input";
+  input.type="text";
+  input.inputMode="numeric";
+  input.pattern="[0-9]*";
+  input.maxLength=3;
+  input.autocomplete="off";
+  input.placeholder="0";
+  input.dataset.productKey=key;
+  input.dataset.floor=floor;
+  input.title=product?.label||key;
+  input.setAttribute("aria-label",`${product?.label||key} quantity for ${floorLabels[floor]}`);
   input.addEventListener("input",()=>{
     normaliseQuantityField(input);
     updateQuantityAppearance(input);
@@ -755,11 +822,37 @@ function createQuantityInput(floor,key){
     markDraftChanged();
   });
   input.addEventListener("focus",()=>input.select());
-  input.addEventListener("keydown",(event)=>{if(event.key!=="Enter")return;event.preventDefault();focusNextQuantityField(floor,input,event.shiftKey?-1:1);});
+  input.addEventListener("keydown",(event)=>{
+    if(event.key==="ArrowUp"){
+      event.preventDefault();
+      const current=Number(input.value||0);
+      input.value=String(Math.min(999,current+1));
+      input.dispatchEvent(new Event("input",{bubbles:true}));
+      input.select();
+      return;
+    }
+    if(event.key==="ArrowDown"){
+      event.preventDefault();
+      const current=Number(input.value||0);
+      const next=Math.max(0,current-1);
+      input.value=next>0?String(next):"";
+      input.dispatchEvent(new Event("input",{bubbles:true}));
+      input.select();
+      return;
+    }
+    if(event.key!=="Enter")return;
+    event.preventDefault();
+    focusNextQuantityField(floor,input,event.shiftKey?-1:1);
+  });
   return input;
 }
 
-function normaliseQuantityField(field){if(field.value==="")return;const q=Number(field.value);if(!Number.isFinite(q)||q<0){field.value="";return;}field.value=String(Math.min(999,Math.floor(q)));}
+function normaliseQuantityField(field){
+  const digits=String(field.value||"").replace(/\D+/g,"").slice(0,3);
+  if(!digits){field.value="";return;}
+  const quantity=Math.min(999,Math.max(0,Number.parseInt(digits,10)||0));
+  field.value=quantity>0?String(quantity):"";
+}
 function getFloorItems(floor){return Array.from(document.querySelectorAll(`.quantity-input[data-floor="${floor}"]`)).map((f)=>({key:f.dataset.productKey,quantity:Number(f.value||0)})).filter((i)=>Number.isInteger(i.quantity)&&i.quantity>0&&i.quantity<=999);}
 function getOtherMaterials(floor) {
   return state.otherMaterials[floor]
@@ -1628,7 +1721,7 @@ async function requestAddressSuggestions(input) {
 }
 
 function appendGoogleMapsAttribution(container) {
-  const attribution = document.createElement("div");
+  const attribution = document.createElement("span");
   attribution.className = "google-maps-attribution";
   attribution.setAttribute("aria-hidden", "true");
   attribution.textContent = "Google Maps";
@@ -1846,18 +1939,12 @@ function setSelectedDeliveryAddress(address, source, options = {}) {
     document.getElementById("clearAddressSearchButton").hidden = false;
   }
 
-  const summary = document.getElementById("addressSelectedSummary");
-  document.getElementById("addressSelectedLine1").textContent = parsed.line1;
-  document.getElementById("addressSelectedLine2").textContent = parsed.line2;
-  summary.hidden = !(parsed.line1 && parsed.line2 && source !== "manual");
-
   clearFieldError("deliveryAddress");
   if (!options.silent) markDraftChanged();
 }
 
 function clearSelectedAddress(options = {}) {
   setSelectedDeliveryAddress({ full: "", line1: "", line2: "" }, state.manualAddressMode ? "manual" : "google", { silent: true, preserveManual: state.manualAddressMode });
-  document.getElementById("addressSelectedSummary").hidden = true;
   if (!options.preserveSearch) document.getElementById("deliveryAddressSearch").value = "";
   if (!options.silent) markDraftChanged();
 }
