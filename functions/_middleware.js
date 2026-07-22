@@ -5,6 +5,7 @@ import {
 } from "./_shared/auth.js";
 
 import { json } from "./_shared/responses.js";
+import { getOrCreateSessionSecret } from "./_shared/setup.js";
 
 const PUBLIC_PATHS = new Set([
   "/signin",
@@ -24,11 +25,7 @@ export async function onRequest(context) {
   try {
     if (PUBLIC_PATHS.has(url.pathname)) return context.next();
 
-    const sessionSecret = String(context.env.SESSION_SECRET || "");
-    if (!sessionSecret) {
-      return json({ ok: false, error: "SESSION_SECRET is not configured in Cloudflare." }, 500);
-    }
-
+    const sessionSecret = await getOrCreateSessionSecret(context.env);
     const token = readCookie(context.request, SESSION_COOKIE);
     const session = await verifySessionToken(sessionSecret, token);
 
