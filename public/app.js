@@ -31,6 +31,7 @@ const deliveryTypes = new Set([
 
 window.addEventListener("DOMContentLoaded", initialise);
 window.addEventListener("DOMContentLoaded", enforceUppercaseGoogleAddress);
+window.addEventListener("DOMContentLoaded", loadDeliveryRefinement);
 
 async function initialise() {
   bindStaticActions();
@@ -161,4 +162,11 @@ function formatAddressDisplay(value) {
     .replace(/\s+/g, " ")
     .trim()
     .toUpperCase();
+}
+
+function loadDeliveryRefinement() {
+  const script = document.createElement("script");
+  script.src = "/delivery-refinement.js?v=20260722-1";
+  script.defer = true;
+  document.body.append(script);
 }
