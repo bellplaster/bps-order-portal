@@ -49,6 +49,7 @@ async function initialise() {
 
 function bindStaticActions() {
   document.getElementById("logoutButton").addEventListener("click", logout);
+  document.getElementById("clearAddressButton").addEventListener("click", clearAddress);
   document.getElementById("continueToReviewButton").addEventListener("click", () => {
     try { validateForm(); renderReview(); setStep("review"); }
     catch (error) { showGlobal(error.message || String(error), "error"); }
