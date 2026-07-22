@@ -1,4 +1,14 @@
+-- Optional manual recovery migration.
+-- The portal now initializes the BPS customer schema automatically on first
+-- sign-in through functions/_shared/setup.js.
+
 PRAGMA foreign_keys = ON;
+
+CREATE TABLE IF NOT EXISTS portal_settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS customer_accounts (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,6 +57,9 @@ INSERT OR IGNORE INTO customer_accounts (
   datetime('now')
 );
 
+-- These ALTER statements are for manual recovery against an older database.
+-- Do not execute this file twice manually because SQLite rejects duplicate
+-- column names. Normal application startup checks columns individually.
 ALTER TABLE orders ADD COLUMN account_id INTEGER;
 ALTER TABLE orders ADD COLUMN debtor_code_snapshot TEXT NOT NULL DEFAULT '';
 ALTER TABLE orders ADD COLUMN company_name_snapshot TEXT NOT NULL DEFAULT '';
@@ -72,7 +85,3 @@ WHERE account_id IS NULL;
 
 CREATE INDEX IF NOT EXISTS idx_orders_account_created
   ON orders(account_id, created_at DESC);
-
-CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_account_reference
-  ON orders(account_id, customer_reference)
-  WHERE customer_reference <> '';
