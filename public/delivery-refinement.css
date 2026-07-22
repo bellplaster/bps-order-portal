@@ -1,3 +1,12 @@
+#accountSummary,
+.system-only-field {
+  display: none !important;
+}
+
+.basic-details-grid.customer-entry-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
 .delivery-grid.delivery-grid-unified {
   display: block !important;
 }
@@ -134,22 +143,6 @@
   margin-top: 8px;
 }
 
-.delivery-sentence-preview {
-  margin: 16px 0 0 !important;
-  border: 0 !important;
-  border-top: 1px solid var(--line-light) !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-}
-
-.delivery-sentence-preview .generated-notes-content {
-  gap: 6px;
-  padding: 15px 0 0;
-  color: #31403c;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
 .delivery-source-controls {
   display: none !important;
 }
@@ -167,8 +160,9 @@
 }
 
 @media (max-width: 900px) {
+  .basic-details-grid.customer-entry-grid,
   .delivery-instruction-controls {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
   }
 
   .extras-dropdown-menu {
