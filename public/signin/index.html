@@ -4,38 +4,34 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow,noarchive">
-  <title>Sign in | BPS Order Portal</title>
+  <title>Sign in | Bell Plaster Order Portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/styles.css?v=20260722-1">
+  <link rel="stylesheet" href="/refinement.css?v=20260722-2">
 </head>
 <body class="login-page">
   <main class="login-shell">
     <section class="login-card">
-      <img
-        class="login-logo"
-        src="https://bellplastersupplies.com.au/cdn/shop/files/bell_logo_black.png?v=1781229976"
-        alt="Bell Plaster"
-      >
-      <h1>BPS Order Portal</h1>
-      <p class="login-copy">Enter the BPS portal password to continue.</p>
-
-      <form id="loginForm">
-        <label class="field">
-          <span>Password</span>
-          <input id="password" type="password" autocomplete="current-password" required autofocus>
+      <img class="login-logo" src="https://bellplastersupplies.com.au/cdn/shop/files/bell_logo_black.png?v=1781229976" alt="Bell Plaster">
+      <h1>Order Portal</h1>
+      <p class="login-copy">Sign in with your customer username and password.</p>
+      <form id="loginForm" class="login-form-grid">
+        <label>
+          <span>Username</span>
+          <input id="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus>
         </label>
-
-        <div id="loginMessage" class="message" hidden role="alert"></div>
-
-        <button id="loginButton" class="button button-primary button-full" type="submit">
-          Sign in
-        </button>
+        <label>
+          <span>Password</span>
+          <input id="password" type="password" autocomplete="current-password" required>
+        </label>
+        <div id="loginMessage" class="portal-message" hidden role="alert"></div>
+        <button id="loginButton" class="button button-primary button-full" type="submit">Sign in</button>
       </form>
+      <p class="field-help" style="margin-top:16px;text-align:center">Existing setup: use username <strong>bps</strong> with the current portal password. Bell administrators use <strong>admin</strong>.</p>
     </section>
   </main>
-
-  <script src="/login.js" defer></script>
+  <script src="/login.js?v=20260722-2" defer></script>
 </body>
 </html>
