@@ -14,6 +14,7 @@
     const extrasField = document.querySelector(".extras-field");
     if (!grid || !addressField || !notesField || !timeField || !typeField || !extrasField) return;
 
+    hideNonEditableOrderFields();
     addressField.querySelector(".field-help")?.remove();
 
     const sourceControls = document.createElement("div");
@@ -31,9 +32,8 @@
     const heading = notesField.querySelector(":scope > span");
     if (heading) heading.textContent = "Delivery instructions";
 
-    const generated = notesField.querySelector(".generated-delivery-notes");
-    generated?.querySelector(".generated-notes-label")?.remove();
-    generated?.classList.add("delivery-sentence-preview");
+    // The generated confirmation belongs on the Review step, not the entry form.
+    notesField.querySelector(".generated-delivery-notes")?.remove();
 
     const textLabel = notesField.querySelector(".additional-instructions-label");
     const textarea = document.getElementById("deliveryInstructions");
@@ -45,7 +45,6 @@
       controlRow,
       ...(textLabel ? [textLabel] : []),
       ...(textarea ? [textarea] : []),
-      ...(generated ? [generated] : []),
       sourceControls,
     );
 
@@ -56,7 +55,6 @@
       syncSelectFromRadios(timeSelect.select, "timeSlot");
       syncSelectFromRadios(deliverySelect.select, "deliveryType");
       extrasControl.updateSummary();
-      updateGeneratedDeliverySummary?.();
     };
 
     const originalApplyPayload = window.applyPayload;
@@ -77,6 +75,19 @@
     });
 
     window.syncUnifiedDeliveryControls();
+  }
+
+  function hideNonEditableOrderFields() {
+    const accountSummary = document.getElementById("accountSummary");
+    if (accountSummary) accountSummary.hidden = true;
+
+    ["orderDate", "customerName"].forEach((id) => {
+      const input = document.getElementById(id);
+      const field = input?.closest("label.form-field");
+      if (field) field.classList.add("system-only-field");
+    });
+
+    document.querySelector(".basic-details-grid")?.classList.add("customer-entry-grid");
   }
 
   function createSyncedSelect(name, labelText, includePlaceholder) {
