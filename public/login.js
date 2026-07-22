@@ -1,3 +1,4 @@
+// Preview deployments must be rebuilt after Cloudflare secrets change.
 const form = document.getElementById("loginForm");
 const button = document.getElementById("loginButton");
 const message = document.getElementById("loginMessage");
