@@ -11,6 +11,27 @@ export async function onRequestPost(context) {
     if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
       return Response.json({ ok: false, error: "The portal submitted invalid JSON.", requestId }, { status: 400, headers: { "X-Request-ID": requestId } });
     }
+
+    const accountId = Number(context.data?.auth?.accountId || 0);
+    const reference = String(payload.reference || payload.customerReference || "").trim();
+    const submissionId = String(payload.submissionId || "").trim();
+    if (accountId && reference && context.env.DB) {
+      const duplicate = await context.env.DB.prepare(
+        `SELECT submission_id
+         FROM orders
+         WHERE account_id = ?
+           AND customer_reference = ? COLLATE NOCASE
+           AND submission_id <> ?
+         LIMIT 1`,
+      ).bind(accountId, reference, submissionId).first();
+      if (duplicate) {
+        return Response.json(
+          { ok: false, error: `Reference "${reference}" has already been used for this customer.`, requestId },
+          { status: 400, headers: { "Cache-Control": "no-store", "X-Request-ID": requestId } },
+        );
+      }
+    }
+
     const result = await processOrderSubmission(context.env, payload, context.data?.auth);
     return Response.json({ ...result, requestId }, { headers: { "Cache-Control": "no-store", "X-Request-ID": requestId } });
   } catch (error) {

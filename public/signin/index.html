@@ -18,18 +18,11 @@
       <h1>Order Portal</h1>
       <p class="login-copy">Sign in with your customer username and password.</p>
       <form id="loginForm" class="login-form-grid">
-        <label>
-          <span>Username</span>
-          <input id="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus>
-        </label>
-        <label>
-          <span>Password</span>
-          <input id="password" type="password" autocomplete="current-password" required>
-        </label>
+        <label><span>Username</span><input id="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required autofocus></label>
+        <label><span>Password</span><input id="password" type="password" autocomplete="current-password" required></label>
         <div id="loginMessage" class="portal-message" hidden role="alert"></div>
         <button id="loginButton" class="button button-primary button-full" type="submit">Sign in</button>
       </form>
-      <p class="field-help" style="margin-top:16px;text-align:center">Existing setup: use username <strong>bps</strong> with the current portal password. Bell administrators use <strong>admin</strong>.</p>
     </section>
   </main>
   <script src="/login.js?v=20260722-2" defer></script>
