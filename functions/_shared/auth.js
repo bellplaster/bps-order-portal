@@ -3,7 +3,7 @@ const decoder = new TextDecoder();
 
 export const SESSION_COOKIE = "bps_session";
 export const SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
-export const PASSWORD_ITERATIONS = 210000;
+export const PASSWORD_ITERATIONS = 100000;
 
 export function readCookie(request, name) {
   const header = request.headers.get("Cookie") || "";
@@ -53,13 +53,15 @@ export async function passwordsMatch(expected, supplied) {
 export async function hashPassword(password, salt = randomSalt(), iterations = PASSWORD_ITERATIONS) {
   const clean = String(password || "");
   if (clean.length < 10) throw new Error("Password must contain at least 10 characters.");
-  const derived = await derivePassword(clean, salt, iterations);
-  return { hash: toBase64Url(derived), salt, iterations };
+  const safeIterations = normaliseIterations(iterations);
+  const derived = await derivePassword(clean, salt, safeIterations);
+  return { hash: toBase64Url(derived), salt, iterations: safeIterations };
 }
 
 export async function verifyPassword(password, salt, expectedHash, iterations = PASSWORD_ITERATIONS) {
   if (!password || !salt || !expectedHash) return false;
-  const derived = await derivePassword(String(password), String(salt), Number(iterations) || PASSWORD_ITERATIONS);
+  const safeIterations = normaliseIterations(iterations);
+  const derived = await derivePassword(String(password), String(salt), safeIterations);
   return constantTimeEqual(toBase64Url(derived), String(expectedHash));
 }
 
@@ -89,6 +91,12 @@ function randomSalt() {
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
   return toBase64Url(bytes);
+}
+
+function normaliseIterations(iterations) {
+  const value = Number(iterations) || PASSWORD_ITERATIONS;
+  if (!Number.isInteger(value) || value < 10000) return PASSWORD_ITERATIONS;
+  return Math.min(value, PASSWORD_ITERATIONS);
 }
 
 async function derivePassword(password, salt, iterations) {
