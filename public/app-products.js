@@ -1,8 +1,14 @@
 function renderFloorSheet(floor) {
   const root = document.getElementById(`${floor}OrderSheet`);
   root.replaceChildren();
-  root.append(renderMainBoardMatrix(floor, state.layout.mainBoard));
-  root.append(renderSpecialtyBoards(floor, state.layout.specialtyBoards));
+
+  const boardLayout = document.createElement("div");
+  boardLayout.className = "board-layout-grid";
+  boardLayout.append(
+    renderMainBoardMatrix(floor, state.layout.mainBoard),
+    renderSpecialtyBoards(floor, state.layout.specialtyBoards),
+  );
+  root.append(boardLayout);
 
   const lower = document.createElement("div");
   lower.className = "pdf-lower-grid";
@@ -10,83 +16,123 @@ function renderFloorSheet(floor) {
     const column = document.createElement("div");
     column.className = "pdf-lower-column";
     for (const id of columnIds) {
+      if (["usg_tiles", "other_materials"].includes(id)) continue;
       const definition = state.layout.sections?.[id];
       if (definition) column.append(renderSection(floor, definition));
     }
-    lower.append(column);
+    if (column.childElementCount) lower.append(column);
   }
   root.append(lower);
+  root.append(renderOtherMaterialsSection(floor));
 }
 
 function renderMainBoardMatrix(floor, definition) {
   const section = document.createElement("section");
   section.className = "pdf-product-section pdf-board-section";
-  section.innerHTML = `<h3 class="pdf-section-title">${escapeHtml(definition.title || "BOARD")}</h3>`;
+
+  const title = document.createElement("h3");
+  title.className = "pdf-section-title";
+  title.textContent = definition.title || "BOARD";
+  section.append(title);
+
   const wrap = document.createElement("div");
   wrap.className = "board-table-wrap";
+
   const table = document.createElement("table");
   table.className = "pdf-table main-board-table";
+
   const thead = document.createElement("thead");
-  const groupRow = document.createElement("tr");
+  const productRow = document.createElement("tr");
   const lengthTop = document.createElement("th");
   lengthTop.rowSpan = 3;
+  lengthTop.className = "board-length-heading";
   lengthTop.textContent = "Length";
-  groupRow.append(lengthTop);
+  productRow.append(lengthTop);
+
+  const mergedGroups = [];
+  (definition.groups || []).forEach((group) => {
+    const previous = mergedGroups.at(-1);
+    if (previous && previous.group === group.group) previous.span += Number(group.span || 0);
+    else mergedGroups.push({ group: group.group, span: Number(group.span || 0) });
+  });
+
+  mergedGroups.forEach((group) => {
+    const th = document.createElement("th");
+    th.colSpan = group.span;
+    th.className = "board-product-heading";
+    th.textContent = displayBoardGroupName(group.group);
+    productRow.append(th);
+  });
+
+  const thicknessRow = document.createElement("tr");
   (definition.groups || []).forEach((group) => {
     const th = document.createElement("th");
     th.colSpan = group.span;
-    th.innerHTML = `<strong>${escapeHtml(group.group)}</strong><span>${escapeHtml(group.subgroup)}</span>`;
-    groupRow.append(th);
+    th.className = "board-thickness-heading";
+    th.textContent = group.subgroup;
+    thicknessRow.append(th);
   });
-  const variantRow = document.createElement("tr");
+
+  const widthRow = document.createElement("tr");
   (definition.columns || []).forEach((column) => {
     const th = document.createElement("th");
-    th.textContent = column.variant;
-    variantRow.append(th);
+    th.className = "board-width-heading";
+    th.innerHTML = `<span>${escapeHtml(column.variant)}</span><small>mm</small>`;
+    widthRow.append(th);
   });
-  const unitRow = document.createElement("tr");
-  (definition.columns || []).forEach(() => {
-    const th = document.createElement("th");
-    th.textContent = "mm";
-    unitRow.append(th);
-  });
-  thead.append(groupRow, variantRow, unitRow);
+
+  thead.append(productRow, thicknessRow, widthRow);
+
   const tbody = document.createElement("tbody");
   (definition.rows || []).forEach((row) => {
     const tr = document.createElement("tr");
     const th = document.createElement("th");
+    th.className = "board-row-heading";
     th.textContent = row.length;
     tr.append(th);
     (row.cells || []).forEach((key) => tr.append(createQuantityCell(floor, key)));
     tbody.append(tr);
   });
+
   table.append(thead, tbody);
   wrap.append(table);
   section.append(wrap);
   return section;
 }
 
+function displayBoardGroupName(value) {
+  const names = {
+    "SHEETROCK ONE": "SHEETROCK® ONE",
+    "SHEETROCK PLUS": "SHEETROCK® PLUS",
+    WETSTOP: "WETSTOP®",
+    FIRESTOP: "FIRESTOP®",
+  };
+  return names[value] || value;
+}
+
 function renderSpecialtyBoards(floor, groups) {
-  const section = document.createElement("section");
-  section.className = "specialty-grid";
+  const aside = document.createElement("aside");
+  aside.className = "specialty-stack";
   (groups || []).forEach((group) => {
-    const card = document.createElement("div");
+    const card = document.createElement("section");
     card.className = "specialty-card";
+
     const title = document.createElement("h3");
     title.className = "pdf-section-title";
     title.textContent = group.title;
     card.append(title);
+
     (group.rows || []).forEach((row) => {
       const line = document.createElement("div");
-      line.className = "pdf-list-row";
+      line.className = "pdf-list-row specialty-row";
       const label = document.createElement("span");
       label.textContent = combinedLabel(row.label, row.detail);
       line.append(label, createQuantityInput(floor, row.key));
       card.append(line);
     });
-    section.append(card);
+    aside.append(card);
   });
-  return section;
+  return aside;
 }
 
 function renderSection(floor, definition) {
@@ -100,12 +146,15 @@ function renderSection(floor, definition) {
 function renderMatrixSection(floor, definition) {
   const section = document.createElement("section");
   section.className = "pdf-product-section";
+
   const title = document.createElement("h3");
   title.className = "pdf-section-title";
   title.textContent = definition.title;
   section.append(title);
+
   const table = document.createElement("table");
   table.className = "pdf-table compact-table";
+
   const thead = document.createElement("thead");
   const head = document.createElement("tr");
   const first = document.createElement("th");
@@ -117,6 +166,7 @@ function renderMatrixSection(floor, definition) {
     head.append(th);
   });
   thead.append(head);
+
   const tbody = document.createElement("tbody");
   (definition.rows || []).forEach((row) => {
     const tr = document.createElement("tr");
@@ -126,6 +176,7 @@ function renderMatrixSection(floor, definition) {
     (row.cells || []).forEach((key) => tr.append(createQuantityCell(floor, key)));
     tbody.append(tr);
   });
+
   table.append(thead, tbody);
   section.append(table);
   return section;
@@ -134,10 +185,12 @@ function renderMatrixSection(floor, definition) {
 function renderListSection(floor, definition) {
   const section = document.createElement("section");
   section.className = "pdf-product-section";
+
   const title = document.createElement("h3");
   title.className = "pdf-section-title";
   title.textContent = definition.title;
   section.append(title);
+
   const list = document.createElement("div");
   list.className = "pdf-list";
   (definition.rows || []).forEach((row) => {
@@ -155,9 +208,10 @@ function renderListSection(floor, definition) {
 function renderInsulationSection(floor, definition) {
   const section = document.createElement("section");
   section.className = "pdf-product-section";
+
   const title = document.createElement("h3");
   title.className = "pdf-section-title";
-  title.textContent = "INSULATION";
+  title.textContent = "KNAUF INSULATION";
   section.append(title);
   section.append(renderSimpleInsulationTable(floor, "Thermal Batts", definition.thermalRows));
   section.append(renderSimpleInsulationTable(floor, "Acoustic", definition.acousticRows));
@@ -170,9 +224,11 @@ function renderSimpleInsulationTable(floor, titleText, rows) {
   const heading = document.createElement("h4");
   heading.textContent = titleText;
   block.append(heading);
+
   const table = document.createElement("table");
   table.className = "pdf-table compact-table";
   table.innerHTML = "<thead><tr><th>Product</th><th>430 mm</th><th>580 mm</th></tr></thead>";
+
   const tbody = document.createElement("tbody");
   (rows || []).forEach((row) => {
     const tr = document.createElement("tr");
@@ -189,21 +245,31 @@ function renderSimpleInsulationTable(floor, titleText, rows) {
 
 function renderOtherMaterialsSection(floor) {
   const section = document.createElement("section");
-  section.className = "pdf-product-section other-materials-section";
-  const title = document.createElement("h3");
-  title.className = "pdf-section-title";
-  title.textContent = "ADDITIONAL PRODUCTS";
+  section.className = "additional-products-panel";
+
+  const header = document.createElement("div");
+  header.className = "additional-products-heading";
+  header.innerHTML = `
+    <div>
+      <p class="eyebrow">Full catalogue</p>
+      <h3>Additional products</h3>
+      <p>Search by Accrivia stock code, product name or size.</p>
+    </div>
+  `;
+
   const search = document.createElement("div");
   search.className = "additional-search";
   search.innerHTML = `
-    <label for="${floor}AdditionalSearch">Search the full Accrivia catalogue</label>
-    <input id="${floor}AdditionalSearch" type="search" autocomplete="off" placeholder="Stock code or product description">
+    <label for="${floor}AdditionalSearch">Product search</label>
+    <input id="${floor}AdditionalSearch" type="search" autocomplete="off" placeholder="Search stock code or product description">
     <div class="additional-results" data-additional-results="${floor}" hidden></div>
   `;
+
   const selected = document.createElement("div");
   selected.className = "selected-additional";
   selected.dataset.selectedAdditional = floor;
-  section.append(title, search, selected);
+
+  section.append(header, search, selected);
   search.querySelector("input").addEventListener("input", (event) => searchAdditionalProducts(floor, event.target.value));
   renderSelectedAdditional(floor, selected);
   return section;
@@ -216,6 +282,7 @@ function createQuantityCell(floor, key) {
     td.setAttribute("aria-label", "Not available");
     return td;
   }
+  td.className = "quantity-cell";
   td.append(createQuantityInput(floor, key));
   return td;
 }
@@ -228,8 +295,11 @@ function createQuantityInput(floor, key) {
   input.pattern = "[0-9]*";
   input.maxLength = 3;
   input.className = "quantity-input";
+  input.dataset.floor = floor;
+  input.dataset.productKey = key;
   input.value = String(state.quantities[floor].get(key) || "");
   input.placeholder = "0";
+  input.classList.toggle("has-value", Boolean(input.value));
   input.setAttribute("aria-label", `${product?.label || key} quantity for ${floorLabels[floor]}`);
   input.addEventListener("focus", () => input.select());
   input.addEventListener("input", () => {
@@ -237,6 +307,7 @@ function createQuantityInput(floor, key) {
     const quantity = Math.min(999, Number(input.value || 0));
     if (quantity > 0) state.quantities[floor].set(key, quantity);
     else state.quantities[floor].delete(key);
+    input.classList.toggle("has-value", quantity > 0);
     renderCounts();
     scheduleDraft();
   });
@@ -252,6 +323,7 @@ async function searchAdditionalProducts(floor, query) {
     results.replaceChildren();
     return;
   }
+
   state.searchTimer = setTimeout(async () => {
     try {
       const response = await fetchJson(`/api/products?q=${encodeURIComponent(query.trim())}`);
@@ -260,11 +332,11 @@ async function searchAdditionalProducts(floor, query) {
       if (!products.length) {
         results.innerHTML = '<p class="empty-state">No matching active products.</p>';
       } else {
-        const header = document.createElement("div");
-        header.className = "additional-result-header";
-        header.innerHTML = "<span>SKU</span><span>Product description</span><span>Action</span>";
-        results.append(header);
-        products.slice(0, 20).forEach((product) => {
+        const resultHeader = document.createElement("div");
+        resultHeader.className = "additional-result-header";
+        resultHeader.innerHTML = "<span>SKU</span><span>Product description</span><span>Action</span>";
+        results.append(resultHeader);
+        products.slice(0, 30).forEach((product) => {
           const row = document.createElement("button");
           row.type = "button";
           row.className = "additional-result-row";
@@ -285,11 +357,15 @@ function addAdditionalProduct(floor, product) {
   const existing = state.otherMaterials[floor].find((item) => item.sku.toLowerCase() === product.sku.toLowerCase());
   if (existing) existing.quantity = Math.min(999, existing.quantity + 1);
   else state.otherMaterials[floor].push({ sku: product.sku, description: product.description, quantity: 1 });
+
   renderSelectedAdditional(floor);
   const search = document.getElementById(`${floor}AdditionalSearch`);
   if (search) search.value = "";
   const results = document.querySelector(`[data-additional-results="${floor}"]`);
-  if (results) { results.hidden = true; results.replaceChildren(); }
+  if (results) {
+    results.hidden = true;
+    results.replaceChildren();
+  }
   renderCounts();
   scheduleDraft();
 }
@@ -298,26 +374,31 @@ function renderSelectedAdditional(floor, suppliedContainer = null) {
   const container = suppliedContainer || document.querySelector(`[data-selected-additional="${floor}"]`);
   if (!container) return;
   container.replaceChildren();
+
   if (!state.otherMaterials[floor].length) {
     container.innerHTML = '<p class="empty-state">No additional products selected.</p>';
     return;
   }
+
   const header = document.createElement("div");
   header.className = "selected-additional-header";
   header.innerHTML = "<span>SKU</span><span>Product description</span><span>Qty</span><span></span>";
   container.append(header);
+
   state.otherMaterials[floor].forEach((item) => {
     const row = document.createElement("div");
     row.className = "selected-additional-row";
+
     const sku = document.createElement("strong");
     sku.textContent = item.sku;
     const description = document.createElement("span");
     description.textContent = item.description;
+
     const quantity = document.createElement("input");
     quantity.type = "text";
     quantity.inputMode = "numeric";
     quantity.maxLength = 3;
-    quantity.className = "quantity-input";
+    quantity.className = "quantity-input has-value";
     quantity.value = item.quantity;
     quantity.setAttribute("aria-label", `${item.sku} quantity`);
     quantity.addEventListener("input", () => {
@@ -326,6 +407,7 @@ function renderSelectedAdditional(floor, suppliedContainer = null) {
       renderCounts();
       scheduleDraft();
     });
+
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "remove-row";
@@ -337,6 +419,7 @@ function renderSelectedAdditional(floor, suppliedContainer = null) {
       renderCounts();
       scheduleDraft();
     });
+
     row.append(sku, description, quantity, remove);
     container.append(row);
   });

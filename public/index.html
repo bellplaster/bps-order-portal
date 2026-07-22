@@ -7,9 +7,9 @@
   <title>Order Form | Bell Plaster</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css?v=20260722-1">
-  <link rel="stylesheet" href="/refinement.css?v=20260722-1">
+  <link rel="stylesheet" href="/refinement.css?v=20260722-4">
 </head>
 <body class="order-form-page">
   <header class="portal-header">
@@ -49,7 +49,8 @@
 
         <section class="paper-section order-details-section" aria-labelledby="orderDetailsHeading">
           <h2 id="orderDetailsHeading" class="section-bar">Order details</h2>
-          <div class="order-details-grid">
+
+          <div class="basic-details-grid">
             <label class="form-field">
               <span>Order date</span>
               <input id="orderDate" type="text" readonly aria-readonly="true">
@@ -77,57 +78,70 @@
               <span>Mobile *</span>
               <input id="contactMobile" type="tel" maxlength="14" inputmode="tel" autocomplete="tel" required placeholder="0400 000 000">
             </label>
-
-            <div class="form-field address-field">
-              <label for="deliveryAddressSearch">Delivery address *</label>
-              <div class="address-control">
-                <input id="deliveryAddressSearch" type="text" maxlength="500" autocomplete="off" placeholder="Start typing a Victorian delivery address">
-                <button id="clearAddressButton" class="clear-input" type="button" aria-label="Clear delivery address" hidden>×</button>
-              </div>
-              <input id="deliveryAddress" type="hidden">
-              <input id="deliveryAddressLine1" type="hidden">
-              <input id="deliveryAddressLine2" type="hidden">
-              <small class="field-help">Google suggestions are optional. A complete manually typed address is accepted.</small>
-            </div>
-
-            <fieldset class="form-field option-field time-slot-field">
-              <legend>Time slot *</legend>
-              <div class="segmented-options compact-options">
-                <label><input type="radio" name="timeSlot" value="1ST"><span>1st</span></label>
-                <label><input type="radio" name="timeSlot" value="2ND"><span>2nd</span></label>
-                <label><input type="radio" name="timeSlot" value="AM"><span>AM</span></label>
-                <label><input type="radio" name="timeSlot" value="PM"><span>PM</span></label>
-                <label><input type="radio" name="timeSlot" value="ANY" checked><span>Any</span></label>
-              </div>
-            </fieldset>
-
-            <label class="form-field instructions-field">
-              <span>Delivery instructions</span>
-              <textarea id="deliveryInstructions" rows="5" maxlength="1500" placeholder="Access, unloading or site instructions"></textarea>
-            </label>
-
-            <fieldset class="form-field option-field delivery-type-field">
-              <legend>Delivery type *</legend>
-              <div class="stacked-options">
-                <label><input type="radio" name="deliveryType" value="Manual Unload (Knauf Labour)"><span>Manual unload</span></label>
-                <label><input type="radio" name="deliveryType" value="Mechanical (Forklift/Crane/Own)"><span>Mechanical</span></label>
-                <label><input type="radio" name="deliveryType" value="Mixed Unload (Hand + Machine)"><span>Mixed unload</span></label>
-                <label><input type="radio" name="deliveryType" value="Return Delivery (Collect from site)"><span>Return delivery</span></label>
-                <label><input type="radio" name="deliveryType" value="Pickup (Customer to collect)"><span>Pickup</span></label>
-              </div>
-            </fieldset>
-
-            <fieldset class="form-field option-field extras-field">
-              <legend>Extras</legend>
-              <div class="stacked-options extras-options">
-                <label><input type="checkbox" name="deliveryExtra" value="Downstairs"><span>Downstairs</span></label>
-                <label><input type="checkbox" name="deliveryExtra" value="Upstairs"><span>Upstairs</span></label>
-                <label><input type="checkbox" name="deliveryExtra" value="Wrap"><span>Wrap</span></label>
-                <label><input type="checkbox" name="deliveryExtra" value="Strap"><span>Strap</span></label>
-                <label><input type="checkbox" name="deliveryExtra" value="Extra Labour"><span>Extra labour</span></label>
-              </div>
-            </fieldset>
           </div>
+
+          <section class="delivery-block" aria-labelledby="deliveryHeading">
+            <h3 id="deliveryHeading" class="delivery-block-title">Delivery</h3>
+            <div class="delivery-grid">
+              <div class="form-field delivery-address-field">
+                <label for="deliveryAddressSearch">Delivery address *</label>
+                <div class="address-control">
+                  <input id="deliveryAddressSearch" type="text" maxlength="500" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="addressSearchResults" placeholder="Start typing a Victorian delivery address">
+                  <button id="clearAddressButton" class="clear-input" type="button" aria-label="Clear delivery address" hidden>×</button>
+                  <div id="addressSearchResults" class="address-search-results" role="listbox" hidden></div>
+                </div>
+                <input id="deliveryAddress" type="hidden">
+                <input id="deliveryAddressLine1" type="hidden">
+                <input id="deliveryAddressLine2" type="hidden">
+                <small class="field-help">Select a Google result for the correctly formatted address, or type the complete address manually.</small>
+              </div>
+
+              <fieldset class="form-field option-field time-slot-field">
+                <legend>Time slot *</legend>
+                <div class="segmented-options compact-options">
+                  <label><input type="radio" name="timeSlot" value="1ST"><span>1st</span></label>
+                  <label><input type="radio" name="timeSlot" value="2ND"><span>2nd</span></label>
+                  <label><input type="radio" name="timeSlot" value="AM"><span>AM</span></label>
+                  <label><input type="radio" name="timeSlot" value="PM"><span>PM</span></label>
+                  <label><input type="radio" name="timeSlot" value="ANY" checked><span>Any</span></label>
+                </div>
+              </fieldset>
+
+              <div class="form-field delivery-notes-field">
+                <span>Delivery instructions</span>
+                <div class="generated-delivery-notes">
+                  <div class="generated-notes-label"><span aria-hidden="true">●</span> Automatically added from the delivery selections</div>
+                  <div id="generatedDeliverySummary" class="generated-notes-content" aria-live="polite"></div>
+                </div>
+                <label class="additional-instructions-label" for="deliveryInstructions">Additional site instructions</label>
+                <textarea id="deliveryInstructions" rows="4" maxlength="1500" placeholder="Access, unloading or site-specific notes"></textarea>
+              </div>
+
+              <div class="delivery-controls-stack">
+                <fieldset class="form-field option-field delivery-type-field">
+                  <legend>Delivery type *</legend>
+                  <div class="stacked-options">
+                    <label><input type="radio" name="deliveryType" value="Manual Unload (Knauf Labour)"><span>Manual unload</span></label>
+                    <label><input type="radio" name="deliveryType" value="Mechanical (Forklift/Crane/Own)"><span>Mechanical</span></label>
+                    <label><input type="radio" name="deliveryType" value="Mixed Unload (Hand + Machine)"><span>Mixed unload</span></label>
+                    <label><input type="radio" name="deliveryType" value="Pickup (Customer to collect)"><span>Pickup</span></label>
+                  </div>
+                </fieldset>
+
+                <fieldset class="form-field option-field extras-field">
+                  <legend>Extras</legend>
+                  <div class="stacked-options extras-options">
+                    <label><input type="checkbox" name="deliveryExtra" value="Downstairs"><span>Downstairs</span></label>
+                    <label><input type="checkbox" name="deliveryExtra" value="Upstairs"><span>Upstairs</span></label>
+                    <label><input type="checkbox" name="deliveryExtra" value="Wrap"><span>Wrap</span></label>
+                    <label><input type="checkbox" name="deliveryExtra" value="Strap"><span>Strap</span></label>
+                    <label><input type="checkbox" name="deliveryExtra" value="Extra Labour"><span>Extra labour</span></label>
+                  </div>
+                </fieldset>
+              </div>
+            </div>
+          </section>
+
           <label id="futureDateConfirmation" class="future-confirmation" hidden>
             <input id="confirmFutureRequiredDate" type="checkbox">
             <span>This required date is at least six months away. I have checked it.</span>
@@ -138,11 +152,11 @@
           <div class="products-toolbar">
             <div>
               <p class="eyebrow">Products</p>
-              <h2 id="productsHeading">Select quantities</h2>
+              <h2 id="productsHeading">Product quantities</h2>
             </div>
             <div class="floor-tabs" role="tablist" aria-label="Order floor">
-              <button class="floor-tab is-active" type="button" role="tab" aria-selected="true" data-floor-tab="ground">Ground Floor <span id="groundTabCount" hidden>0</span></button>
-              <button class="floor-tab" type="button" role="tab" aria-selected="false" data-floor-tab="first">1st Floor <span id="firstTabCount" hidden>0</span></button>
+              <button class="floor-tab is-active" type="button" role="tab" aria-selected="true" data-floor-tab="ground">Ground Floor</button>
+              <button class="floor-tab" type="button" role="tab" aria-selected="false" data-floor-tab="first">1st Floor</button>
             </div>
           </div>
 
@@ -213,9 +227,9 @@
     <div id="historyList" class="history-list"><p class="empty-state">Loading orders…</p></div>
   </aside>
 
-  <script src="/app.js?v=20260722-2" defer></script>
-  <script src="/app-products.js?v=20260722-2" defer></script>
-  <script src="/app-order.js?v=20260722-2" defer></script>
-  <script src="/app-address.js?v=20260722-2" defer></script>
+  <script src="/app.js?v=20260722-4" defer></script>
+  <script src="/app-products.js?v=20260722-4" defer></script>
+  <script src="/app-order.js?v=20260722-4" defer></script>
+  <script src="/app-address.js?v=20260722-4" defer></script>
 </body>
 </html>

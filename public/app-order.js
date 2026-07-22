@@ -5,7 +5,9 @@ function setStep(step, options = {}) {
     panel.classList.toggle("is-active", active);
     panel.hidden = !active;
   });
-  document.querySelectorAll("[data-step-target]").forEach((button) => button.classList.toggle("is-active", button.dataset.stepTarget === step));
+  document.querySelectorAll("[data-step-target]").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.stepTarget === step);
+  });
   document.getElementById("successScreen").hidden = true;
   if (options.scrollTop !== false) window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -14,6 +16,7 @@ function validateForm() {
   clearMessages();
   const reference = value("reference");
   if (!reference) throw fieldError("reference", "Enter the customer order reference.");
+
   const requiredDate = value("requiredDate");
   if (!requiredDate) throw fieldError("requiredDate", "Choose the required date.");
   const today = value("orderDateIso");
@@ -22,10 +25,15 @@ function validateForm() {
   if (daysBetween(today, requiredDate) >= 180 && !document.getElementById("confirmFutureRequiredDate").checked) {
     throw new Error("Confirm the required date because it is at least six months away.");
   }
+
   const contact = value("contactName");
-  if (!contact || !/^[\p{L}\p{M}'’.\-\s]+$/u.test(contact)) throw fieldError("contactName", "Enter a valid contact name without numbers.");
+  if (!contact || !/^[\p{L}\p{M}'’.\-\s]+$/u.test(contact)) {
+    throw fieldError("contactName", "Enter a valid contact name without numbers.");
+  }
+
   const mobile = normaliseMobile(value("contactMobile"));
   if (!mobile) throw fieldError("contactMobile", "Enter an Australian mobile number beginning with 04.");
+
   const deliveryType = selectedRadio("deliveryType");
   if (!deliveryTypes.has(deliveryType)) throw new Error("Choose a delivery type.");
   const pickup = deliveryType === "Pickup (Customer to collect)";
@@ -37,6 +45,7 @@ function validateForm() {
       throw fieldError("deliveryAddressSearch", "Enter a complete Victorian street, suburb and postcode.");
     }
   }
+
   if (!selectedProductLines().length) throw new Error("Enter a quantity for at least one product.");
   return true;
 }
@@ -68,9 +77,58 @@ function buildPayload() {
 
 function buildFloorPayload(floor) {
   return {
-    items: [...state.quantities[floor].entries()].filter(([, quantity]) => quantity > 0).map(([key, quantity]) => ({ key, quantity })),
-    otherMaterials: state.otherMaterials[floor].filter((item) => item.quantity > 0).map((item) => ({ sku: item.sku, quantity: item.quantity })),
+    items: [...state.quantities[floor].entries()]
+      .filter(([, quantity]) => quantity > 0)
+      .map(([key, quantity]) => ({ key, quantity })),
+    otherMaterials: state.otherMaterials[floor]
+      .filter((item) => item.quantity > 0)
+      .map((item) => ({ sku: item.sku, quantity: item.quantity })),
   };
+}
+
+function deliveryTypeLabel(value) {
+  const labels = {
+    "Manual Unload (Knauf Labour)": "Manual unload (Knauf labour)",
+    "Mechanical (Forklift/Crane/Own)": "Mechanical (forklift / crane / own)",
+    "Mixed Unload (Hand + Machine)": "Mixed unload (hand + machine)",
+    "Pickup (Customer to collect)": "Pickup (customer to collect)",
+  };
+  return labels[value] || "Not selected";
+}
+
+function timeSlotLabel(value) {
+  const labels = { "1ST": "1st", "2ND": "2nd", AM: "AM", PM: "PM", ANY: "Any" };
+  return labels[value] || "Any";
+}
+
+function getGeneratedDeliveryLines(payload = null) {
+  const source = payload || {
+    timeSlot: selectedRadio("timeSlot") || "ANY",
+    deliveryType: selectedRadio("deliveryType"),
+    extras: checkedValues("deliveryExtra"),
+  };
+  return [
+    `Time slot: ${timeSlotLabel(source.timeSlot)}`,
+    `Delivery type: ${deliveryTypeLabel(source.deliveryType)}`,
+    `Extras: ${(source.extras || []).join(", ") || "None"}`,
+  ];
+}
+
+function updateGeneratedDeliverySummary() {
+  const root = document.getElementById("generatedDeliverySummary");
+  if (!root) return;
+  root.replaceChildren();
+  getGeneratedDeliveryLines().forEach((line) => {
+    const item = document.createElement("div");
+    item.textContent = line;
+    root.append(item);
+  });
+}
+
+function combinedDeliveryNotes(payload) {
+  const lines = getGeneratedDeliveryLines(payload);
+  if (payload.deliveryInstructions) lines.push(`Additional instructions: ${payload.deliveryInstructions}`);
+  return lines.join("\n");
 }
 
 function renderReview() {
@@ -79,13 +137,12 @@ function renderReview() {
     ["Customer", state.account?.companyName],
     ["Debtor code", state.account?.debtorCode],
     ["Reference", payload.reference],
-    ["Required", `${formatDate(payload.requiredDate)} · ${payload.timeSlot}`],
+    ["Required", `${formatDate(payload.requiredDate)} · ${timeSlotLabel(payload.timeSlot)}`],
     ["Contact", `${payload.contact} · ${payload.mobile}`],
     ["Delivery address", payload.deliveryAddress],
-    ["Delivery type", payload.deliveryType],
-    ["Extras", payload.extras.join(", ") || "None"],
-    ["Instructions", payload.deliveryInstructions || "None"],
+    ["Delivery instructions", combinedDeliveryNotes(payload)],
   ];
+
   const detailsRoot = document.getElementById("reviewDetails");
   detailsRoot.replaceChildren();
   details.forEach(([label, content]) => {
@@ -143,12 +200,16 @@ async function submitOrder(event) {
 }
 
 function showSuccess(result) {
-  document.querySelectorAll("[data-step]").forEach((panel) => { panel.hidden = true; panel.classList.remove("is-active"); });
+  document.querySelectorAll("[data-step]").forEach((panel) => {
+    panel.hidden = true;
+    panel.classList.remove("is-active");
+  });
   const screen = document.getElementById("successScreen");
   screen.hidden = false;
   document.getElementById("successTitle").textContent = result.updated ? "Order updated" : "Order created";
   document.getElementById("successSummary").textContent = `${result.companyName || state.account?.companyName || "Customer"} order has been saved and the Accrivia files are ready.`;
   document.getElementById("orderNumberDisplay").textContent = result.customerReference || result.submissionId;
+
   const files = document.getElementById("generatedFiles");
   files.replaceChildren();
   (result.generatedFiles || []).forEach((file) => {
@@ -183,15 +244,18 @@ function renderHistoryOrder(order) {
   const card = document.createElement("article");
   card.className = "history-card";
   const details = order.order_details || {};
+
   const top = document.createElement("div");
   top.className = "history-card-top";
   top.innerHTML = `<div><span>${escapeHtml(order.company_name || details.customer || "Customer")}</span><h3>${escapeHtml(order.customer_reference)}</h3></div><em class="status-${escapeHtml(order.status)}">${escapeHtml(order.status)}</em>`;
+
   const meta = document.createElement("dl");
   meta.innerHTML = `
     <div><dt>Required</dt><dd>${escapeHtml([formatDate(details.required_date), details.time_slot].filter(Boolean).join(" · ") || "—")}</dd></div>
     <div><dt>Delivery</dt><dd>${escapeHtml(details.delivery_type || "—")}</dd></div>
     <div><dt>Address</dt><dd>${escapeHtml(details.delivery_address || "—")}</dd></div>
   `;
+
   const files = document.createElement("div");
   files.className = "history-files";
   const latestByFloor = new Map();
@@ -204,12 +268,14 @@ function renderHistoryOrder(order) {
     link.textContent = `Download ${file.floor_label} XLSX`;
     files.append(link);
   });
+
   const actions = document.createElement("div");
   actions.className = "history-actions";
   if (order.can_edit) actions.append(actionButton("Edit", () => editOrder(order.submission_id)));
   if (order.can_archive) actions.append(actionButton("Archive", () => updateOrderStatus(order.submission_id, "archive")));
   if (order.can_restore) actions.append(actionButton("Restore", () => updateOrderStatus(order.submission_id, "restore")));
   actions.append(actionButton("Delete", () => deleteOrder(order.submission_id, order.customer_reference), "danger"));
+
   card.append(top, meta, files, actions);
   return card;
 }
@@ -246,7 +312,10 @@ async function editOrder(submissionId) {
 
 async function updateOrderStatus(submissionId, action) {
   try {
-    await fetchJson(`/api/orders/${encodeURIComponent(submissionId)}`, { method: "PATCH", body: JSON.stringify({ action }) });
+    await fetchJson(`/api/orders/${encodeURIComponent(submissionId)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ action }),
+    });
     await loadOrderHistory();
   } catch (error) {
     showGlobal(error.message || String(error), "error");
@@ -270,18 +339,23 @@ function applyPayload(payload) {
   setValue("contactName", payload.contact || payload.siteContact || state.account?.defaultContactName || "");
   setValue("contactMobile", payload.mobile || payload.siteContactPhone || state.account?.defaultMobile || "");
   setValue("requiredDate", payload.requiredDate || "");
-  setValue("deliveryAddressSearch", payload.deliveryAddress || "");
+  setValue("deliveryAddressSearch", formatAddressDisplay(payload.deliveryAddress || ""));
   setValue("deliveryAddress", payload.deliveryAddress || "");
   setValue("deliveryAddressLine1", payload.addressLine1 || payload.siteAddress1 || "");
   setValue("deliveryAddressLine2", payload.addressLine2 || payload.siteAddress2 || "");
   setValue("deliveryInstructions", payload.deliveryInstructions || payload.comments || "");
   setRadio("timeSlot", payload.timeSlot || "ANY");
-  setRadio("deliveryType", payload.deliveryType || "");
-  document.querySelectorAll('input[name="deliveryExtra"]').forEach((input) => { input.checked = (payload.extras || []).includes(input.value); });
+  setRadio("deliveryType", deliveryTypes.has(payload.deliveryType) ? payload.deliveryType : "");
+  document.querySelectorAll('input[name="deliveryExtra"]').forEach((input) => {
+    input.checked = (payload.extras || []).includes(input.value);
+  });
+
   state.quantities = { ground: new Map(), first: new Map() };
   state.otherMaterials = { ground: [], first: [] };
   ["ground", "first"].forEach((floor) => {
-    (payload.floors?.[floor]?.items || []).forEach((item) => state.quantities[floor].set(item.key, Number(item.quantity || 0)));
+    (payload.floors?.[floor]?.items || []).forEach((item) => {
+      state.quantities[floor].set(item.key, Number(item.quantity || 0));
+    });
     state.otherMaterials[floor] = (payload.floors?.[floor]?.otherMaterials || []).map((item) => ({
       sku: item.sku,
       description: item.description || item.sku,
@@ -290,8 +364,10 @@ function applyPayload(payload) {
     syncQuantityInputs(floor);
     renderSelectedAdditional(floor);
   });
+
   updateFutureDateConfirmation();
   updatePickupMode();
+  updateGeneratedDeliverySummary();
   renderCounts();
   state.suppressDraft = false;
 }
@@ -309,9 +385,13 @@ function resetOrder() {
   clearAddress();
   document.getElementById("editModeBanner").hidden = true;
   document.getElementById("submitButton").textContent = "Submit order";
-  document.querySelectorAll(".quantity-input").forEach((input) => { input.value = ""; });
+  document.querySelectorAll(".quantity-input").forEach((input) => {
+    input.value = "";
+    input.classList.remove("has-value");
+  });
   renderSelectedAdditional("ground");
   renderSelectedAdditional("first");
+  updateGeneratedDeliverySummary();
   renderCounts();
   clearDraft();
   document.getElementById("successScreen").hidden = true;
@@ -319,12 +399,8 @@ function resetOrder() {
 }
 
 function renderCounts() {
-  ["ground", "first"].forEach((floor) => {
-    const count = state.quantities[floor].size + state.otherMaterials[floor].length;
-    const badge = document.getElementById(`${floor}TabCount`);
-    badge.textContent = count;
-    badge.hidden = count === 0;
-  });
+  // Floor counts were intentionally removed from the tabs. The tabs remain calm
+  // and the review page provides the definitive product-line and unit totals.
 }
 
 function selectedProductLines() {
@@ -339,6 +415,11 @@ function getFloorLines(floor) {
     label: state.catalog[key]?.label || key,
     quantity,
   }));
-  const additional = state.otherMaterials[floor].map((item) => ({ floor, sku: item.sku, label: item.description, quantity: item.quantity }));
+  const additional = state.otherMaterials[floor].map((item) => ({
+    floor,
+    sku: item.sku,
+    label: item.description,
+    quantity: item.quantity,
+  }));
   return [...mapped, ...additional].filter((line) => line.quantity > 0);
 }

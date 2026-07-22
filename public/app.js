@@ -9,8 +9,16 @@ const state = {
   editingOrder: null,
   searchTimer: null,
   draftTimer: null,
-  addressAutocomplete: null,
   suppressDraft: false,
+  addressAutocompleteReady: false,
+  addressAutocompleteApi: null,
+  addressSessionToken: null,
+  addressSearchTimer: null,
+  addressRequestId: 0,
+  addressPredictions: [],
+  addressPredictionIndex: -1,
+  addressPreviewCache: new Map(),
+  addressPreviewTimer: null,
 };
 
 const floorLabels = { ground: "Ground Floor", first: "1st Floor" };
@@ -18,11 +26,11 @@ const deliveryTypes = new Set([
   "Manual Unload (Knauf Labour)",
   "Mechanical (Forklift/Crane/Own)",
   "Mixed Unload (Hand + Machine)",
-  "Return Delivery (Collect from site)",
   "Pickup (Customer to collect)",
 ]);
 
 window.addEventListener("DOMContentLoaded", initialise);
+window.addEventListener("DOMContentLoaded", enforceUppercaseGoogleAddress);
 
 async function initialise() {
   bindStaticActions();
@@ -31,6 +39,7 @@ async function initialise() {
     await Promise.all([loadAccount(), loadCatalog()]);
     await initialiseGoogleAddress();
     restoreDraft();
+    updateGeneratedDeliverySummary();
     await loadOrderHistory();
     renderCounts();
   } catch (error) {
@@ -41,13 +50,8 @@ async function initialise() {
 function bindStaticActions() {
   document.getElementById("logoutButton").addEventListener("click", logout);
   document.getElementById("continueToReviewButton").addEventListener("click", () => {
-    try {
-      validateForm();
-      renderReview();
-      setStep("review");
-    } catch (error) {
-      showGlobal(error.message || String(error), "error");
-    }
+    try { validateForm(); renderReview(); setStep("review"); }
+    catch (error) { showGlobal(error.message || String(error), "error"); }
   });
   document.getElementById("backToFormButton").addEventListener("click", () => setStep("form"));
   document.getElementById("editFormButton").addEventListener("click", () => setStep("form", { scrollTop: true }));
@@ -63,10 +67,9 @@ function bindStaticActions() {
   document.querySelectorAll("[data-step-target]").forEach((button) => {
     button.addEventListener("click", () => {
       if (button.dataset.stepTarget === "review") {
-        try { validateForm(); renderReview(); setStep("review"); } catch (error) { showGlobal(error.message || String(error), "error"); }
-      } else {
-        setStep("form");
-      }
+        try { validateForm(); renderReview(); setStep("review"); }
+        catch (error) { showGlobal(error.message || String(error), "error"); }
+      } else setStep("form");
     });
   });
 
@@ -79,20 +82,25 @@ function bindStaticActions() {
   document.getElementById("historyBackdrop").addEventListener("click", closeHistory);
   document.getElementById("refreshHistoryButton").addEventListener("click", loadOrderHistory);
   document.getElementById("showArchivedOrders").addEventListener("change", loadOrderHistory);
-  document.getElementById("clearAddressButton").addEventListener("click", clearAddress);
 
   document.getElementById("requiredDate").addEventListener("change", updateFutureDateConfirmation);
   document.getElementById("contactMobile").addEventListener("input", (event) => {
     event.target.value = formatMobileTyping(event.target.value);
     scheduleDraft();
   });
+
   document.querySelectorAll("#orderForm input, #orderForm textarea").forEach((field) => {
     if (field.classList.contains("quantity-input")) return;
     field.addEventListener("input", scheduleDraft);
     field.addEventListener("change", scheduleDraft);
   });
-  document.querySelectorAll('input[name="deliveryType"]').forEach((input) => {
-    input.addEventListener("change", updatePickupMode);
+
+  document.querySelectorAll('input[name="timeSlot"], input[name="deliveryType"], input[name="deliveryExtra"]').forEach((input) => {
+    input.addEventListener("change", () => {
+      if (input.name === "deliveryType") updatePickupMode();
+      updateGeneratedDeliverySummary();
+      scheduleDraft();
+    });
   });
 }
 
@@ -116,4 +124,32 @@ async function loadCatalog() {
   if (!state.layout) throw new Error("The product order form layout is missing.");
   renderFloorSheet("ground");
   renderFloorSheet("first");
+}
+
+function enforceUppercaseGoogleAddress() {
+  let attempts = 0;
+  const timer = window.setInterval(() => {
+    attempts += 1;
+    const autocomplete = state.addressAutocomplete;
+    if (!autocomplete && attempts < 80) return;
+    window.clearInterval(timer);
+    if (!autocomplete?.addListener) return;
+    autocomplete.addListener("place_changed", () => {
+      window.setTimeout(() => {
+        const input = document.getElementById("deliveryAddressSearch");
+        if (!input?.value) return;
+        const formatted = input.value
+          .replace(/,?\s*Australia\s*$/i, "")
+          .replace(/\bVictoria\b/gi, "VIC")
+          .replace(/\s+/g, " ")
+          .trim()
+          .toUpperCase();
+        input.value = formatted;
+        document.getElementById("deliveryAddress").value = formatted;
+        document.getElementById("deliveryAddressLine1").value = document.getElementById("deliveryAddressLine1").value.toUpperCase();
+        document.getElementById("deliveryAddressLine2").value = document.getElementById("deliveryAddressLine2").value.toUpperCase();
+        scheduleDraft();
+      }, 0);
+    });
+  }, 250);
 }
