@@ -166,7 +166,7 @@ function formatAddressDisplay(value) {
 
 function loadDeliveryRefinement() {
   const script = document.createElement("script");
-  script.src = "/delivery-refinement.js?v=20260722-1";
+  script.src = "/delivery-refinement.js?v=20260723-1";
   script.defer = true;
   document.body.append(script);
 }
