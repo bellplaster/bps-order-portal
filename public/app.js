@@ -128,6 +128,10 @@ async function loadCatalog() {
 }
 
 function enforceUppercaseGoogleAddress() {
+  const style = document.createElement("style");
+  style.textContent = ".pac-item,.pac-item-query{text-transform:uppercase}";
+  document.head.append(style);
+
   let attempts = 0;
   const timer = window.setInterval(() => {
     attempts += 1;
@@ -139,12 +143,7 @@ function enforceUppercaseGoogleAddress() {
       window.setTimeout(() => {
         const input = document.getElementById("deliveryAddressSearch");
         if (!input?.value) return;
-        const formatted = input.value
-          .replace(/,?\s*Australia\s*$/i, "")
-          .replace(/\bVictoria\b/gi, "VIC")
-          .replace(/\s+/g, " ")
-          .trim()
-          .toUpperCase();
+        const formatted = formatAddressDisplay(input.value);
         input.value = formatted;
         document.getElementById("deliveryAddress").value = formatted;
         document.getElementById("deliveryAddressLine1").value = document.getElementById("deliveryAddressLine1").value.toUpperCase();
@@ -153,4 +152,13 @@ function enforceUppercaseGoogleAddress() {
       }, 0);
     });
   }, 250);
+}
+
+function formatAddressDisplay(value) {
+  return String(value || "")
+    .replace(/,?\s*Australia\s*$/i, "")
+    .replace(/\bVictoria\b/gi, "VIC")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
 }
