@@ -52,7 +52,7 @@ export async function ensurePortalSchema(db) {
        username TEXT NOT NULL UNIQUE COLLATE NOCASE,
        password_hash TEXT NOT NULL,
        password_salt TEXT NOT NULL,
-       password_iterations INTEGER NOT NULL DEFAULT 210000,
+       password_iterations INTEGER NOT NULL DEFAULT 100000,
        role TEXT NOT NULL DEFAULT 'customer' CHECK (role IN ('admin', 'customer')),
        active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
        last_login_at TEXT,
