@@ -12,6 +12,9 @@ const PUBLIC_PATHS = new Set([
   "/login.js",
   "/styles.css",
   "/refinement.css",
+  "/form-components.css",
+  "/form-sections.css",
+  "/responsive.css",
   "/api/login",
 ]);
 
