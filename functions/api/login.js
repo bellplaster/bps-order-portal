@@ -7,11 +7,18 @@ import {
 } from "../_shared/auth.js";
 
 import { json, requireEnvironment } from "../_shared/responses.js";
+import {
+  ensurePortalSchema,
+  getOrCreateSessionSecret,
+} from "../_shared/setup.js";
 
 export async function onRequestPost(context) {
   try {
-    requireEnvironment(context.env, ["SESSION_SECRET", "PORTAL_PASSWORD"]);
+    requireEnvironment(context.env, ["PORTAL_PASSWORD"]);
     if (!context.env.DB) throw new Error("Missing Cloudflare binding: DB");
+
+    await ensurePortalSchema(context.env.DB);
+    const sessionSecret = await getOrCreateSessionSecret(context.env);
 
     const body = await context.request.json().catch(() => null);
     const username = String(body?.username || "").trim().toLowerCase();
@@ -42,11 +49,12 @@ export async function onRequestPost(context) {
       return json({ ok: false, error: "This customer account is inactive." }, 403);
     }
 
+    const now = nowIso();
     await context.env.DB.prepare(
       `UPDATE users SET last_login_at = ?, updated_at = ? WHERE id = ?`,
-    ).bind(nowIso(), nowIso(), user.id).run();
+    ).bind(now, now, user.id).run();
 
-    const token = await createSessionToken(String(context.env.SESSION_SECRET), {
+    const token = await createSessionToken(sessionSecret, {
       userId: user.id,
       accountId: user.account_id,
       username: user.username,
@@ -102,7 +110,7 @@ async function bootstrapUser(db, username, password) {
     const account = await db.prepare(
       `SELECT id FROM customer_accounts WHERE debtor_code = 'BPS BRUNSW17' LIMIT 1`,
     ).first();
-    if (!account?.id) throw new Error("Run migration 0003_customer_accounts.sql before signing in.");
+    if (!account?.id) throw new Error("The BPS customer account could not be initialized.");
     accountId = Number(account.id);
   }
 
