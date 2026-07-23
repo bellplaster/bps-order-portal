@@ -3,7 +3,7 @@ import {
   getOrderForEditing,
   setOrderArchiveStatus,
   updateOrderSubmission,
-} from "../../_shared/orders.js";
+} from "../../_shared/orders-v2.js";
 
 export async function onRequestGet(context) {
   return handle(context, async () => getOrderForEditing(
