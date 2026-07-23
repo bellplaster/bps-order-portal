@@ -15,10 +15,10 @@
 .pdf-form-sheet { padding:14px; }
 .board-layout-grid { display:grid; grid-template-columns:minmax(0,4fr) minmax(240px,1fr); gap:10px; align-items:stretch; margin-bottom:10px; }
 .pdf-product-section,.specialty-card { min-width:0; border:1px solid var(--line); background:#fff; }
-.pdf-section-title { padding:8px 10px; }
+.pdf-section-title { padding:7px 9px; }
 .board-table-wrap { width:100%; overflow:visible; }
 .pdf-table { width:100%; table-layout:fixed; border-collapse:collapse; font-size:10px; }
-.pdf-table th,.pdf-table td { height:40px; padding:4px; border-right:1px solid var(--line); border-bottom:1px solid var(--line); vertical-align:middle; }
+.pdf-table th,.pdf-table td { height:34px; padding:3px 4px; border-right:1px solid var(--line); border-bottom:1px solid var(--line); vertical-align:middle; }
 .pdf-table tr > *:last-child { border-right:0; }
 .pdf-table tbody tr:last-child > * { border-bottom:0; }
 .pdf-table th { color:#17211f; background:#f7f9f8; font-weight:600; }
@@ -30,25 +30,28 @@
 .board-width-heading small { display:block; margin-top:2px; color:var(--muted); font-size:8px; font-weight:500; }
 .board-row-heading { text-align:center; font-size:10px; }
 .unavailable-cell { background:var(--unavailable); }
-.quantity-cell { padding:4px !important; background:#fafbfb; }
-.quantity-input { display:block; width:100%; min-width:0; height:30px; padding:3px 4px; color:var(--ink); background:#fff; border:1px solid #b8c3bf; border-radius:5px; outline:none; font-size:11px; font-weight:600; text-align:center; box-shadow:inset 0 1px 2px rgba(20,30,28,.05); }
+.quantity-cell { padding:3px !important; background:#fafbfb; }
+.quantity-input { display:block; width:100%; min-width:0; height:26px; min-height:26px; padding:2px 3px; color:var(--ink); background:#fff; border:1px solid #b8c3bf; border-radius:4px; outline:none; font-size:10px; font-weight:600; text-align:center; box-shadow:inset 0 1px 2px rgba(20,30,28,.05); }
 .quantity-input::placeholder { color:#9aa5a1; opacity:1; font-weight:500; }
 .quantity-input:hover { border-color:#8f9d98; }
 .quantity-input:focus { border-color:var(--bell-green); box-shadow:0 0 0 2px rgba(0,101,87,.12); }
 .quantity-input.has-value { border-color:var(--bell-maroon); color:var(--bell-maroon-dark); background:#fffafb; }
 .specialty-stack { display:grid; grid-template-rows:repeat(4,auto); align-content:start; }
 .specialty-card + .specialty-card { border-top:0; }
-.specialty-row { min-height:40px; }
+.specialty-row { min-height:34px; }
 .pdf-list { display:grid; }
-.pdf-list-row { min-height:40px; display:grid; grid-template-columns:minmax(0,1fr) 56px; align-items:center; gap:8px; padding:4px 7px 4px 9px; border-bottom:1px solid var(--line); font-size:10px; }
+.pdf-list-row { min-height:34px; display:grid; grid-template-columns:minmax(0,1fr) 64px; align-items:center; gap:5px; padding:2px 5px 2px 8px; border-bottom:1px solid var(--line); font-size:10px; }
 .pdf-list-row:last-child { border-bottom:0; }
-.pdf-list-row > span { min-width:0; line-height:1.3; overflow-wrap:anywhere; }
-.pdf-lower-grid { display:grid; grid-template-columns:1.05fr 1fr 1fr; gap:10px; align-items:start; }
+.pdf-list-row > span { min-width:0; line-height:1.2; overflow-wrap:anywhere; }
+.pdf-lower-grid { display:grid; grid-template-columns:1.08fr 1fr 1fr; gap:10px; align-items:start; }
 .pdf-lower-column { min-width:0; display:grid; gap:0; }
 .pdf-lower-column .pdf-product-section + .pdf-product-section { border-top:0; }
-.compact-table th:first-child { width:58%; text-align:left; padding-left:9px; }
-.compact-table td { width:58px; }
-.insulation-block h4 { margin:0; padding:7px 9px; background:#f1f4f3; border-bottom:1px solid var(--line); font-size:10px; font-weight:600; }
+.pdf-lower-grid .pdf-table th,.pdf-lower-grid .pdf-table td { height:34px; padding:3px 5px; }
+.pdf-lower-grid .quantity-cell { padding:3px !important; }
+.pdf-lower-grid .quantity-input,.pdf-list-row .quantity-input { height:24px; min-height:24px; padding:1px 3px; font-size:10px; }
+.compact-table th:first-child { width:58%; text-align:left; padding-left:8px; }
+.compact-table td { width:64px; }
+.insulation-block h4 { margin:0; padding:6px 8px; background:#f1f4f3; border-bottom:1px solid var(--line); font-size:10px; font-weight:600; }
 .additional-products-panel { margin-top:14px; background:#fff; border:1px solid var(--line); border-radius:10px; overflow:visible; }
 .additional-products-heading { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; background:#f8faf9; border-bottom:1px solid var(--line); }
 .additional-products-heading h3 { margin:3px 0 4px; font-size:18px; font-weight:600; }
