@@ -1,0 +1,174 @@
+(() => {
+  const TILE_PATTERN = /KNAUF\s+CEILING\s+TILES|SHEETROCK\s+Nova\s+Ceiling\s+Tiles/i;
+
+  simplifyStepNavigation();
+  patchBoardRenderer();
+  patchTimeSlotValidation();
+  removeCeilingTileProduct();
+  initialiseDeliveryControlPolish();
+
+  document.getElementById("orderForm")?.addEventListener("reset", () => {
+    window.setTimeout(() => {
+      clearTimeSlotSelection();
+      polishDeliveryControls();
+    }, 0);
+  });
+
+  const observer = new MutationObserver(() => {
+    polishDeliveryControls();
+    removeCeilingTileProduct();
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+
+  window.setTimeout(() => {
+    polishDeliveryControls();
+    removeCeilingTileProduct();
+  }, 250);
+
+  window.setTimeout(() => {
+    polishDeliveryControls();
+    removeCeilingTileProduct();
+  }, 1000);
+
+  function simplifyStepNavigation() {
+    const orderStep = document.querySelector('[data-step-target="form"] .step-copy');
+    const reviewStep = document.querySelector('[data-step-target="review"] .step-copy');
+    if (orderStep) orderStep.replaceChildren(makeStrong("Order"));
+    if (reviewStep) reviewStep.replaceChildren(makeStrong("Review"));
+  }
+
+  function makeStrong(text) {
+    const strong = document.createElement("strong");
+    strong.textContent = text;
+    return strong;
+  }
+
+  function initialiseDeliveryControlPolish() {
+    const timer = window.setInterval(() => {
+      const timeSelect = document.querySelector(".delivery-select-timeSlot .delivery-select");
+      const deliverySelect = document.querySelector(".delivery-select-deliveryType .delivery-select");
+      const extrasSummary = document.querySelector(".extras-dropdown > summary");
+      if (!timeSelect || !deliverySelect || !extrasSummary) return;
+      window.clearInterval(timer);
+      polishDeliveryControls();
+    }, 40);
+    window.setTimeout(() => window.clearInterval(timer), 5000);
+  }
+
+  function polishDeliveryControls() {
+    const timeSelect = document.querySelector(".delivery-select-timeSlot .delivery-select");
+    const deliverySelect = document.querySelector(".delivery-select-deliveryType .delivery-select");
+    if (!timeSelect || !deliverySelect) return;
+
+    let placeholder = timeSelect.querySelector('option[value=""]');
+    if (!placeholder) {
+      placeholder = new Option("Select time slot", "");
+      placeholder.disabled = true;
+      placeholder.hidden = true;
+      timeSelect.insertBefore(placeholder, timeSelect.firstChild);
+    } else {
+      placeholder.textContent = "Select time slot";
+    }
+    timeSelect.required = true;
+
+    if (!timeSelect.dataset.polished) {
+      timeSelect.dataset.polished = "true";
+      timeSelect.addEventListener("change", () => {
+        if (!timeSelect.value) {
+          document.querySelectorAll('input[name="timeSlot"]').forEach((radio) => { radio.checked = false; });
+        }
+        updatePlaceholderState(timeSelect);
+      });
+    }
+
+    if (!deliverySelect.dataset.polished) {
+      deliverySelect.dataset.polished = "true";
+      deliverySelect.addEventListener("change", () => updatePlaceholderState(deliverySelect));
+    }
+
+    const selectedTime = document.querySelector('input[name="timeSlot"]:checked');
+    if (!hasMeaningfulDraftData() && selectedTime?.value === "ANY" && selectedTime.defaultChecked) {
+      clearTimeSlotSelection();
+    } else if (!selectedTime) {
+      timeSelect.value = "";
+    }
+
+    updatePlaceholderState(timeSelect);
+    updatePlaceholderState(deliverySelect);
+  }
+
+  function updatePlaceholderState(select) {
+    select?.classList.toggle("is-placeholder", !select.value);
+  }
+
+  function clearTimeSlotSelection() {
+    document.querySelectorAll('input[name="timeSlot"]').forEach((radio) => {
+      radio.checked = false;
+    });
+    const select = document.querySelector(".delivery-select-timeSlot .delivery-select");
+    if (select) {
+      select.value = "";
+      updatePlaceholderState(select);
+    }
+  }
+
+  function hasMeaningfulDraftData() {
+    if (typeof state !== "undefined" && state.editingOrder) return true;
+    if (document.getElementById("reference")?.value.trim()) return true;
+    if (document.getElementById("requiredDate")?.value) return true;
+    if (document.getElementById("deliveryAddressSearch")?.value.trim()) return true;
+    return [...document.querySelectorAll(".quantity-input")].some((input) => Number(input.value) > 0);
+  }
+
+  function patchTimeSlotValidation() {
+    if (typeof window.validateForm !== "function" || window.validateForm.__timeSlotPatched) return;
+    const originalValidateForm = window.validateForm;
+    const patched = function validateFormWithTimeSlot(...args) {
+      const selected = document.querySelector('input[name="timeSlot"]:checked');
+      if (!selected) {
+        const select = document.querySelector(".delivery-select-timeSlot .delivery-select");
+        select?.focus();
+        throw new Error("Choose a time slot.");
+      }
+      return originalValidateForm.apply(this, args);
+    };
+    patched.__timeSlotPatched = true;
+    window.validateForm = patched;
+  }
+
+  function patchBoardRenderer() {
+    if (typeof window.renderUnifiedFloorSheet !== "function" || window.renderUnifiedFloorSheet.__ceilingTilePatched) return;
+    const originalRenderer = window.renderUnifiedFloorSheet;
+    const patched = function renderFloorWithoutCeilingTile(...args) {
+      stripCeilingTileFromLayout();
+      const result = originalRenderer.apply(this, args);
+      removeRenderedCeilingTileSections();
+      return result;
+    };
+    patched.__ceilingTilePatched = true;
+    window.renderUnifiedFloorSheet = patched;
+  }
+
+  function removeCeilingTileProduct() {
+    stripCeilingTileFromLayout();
+    removeRenderedCeilingTileSections();
+  }
+
+  function stripCeilingTileFromLayout() {
+    if (typeof state === "undefined") return;
+    if (state.catalog) delete state.catalog.pdf_knauf_nova_ceiling_tiles;
+    if (!state.layout) return;
+    if (state.layout.sections) delete state.layout.sections.knauf_tiles;
+    if (Array.isArray(state.layout.lowerColumns)) {
+      state.layout.lowerColumns = state.layout.lowerColumns.map((column) =>
+        Array.isArray(column) ? column.filter((id) => id !== "knauf_tiles") : column
+      );
+    }
+  }
+
+  function removeRenderedCeilingTileSections() {
+    document.querySelectorAll(".pdf-product-section").forEach((section) => {
+      if (TILE_PATTERN.test(section.textContent || "")) section.remove();
+    });
+  }
+})();
