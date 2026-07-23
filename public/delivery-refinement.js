@@ -32,19 +32,25 @@
     const heading = notesField.querySelector(":scope > span");
     if (heading) heading.textContent = "Delivery instructions";
 
-    // The generated confirmation belongs on the Review step, not the entry form.
     notesField.querySelector(".generated-delivery-notes")?.remove();
 
     const textLabel = notesField.querySelector(".additional-instructions-label");
     const textarea = document.getElementById("deliveryInstructions");
-    if (textLabel) textLabel.textContent = "Additional instructions (optional)";
+    const textWrapper = document.createElement("div");
+    textWrapper.className = "floating-textarea-control";
+    if (textarea) textarea.placeholder = "Additional instructions";
+    if (textLabel) {
+      textLabel.textContent = "Additional instructions (optional)";
+      textLabel.className = "floating-textarea-label";
+    }
+    if (textarea) textWrapper.append(textarea);
+    if (textLabel) textWrapper.append(textLabel);
 
     sourceControls.append(timeField, typeField, extrasField);
     notesField.replaceChildren(
       ...(heading ? [heading] : []),
       controlRow,
-      ...(textLabel ? [textLabel] : []),
-      ...(textarea ? [textarea] : []),
+      ...(textWrapper.childElementCount ? [textWrapper] : []),
       sourceControls,
     );
 
@@ -93,8 +99,9 @@
   function createSyncedSelect(name, labelText, includePlaceholder) {
     const radios = [...document.querySelectorAll(`input[name="${name}"]`)];
     const wrapper = document.createElement("label");
-    wrapper.className = "delivery-select-field";
+    wrapper.className = "delivery-select-field floating-select-field";
     const label = document.createElement("span");
+    label.className = "floating-select-label";
     label.textContent = labelText;
     const select = document.createElement("select");
     select.className = "delivery-select";
@@ -114,7 +121,7 @@
       radio.dispatchEvent(new Event("change", { bubbles: true }));
     });
 
-    wrapper.append(label, select);
+    wrapper.append(select, label);
     return { wrapper, select };
   }
 
@@ -126,8 +133,9 @@
   function createExtrasDropdown(extrasField) {
     const options = extrasField.querySelector(".extras-options");
     const wrapper = document.createElement("div");
-    wrapper.className = "delivery-select-field extras-dropdown-field";
+    wrapper.className = "delivery-select-field extras-dropdown-field floating-select-field";
     const label = document.createElement("span");
+    label.className = "floating-select-label";
     label.textContent = "Extras";
     const details = document.createElement("details");
     details.className = "extras-dropdown";
@@ -138,7 +146,7 @@
     menu.className = "extras-dropdown-menu";
     if (options) menu.append(options);
     details.append(summary, menu);
-    wrapper.append(label, details);
+    wrapper.append(details, label);
 
     const updateSummary = () => {
       const values = [...menu.querySelectorAll('input[name="deliveryExtra"]:checked')]
