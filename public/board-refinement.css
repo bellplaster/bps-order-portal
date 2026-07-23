@@ -23,8 +23,8 @@
 }
 
 .unified-board-table {
-  width: 1752px;
-  min-width: 1752px;
+  width: 1992px;
+  min-width: 1992px;
   table-layout: fixed;
   border-collapse: collapse;
 }
@@ -34,7 +34,7 @@
 }
 
 .unified-board-table .board-quantity-column {
-  width: 84px;
+  width: 96px;
 }
 
 .unified-board-table th,
@@ -68,7 +68,7 @@
 }
 
 .unified-board-table .board-product-heading {
-  padding: 2px 4px;
+  padding: 2px 3px;
   background: var(--section);
   font-size: 9px;
   font-weight: 700 !important;
@@ -124,7 +124,7 @@
 
 @media (max-width: 900px) {
   .unified-board-table {
-    width: 1752px;
-    min-width: 1752px;
+    width: 1992px;
+    min-width: 1992px;
   }
 }
