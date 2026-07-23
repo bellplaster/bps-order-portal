@@ -78,13 +78,21 @@
     const table = document.createElement("table");
     table.className = "pdf-table main-board-table unified-board-table";
 
+    const lengthColumnWidth = 72;
+    const productColumnWidths = products.flatMap((product) => calculateProductColumnWidths(product));
+    const tableWidth = lengthColumnWidth + productColumnWidths.reduce((total, width) => total + width, 0);
+    table.style.width = `${tableWidth}px`;
+    table.style.minWidth = `${tableWidth}px`;
+
     const colgroup = document.createElement("colgroup");
     const lengthColumn = document.createElement("col");
     lengthColumn.className = "board-length-column";
+    lengthColumn.style.width = `${lengthColumnWidth}px`;
     colgroup.append(lengthColumn);
-    products.flatMap((product) => product.columns).forEach(() => {
+    productColumnWidths.forEach((width) => {
       const column = document.createElement("col");
       column.className = "board-quantity-column";
+      column.style.width = `${width}px`;
       colgroup.append(column);
     });
     table.append(colgroup);
@@ -147,6 +155,17 @@
     wrap.append(table);
     section.append(wrap);
     return section;
+  }
+
+  function calculateProductColumnWidths(product) {
+    const minimumColumnWidth = 68;
+    const maximumColumnWidth = 120;
+    const headingHorizontalPadding = 12;
+    const estimatedCharacterWidth = 6.2;
+    const headingWidth = Math.ceil(product.title.length * estimatedCharacterWidth + headingHorizontalPadding);
+    const requiredPerColumn = Math.ceil(headingWidth / product.columns.length);
+    const columnWidth = Math.min(maximumColumnWidth, Math.max(minimumColumnWidth, requiredPerColumn));
+    return product.columns.map(() => columnWidth);
   }
 
   function buildMainProducts(definition) {
