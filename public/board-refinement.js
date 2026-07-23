@@ -34,12 +34,12 @@
     root.append(renderOtherMaterialsSection(floor));
   };
 
-  window.renderReview = function renderReviewWithPoLabel(...args) {
+  window.renderReview = function renderReviewWithOrderNumberLabel(...args) {
     const result = typeof originalRenderReview === "function"
       ? originalRenderReview.apply(this, args)
       : undefined;
     document.querySelectorAll("#reviewDetails > div > span").forEach((label) => {
-      if (label.textContent.trim().toLowerCase() === "reference") label.textContent = "PO number";
+      if (label.textContent.trim().toLowerCase() === "reference") label.textContent = "Order number";
     });
     return result;
   };
@@ -82,8 +82,6 @@
     const productColumnWidths = products.flatMap((product) => calculateProductColumnWidths(product));
     const minimumTableWidth = lengthColumnWidth + productColumnWidths.reduce((total, width) => total + width, 0);
 
-    // Fill the available card width when there is spare room, but retain the
-    // compact calculated width as the minimum before horizontal scrolling.
     table.style.width = "100%";
     table.style.minWidth = `${minimumTableWidth}px`;
 
