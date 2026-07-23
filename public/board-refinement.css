@@ -1,0 +1,101 @@
+.unified-board-section {
+  width: 100%;
+  margin-bottom: 12px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+.unified-board-scroll {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable;
+}
+
+.unified-board-scroll:focus {
+  outline: 2px solid rgba(0, 101, 87, .18);
+  outline-offset: -2px;
+}
+
+.unified-board-table {
+  width: 100%;
+  min-width: 1280px;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.unified-board-table .board-length-column {
+  width: 72px;
+}
+
+.unified-board-table .board-quantity-column {
+  width: 58px;
+}
+
+.unified-board-table th,
+.unified-board-table td {
+  height: 42px;
+  padding: 3px;
+}
+
+.unified-board-table thead th {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
+}
+
+.unified-board-table .board-corner-heading {
+  padding-left: 10px;
+  background: var(--section);
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.unified-board-table .board-product-heading {
+  min-height: 44px;
+  padding: 7px 4px;
+  background: var(--section);
+  font-size: 10px;
+  font-weight: 700 !important;
+  letter-spacing: 0;
+}
+
+.unified-board-table .board-axis-heading {
+  background: #f7f9f8;
+  text-align: left;
+  padding-left: 10px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.unified-board-table .board-thickness-heading,
+.unified-board-table .board-width-heading {
+  padding-inline: 2px;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.unified-board-table .board-row-heading {
+  padding-left: 10px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.unified-board-table .quantity-cell {
+  padding: 3px !important;
+}
+
+.unified-board-table .quantity-input {
+  height: 32px;
+  border-radius: 4px;
+}
+
+@media (max-width: 900px) {
+  .unified-board-table {
+    min-width: 1220px;
+  }
+}
