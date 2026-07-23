@@ -7,16 +7,25 @@
   patchBoardRenderer();
   patchTimeSlotValidation();
   patchUnifiedDeliverySync();
+  patchAreaCounts();
   removeCeilingTileProduct();
   polishDeliveryControls();
+  polishDeliveryAreaTabs();
+
+  const areaTabsRoot = document.querySelector(".products-area");
+  if (areaTabsRoot) {
+    new MutationObserver(() => polishDeliveryAreaTabs()).observe(areaTabsRoot, { childList: true, subtree: true });
+  }
 
   const retryTimer = window.setInterval(() => {
     attempts += 1;
     patchBoardRenderer();
     patchTimeSlotValidation();
     patchUnifiedDeliverySync();
+    patchAreaCounts();
     removeCeilingTileProduct();
     polishDeliveryControls();
+    polishDeliveryAreaTabs();
 
     const controlsReady = Boolean(
       document.querySelector(".delivery-select-timeSlot .delivery-select")
@@ -24,7 +33,8 @@
       && document.querySelector(".extras-dropdown > summary")
     );
     const layoutReady = typeof state !== "undefined" && Boolean(state.layout);
-    if ((controlsReady && layoutReady) || attempts >= 50) window.clearInterval(retryTimer);
+    const tabsReady = Boolean(document.querySelector(".area-tab-shell"));
+    if ((controlsReady && layoutReady && tabsReady) || attempts >= 50) window.clearInterval(retryTimer);
   }, 100);
 
   document.getElementById("orderForm")?.addEventListener("reset", () => {
@@ -32,6 +42,7 @@
     window.setTimeout(() => {
       clearTimeSlotSelection();
       polishDeliveryControls();
+      polishDeliveryAreaTabs();
     }, 0);
   });
 
@@ -201,6 +212,68 @@
   function removeRenderedCeilingTileSections() {
     document.querySelectorAll(".pdf-product-section").forEach((section) => {
       if (TILE_PATTERN.test(section.textContent || "")) section.remove();
+    });
+  }
+
+  function patchAreaCounts() {
+    if (typeof window.renderCounts !== "function" || window.renderCounts.__areaCountsPatched) return;
+    const originalRenderCounts = window.renderCounts;
+    const patched = function renderCountsWithAreaBadges(...args) {
+      const result = originalRenderCounts.apply(this, args);
+      updateAreaCounts();
+      return result;
+    };
+    patched.__areaCountsPatched = true;
+    window.renderCounts = patched;
+    try { renderCounts = patched; } catch (_error) { /* global binding may be read-only */ }
+  }
+
+  function polishDeliveryAreaTabs() {
+    document.querySelectorAll(".area-tab-shell").forEach((shell) => {
+      const tab = shell.querySelector("[data-floor-tab]");
+      if (!tab) return;
+      const areaId = tab.dataset.floorTab;
+      let label = tab.querySelector(".area-tab-label");
+      if (!label) {
+        const text = tab.textContent.trim();
+        label = document.createElement("span");
+        label.className = "area-tab-label";
+        label.textContent = text;
+        const badge = document.createElement("span");
+        badge.className = "area-tab-count";
+        badge.dataset.areaCount = areaId;
+        badge.hidden = true;
+        tab.replaceChildren(label, badge);
+      }
+    });
+
+    const add = document.querySelector("[data-add-area]");
+    if (add) {
+      add.textContent = "+";
+      add.title = "Add tab";
+      add.setAttribute("aria-label", "Add tab");
+    }
+    updateAreaCounts();
+  }
+
+  function updateAreaCounts() {
+    if (typeof state === "undefined" || !Array.isArray(state.deliveryAreas)) return;
+    state.deliveryAreas.forEach((area) => {
+      const badge = [...document.querySelectorAll("[data-area-count]")]
+        .find((item) => item.dataset.areaCount === area.id);
+      if (!badge) return;
+      let count = 0;
+      if (typeof window.getFloorLines === "function") {
+        count = window.getFloorLines(area.id).length;
+      } else {
+        const quantities = state.quantities?.[area.id];
+        if (quantities instanceof Map) count += [...quantities.values()].filter((quantity) => Number(quantity) > 0).length;
+        if (Array.isArray(state.otherMaterials?.[area.id])) count += state.otherMaterials[area.id].filter((item) => Number(item.quantity) > 0).length;
+      }
+      badge.textContent = String(count);
+      badge.hidden = count === 0;
+      const tab = badge.closest("[data-floor-tab]");
+      if (tab) tab.title = `${area.label} · ${count} product line${count === 1 ? "" : "s"} · Double-click to rename`;
     });
   }
 })();
