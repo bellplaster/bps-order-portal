@@ -124,8 +124,10 @@ async function loadCatalog() {
   state.catalog = result.products || {};
   state.layout = result.layout;
   if (!state.layout) throw new Error("The product order form layout is missing.");
-  window.renderFloorSheet("ground");
-  window.renderFloorSheet("first");
+  const renderer = window.renderUnifiedFloorSheet;
+  if (typeof renderer !== "function") throw new Error("The unified board renderer did not load.");
+  renderer("ground");
+  renderer("first");
 }
 
 function enforceUppercaseGoogleAddress() {
