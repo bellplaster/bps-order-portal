@@ -2,7 +2,9 @@
   const TILE_PATTERN = /KNAUF\s+CEILING\s+TILES|SHEETROCK\s+Nova\s+Ceiling\s+Tiles/i;
   let timeSlotTouched = false;
   let attempts = 0;
+  let defaultAreaNormalised = false;
 
+  normaliseFreshDefaultArea();
   simplifyStepNavigation();
   patchBoardRenderer();
   patchTimeSlotValidation();
@@ -12,13 +14,21 @@
   polishDeliveryControls();
   polishDeliveryAreaTabs();
 
-  const areaTabsRoot = document.querySelector(".products-area");
-  if (areaTabsRoot) {
-    new MutationObserver(() => polishDeliveryAreaTabs()).observe(areaTabsRoot, { childList: true, subtree: true });
-  }
+  document.addEventListener("input", (event) => {
+    if (event.target.matches(".quantity-input")) updateAreaCounts();
+  });
+
+  document.addEventListener("submit", (event) => {
+    if (event.target.matches(".area-name-editor")) window.setTimeout(polishDeliveryAreaTabs, 0);
+  });
+
+  document.addEventListener("click", (event) => {
+    if (event.target.closest("[data-delete-area]")) window.setTimeout(polishDeliveryAreaTabs, 0);
+  });
 
   const retryTimer = window.setInterval(() => {
     attempts += 1;
+    normaliseFreshDefaultArea();
     patchBoardRenderer();
     patchTimeSlotValidation();
     patchUnifiedDeliverySync();
@@ -46,6 +56,38 @@
     }, 0);
   });
 
+  function normaliseFreshDefaultArea() {
+    if (defaultAreaNormalised || typeof state === "undefined") return;
+    if (document.querySelector(".area-tab-shell")) return;
+    const areas = state.deliveryAreas;
+    if (!Array.isArray(areas) || !areas.length) return;
+    const legacyDefault = areas.every((area) => ["ground", "first"].includes(area.id));
+    if (!legacyDefault || hasMeaningfulDraftData()) {
+      defaultAreaNormalised = true;
+      return;
+    }
+
+    const hasStoredLines = Object.values(state.quantities || {}).some((quantities) =>
+      quantities instanceof Map && [...quantities.values()].some((quantity) => Number(quantity) > 0)
+    ) || Object.values(state.otherMaterials || {}).some((items) =>
+      Array.isArray(items) && items.some((item) => Number(item.quantity) > 0)
+    );
+    if (hasStoredLines) {
+      defaultAreaNormalised = true;
+      return;
+    }
+
+    state.deliveryAreas = [{ id: "area-1", label: "Area 1" }];
+    state.activeFloor = "area-1";
+    state.quantities = { "area-1": new Map() };
+    state.otherMaterials = { "area-1": [] };
+    if (typeof floorLabels !== "undefined") {
+      Object.keys(floorLabels).forEach((key) => delete floorLabels[key]);
+      floorLabels["area-1"] = "Area 1";
+    }
+    defaultAreaNormalised = true;
+  }
+
   function simplifyStepNavigation() {
     const orderStep = document.querySelector('[data-step-target="form"] .step-copy');
     const reviewStep = document.querySelector('[data-step-target="review"] .step-copy');
@@ -62,7 +104,6 @@
   function patchUnifiedDeliverySync() {
     const originalSync = window.syncUnifiedDeliveryControls;
     if (typeof originalSync !== "function" || originalSync.__finalPolishPatched) return;
-
     const patched = function syncUnifiedDeliveryControlsWithPolish(...args) {
       const result = originalSync.apply(this, args);
       polishDeliveryControls();
@@ -105,11 +146,8 @@
 
     const selectedTime = document.querySelector('input[name="timeSlot"]:checked');
     const freshOrder = !hasMeaningfulDraftData();
-    if (!timeSlotTouched && freshOrder && selectedTime?.value === "ANY") {
-      clearTimeSlotSelection();
-    } else if (!selectedTime) {
-      timeSelect.value = "";
-    }
+    if (!timeSlotTouched && freshOrder && selectedTime?.value === "ANY") clearTimeSlotSelection();
+    else if (!selectedTime) timeSelect.value = "";
 
     updatePlaceholderState(timeSelect);
     updatePlaceholderState(deliverySelect);
@@ -145,9 +183,7 @@
   }
 
   function clearTimeSlotSelection() {
-    document.querySelectorAll('input[name="timeSlot"]').forEach((radio) => {
-      radio.checked = false;
-    });
+    document.querySelectorAll('input[name="timeSlot"]').forEach((radio) => { radio.checked = false; });
     const select = document.querySelector(".delivery-select-timeSlot .delivery-select");
     if (select) {
       select.value = "";
@@ -169,8 +205,7 @@
     const patched = function validateFormWithTimeSlot(...args) {
       const selected = document.querySelector('input[name="timeSlot"]:checked');
       if (!selected) {
-        const select = document.querySelector(".delivery-select-timeSlot .delivery-select");
-        select?.focus();
+        document.querySelector(".delivery-select-timeSlot .delivery-select")?.focus();
         throw new Error("Choose a time slot.");
       }
       return originalValidateForm.apply(this, args);
@@ -225,7 +260,7 @@
     };
     patched.__areaCountsPatched = true;
     window.renderCounts = patched;
-    try { renderCounts = patched; } catch (_error) { /* global binding may be read-only */ }
+    try { renderCounts = patched; } catch (_error) { }
   }
 
   function polishDeliveryAreaTabs() {
@@ -248,7 +283,7 @@
     });
 
     const add = document.querySelector("[data-add-area]");
-    if (add) {
+    if (add && add.textContent !== "+") {
       add.textContent = "+";
       add.title = "Add tab";
       add.setAttribute("aria-label", "Add tab");
@@ -263,12 +298,10 @@
         .find((item) => item.dataset.areaCount === area.id);
       if (!badge) return;
       let count = 0;
-      if (typeof window.getFloorLines === "function") {
-        count = window.getFloorLines(area.id).length;
-      } else {
-        const quantities = state.quantities?.[area.id];
-        if (quantities instanceof Map) count += [...quantities.values()].filter((quantity) => Number(quantity) > 0).length;
-        if (Array.isArray(state.otherMaterials?.[area.id])) count += state.otherMaterials[area.id].filter((item) => Number(item.quantity) > 0).length;
+      const quantities = state.quantities?.[area.id];
+      if (quantities instanceof Map) count += [...quantities.values()].filter((quantity) => Number(quantity) > 0).length;
+      if (Array.isArray(state.otherMaterials?.[area.id])) {
+        count += state.otherMaterials[area.id].filter((item) => Number(item.quantity) > 0).length;
       }
       badge.textContent = String(count);
       badge.hidden = count === 0;
