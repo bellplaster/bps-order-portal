@@ -1,34 +1,39 @@
 (() => {
   const TILE_PATTERN = /KNAUF\s+CEILING\s+TILES|SHEETROCK\s+Nova\s+Ceiling\s+Tiles/i;
+  let timeSlotTouched = false;
+  let attempts = 0;
 
   simplifyStepNavigation();
   patchBoardRenderer();
   patchTimeSlotValidation();
+  patchUnifiedDeliverySync();
   removeCeilingTileProduct();
-  initialiseDeliveryControlPolish();
+  polishDeliveryControls();
+
+  const retryTimer = window.setInterval(() => {
+    attempts += 1;
+    patchBoardRenderer();
+    patchTimeSlotValidation();
+    patchUnifiedDeliverySync();
+    removeCeilingTileProduct();
+    polishDeliveryControls();
+
+    const controlsReady = Boolean(
+      document.querySelector(".delivery-select-timeSlot .delivery-select")
+      && document.querySelector(".delivery-select-deliveryType .delivery-select")
+      && document.querySelector(".extras-dropdown > summary")
+    );
+    const layoutReady = typeof state !== "undefined" && Boolean(state.layout);
+    if ((controlsReady && layoutReady) || attempts >= 50) window.clearInterval(retryTimer);
+  }, 100);
 
   document.getElementById("orderForm")?.addEventListener("reset", () => {
+    timeSlotTouched = false;
     window.setTimeout(() => {
       clearTimeSlotSelection();
       polishDeliveryControls();
     }, 0);
   });
-
-  const observer = new MutationObserver(() => {
-    polishDeliveryControls();
-    removeCeilingTileProduct();
-  });
-  observer.observe(document.body, { childList: true, subtree: true });
-
-  window.setTimeout(() => {
-    polishDeliveryControls();
-    removeCeilingTileProduct();
-  }, 250);
-
-  window.setTimeout(() => {
-    polishDeliveryControls();
-    removeCeilingTileProduct();
-  }, 1000);
 
   function simplifyStepNavigation() {
     const orderStep = document.querySelector('[data-step-target="form"] .step-copy');
@@ -43,16 +48,17 @@
     return strong;
   }
 
-  function initialiseDeliveryControlPolish() {
-    const timer = window.setInterval(() => {
-      const timeSelect = document.querySelector(".delivery-select-timeSlot .delivery-select");
-      const deliverySelect = document.querySelector(".delivery-select-deliveryType .delivery-select");
-      const extrasSummary = document.querySelector(".extras-dropdown > summary");
-      if (!timeSelect || !deliverySelect || !extrasSummary) return;
-      window.clearInterval(timer);
+  function patchUnifiedDeliverySync() {
+    const originalSync = window.syncUnifiedDeliveryControls;
+    if (typeof originalSync !== "function" || originalSync.__finalPolishPatched) return;
+
+    const patched = function syncUnifiedDeliveryControlsWithPolish(...args) {
+      const result = originalSync.apply(this, args);
       polishDeliveryControls();
-    }, 40);
-    window.setTimeout(() => window.clearInterval(timer), 5000);
+      return result;
+    };
+    patched.__finalPolishPatched = true;
+    window.syncUnifiedDeliveryControls = patched;
   }
 
   function polishDeliveryControls() {
@@ -74,6 +80,7 @@
     if (!timeSelect.dataset.polished) {
       timeSelect.dataset.polished = "true";
       timeSelect.addEventListener("change", () => {
+        timeSlotTouched = Boolean(timeSelect.value);
         if (!timeSelect.value) {
           document.querySelectorAll('input[name="timeSlot"]').forEach((radio) => { radio.checked = false; });
         }
@@ -87,7 +94,8 @@
     }
 
     const selectedTime = document.querySelector('input[name="timeSlot"]:checked');
-    if (!hasMeaningfulDraftData() && selectedTime?.value === "ANY" && selectedTime.defaultChecked) {
+    const freshOrder = !hasMeaningfulDraftData();
+    if (!timeSlotTouched && freshOrder && selectedTime?.value === "ANY") {
       clearTimeSlotSelection();
     } else if (!selectedTime) {
       timeSelect.value = "";
