@@ -70,10 +70,11 @@
     if (!placeholder) {
       placeholder = new Option("Select time slot", "");
       placeholder.disabled = true;
-      placeholder.hidden = true;
       timeSelect.insertBefore(placeholder, timeSelect.firstChild);
     } else {
       placeholder.textContent = "Select time slot";
+      placeholder.disabled = true;
+      placeholder.hidden = false;
     }
     timeSelect.required = true;
 
@@ -103,6 +104,31 @@
 
     updatePlaceholderState(timeSelect);
     updatePlaceholderState(deliverySelect);
+    polishExtrasDropdown();
+  }
+
+  function polishExtrasDropdown() {
+    const details = document.querySelector(".extras-dropdown");
+    const summary = details?.querySelector(":scope > summary");
+    const summaryText = summary?.querySelector("span");
+    const inputs = details ? [...details.querySelectorAll('input[name="deliveryExtra"]')] : [];
+    if (!details || !summary || !summaryText || !inputs.length) return;
+
+    const update = () => {
+      const values = inputs
+        .filter((input) => input.checked)
+        .map((input) => input.closest("label")?.querySelector("span")?.textContent?.trim() || input.value);
+      const isEmpty = values.length === 0;
+      summaryText.textContent = isEmpty ? "Select extras" : values.join(", ");
+      summary.title = summaryText.textContent;
+      summary.classList.toggle("is-placeholder", isEmpty);
+    };
+
+    if (!details.dataset.standardised) {
+      details.dataset.standardised = "true";
+      inputs.forEach((input) => input.addEventListener("change", update));
+    }
+    update();
   }
 
   function updatePlaceholderState(select) {
