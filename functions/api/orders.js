@@ -31,14 +31,15 @@ export async function onRequestGet(context) {
       }));
       let payload = {};
       try { payload = JSON.parse(order.payload_json || "{}"); } catch (_error) { payload = {}; }
+      const areaLabel = (floor, details) => details?.label || (floor === "first" ? "1st Floor" : floor === "ground" ? "Ground Floor" : floor);
       const otherProducts = Object.entries(payload?.floors || {}).map(([floor, details]) => ({
         floor,
-        floor_label: floor === "first" ? "1st Floor" : "Ground Floor",
+        floor_label: areaLabel(floor, details),
         details: String(details?.otherProducts || "").trim(),
       })).filter((item) => item.details);
       const otherMaterials = Object.entries(payload?.floors || {}).map(([floor, details]) => ({
         floor,
-        floor_label: floor === "first" ? "1st Floor" : "Ground Floor",
+        floor_label: areaLabel(floor, details),
         items: Array.isArray(details?.otherMaterials) ? details.otherMaterials : [],
       })).filter((item) => item.items.length);
       const pendingMapping = [];
@@ -50,7 +51,7 @@ export async function onRequestGet(context) {
         }).filter(Boolean);
         if (pendingItems.length) pendingMapping.push({
           floor,
-          floor_label: floor === "first" ? "1st Floor" : "Ground Floor",
+          floor_label: areaLabel(floor, details),
           items: pendingItems,
         });
       });
@@ -98,6 +99,6 @@ export async function onRequestGet(context) {
 }
 
 function inferRevision(filename) {
-  const match = String(filename || "").match(/-R(\d+)-(?:GF|L1)\.xlsx$/i);
+  const match = String(filename || "").match(/-R(\d+)-[^/]+\.xlsx$/i);
   return match ? Number(match[1]) : 1;
 }
