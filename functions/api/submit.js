@@ -1,4 +1,4 @@
-import { processOrderSubmission } from "../_shared/orders.js";
+import { processOrderSubmission } from "../_shared/orders-v2.js";
 
 export async function onRequestPost(context) {
   const requestId = crypto.randomUUID();
