@@ -26,7 +26,7 @@ export async function onRequestPost(context) {
       ).bind(accountId, reference, submissionId).first();
       if (duplicate) {
         return Response.json(
-          { ok: false, error: `Reference "${reference}" has already been used for this customer.`, requestId },
+          { ok: false, error: `PO number "${reference}" has already been used for this customer.`, requestId },
           { status: 400, headers: { "Cache-Control": "no-store", "X-Request-ID": requestId } },
         );
       }
