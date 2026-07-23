@@ -238,6 +238,18 @@
   margin: 0 !important;
   padding: 0 !important;
   accent-color: var(--bell-maroon) !important;
+  box-shadow: none !important;
+  outline: 0 !important;
+  filter: none !important;
+  transition: none !important;
+}
+
+.order-form-page .extras-dropdown-menu .extras-options input:focus,
+.order-form-page .extras-dropdown-menu .extras-options input:focus-visible,
+.order-form-page .extras-dropdown-menu .extras-options input:active {
+  border-color: initial !important;
+  box-shadow: none !important;
+  outline: 0 !important;
 }
 
 .order-form-page .extras-dropdown-menu .extras-options span {
