@@ -1,7 +1,7 @@
 (() => {
   const originalRenderReview = window.renderReview;
 
-  window.renderFloorSheet = function renderUnifiedFloorSheet(floor) {
+  window.renderUnifiedFloorSheet = function renderUnifiedFloorSheet(floor) {
     const root = document.getElementById(`${floor}OrderSheet`);
     root.replaceChildren();
 
