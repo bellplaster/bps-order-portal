@@ -20,18 +20,18 @@
 }
 
 .unified-board-table {
-  width: 100%;
-  min-width: 1280px;
+  width: 1840px;
+  min-width: 1840px;
   table-layout: fixed;
   border-collapse: collapse;
 }
 
 .unified-board-table .board-length-column {
-  width: 72px;
+  width: 76px;
 }
 
 .unified-board-table .board-quantity-column {
-  width: 58px;
+  width: 88px;
 }
 
 .unified-board-table th,
@@ -41,8 +41,6 @@
 }
 
 .unified-board-table thead th {
-  white-space: normal;
-  overflow-wrap: anywhere;
   line-height: 1.15;
 }
 
@@ -52,15 +50,19 @@
   text-align: left;
   font-size: 11px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .unified-board-table .board-product-heading {
   min-height: 44px;
-  padding: 7px 4px;
+  padding: 7px 7px;
   background: var(--section);
   font-size: 10px;
   font-weight: 700 !important;
   letter-spacing: 0;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .unified-board-table .board-axis-heading {
@@ -69,13 +71,15 @@
   padding-left: 10px;
   font-size: 10px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .unified-board-table .board-thickness-heading,
 .unified-board-table .board-width-heading {
-  padding-inline: 2px;
+  padding-inline: 4px;
   font-size: 9px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .unified-board-table .board-row-heading {
@@ -83,6 +87,7 @@
   text-align: left;
   font-size: 10px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .unified-board-table .quantity-cell {
@@ -96,6 +101,7 @@
 
 @media (max-width: 900px) {
   .unified-board-table {
-    min-width: 1220px;
+    width: 1840px;
+    min-width: 1840px;
   }
 }
