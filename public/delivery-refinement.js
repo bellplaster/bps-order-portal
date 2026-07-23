@@ -31,26 +31,27 @@
 
     const heading = notesField.querySelector(":scope > span");
     if (heading) heading.textContent = "Delivery instructions";
-
     notesField.querySelector(".generated-delivery-notes")?.remove();
 
     const textLabel = notesField.querySelector(".additional-instructions-label");
     const textarea = document.getElementById("deliveryInstructions");
-    const textWrapper = document.createElement("div");
-    textWrapper.className = "floating-textarea-control";
-    if (textarea) textarea.placeholder = "Additional instructions";
+    const instructionRow = document.createElement("div");
+    instructionRow.className = "sheet-field-row instruction-sheet-row";
     if (textLabel) {
-      textLabel.textContent = "Additional instructions (optional)";
-      textLabel.className = "floating-textarea-label";
+      textLabel.textContent = "Instructions";
+      textLabel.className = "";
+      instructionRow.append(textLabel);
     }
-    if (textarea) textWrapper.append(textarea);
-    if (textLabel) textWrapper.append(textLabel);
+    if (textarea) {
+      textarea.placeholder = "Access, unloading or site notes";
+      instructionRow.append(textarea);
+    }
 
     sourceControls.append(timeField, typeField, extrasField);
     notesField.replaceChildren(
       ...(heading ? [heading] : []),
       controlRow,
-      ...(textWrapper.childElementCount ? [textWrapper] : []),
+      ...(instructionRow.childElementCount ? [instructionRow] : []),
       sourceControls,
     );
 
@@ -86,22 +87,13 @@
   function hideNonEditableOrderFields() {
     const accountSummary = document.getElementById("accountSummary");
     if (accountSummary) accountSummary.hidden = true;
-
-    ["orderDate", "customerName"].forEach((id) => {
-      const input = document.getElementById(id);
-      const field = input?.closest("label.form-field");
-      if (field) field.classList.add("system-only-field");
-    });
-
-    document.querySelector(".basic-details-grid")?.classList.add("customer-entry-grid");
   }
 
   function createSyncedSelect(name, labelText, includePlaceholder) {
     const radios = [...document.querySelectorAll(`input[name="${name}"]`)];
-    const wrapper = document.createElement("label");
-    wrapper.className = "delivery-select-field floating-select-field";
+    const wrapper = document.createElement("div");
+    wrapper.className = `delivery-select-field delivery-select-${name}`;
     const label = document.createElement("span");
-    label.className = "floating-select-label";
     label.textContent = labelText;
     const select = document.createElement("select");
     select.className = "delivery-select";
@@ -121,7 +113,7 @@
       radio.dispatchEvent(new Event("change", { bubbles: true }));
     });
 
-    wrapper.append(select, label);
+    wrapper.append(label, select);
     return { wrapper, select };
   }
 
@@ -133,9 +125,8 @@
   function createExtrasDropdown(extrasField) {
     const options = extrasField.querySelector(".extras-options");
     const wrapper = document.createElement("div");
-    wrapper.className = "delivery-select-field extras-dropdown-field floating-select-field";
+    wrapper.className = "delivery-select-field extras-dropdown-field";
     const label = document.createElement("span");
-    label.className = "floating-select-label";
     label.textContent = "Extras";
     const details = document.createElement("details");
     details.className = "extras-dropdown";
@@ -146,7 +137,7 @@
     menu.className = "extras-dropdown-menu";
     if (options) menu.append(options);
     details.append(summary, menu);
-    wrapper.append(details, label);
+    wrapper.append(label, details);
 
     const updateSummary = () => {
       const values = [...menu.querySelectorAll('input[name="deliveryExtra"]:checked')]
