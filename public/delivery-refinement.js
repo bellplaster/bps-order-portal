@@ -14,9 +14,11 @@
     const extrasField = document.querySelector(".extras-field");
     if (!grid || !addressField || !notesField || !timeField || !typeField || !extrasField) return;
 
+    injectOrderDetailsRefinementStyles();
     applyOrderSheetCopy();
     hideNonEditableOrderFields();
     addressField.querySelector(".field-help")?.remove();
+    const requiredDateControl = initialiseRequiredDateControl();
 
     const deliveryBlock = grid.closest(".delivery-block");
     deliveryBlock?.querySelector(".delivery-block-title")?.remove();
@@ -66,6 +68,7 @@
       syncSelectFromRadios(deliverySelect.select, "deliveryType");
       extrasControl.updateSummary();
       updateAddressPlaceholder();
+      requiredDateControl.syncFromNative();
     };
 
     const originalApplyPayload = window.applyPayload;
@@ -90,6 +93,158 @@
     });
 
     window.syncUnifiedDeliveryControls();
+  }
+
+  function injectOrderDetailsRefinementStyles() {
+    if (document.getElementById("order-details-date-refinement")) return;
+    const style = document.createElement("style");
+    style.id = "order-details-date-refinement";
+    style.textContent = `
+      .order-details-section .sheet-field-row > label,
+      .order-details-section .sheet-field-row > input,
+      .order-details-section .sheet-field-row .address-control > input,
+      .order-details-section .delivery-select-field > span,
+      .order-details-section .delivery-select,
+      .order-details-section .extras-dropdown > summary,
+      .order-details-section .instruction-sheet-row > textarea {
+        font-size: 11px !important;
+      }
+
+      .order-details-section .sheet-field-row > input,
+      .order-details-section .sheet-field-row .address-control > input,
+      .order-details-section #requiredDateDisplay {
+        line-height: 39px !important;
+      }
+
+      .order-details-section .sheet-field-row > input::placeholder,
+      .order-details-section .sheet-field-row .address-control > input::placeholder,
+      .order-details-section #requiredDateDisplay::placeholder {
+        line-height: 39px !important;
+      }
+
+      .date-input-shell::after {
+        display: none !important;
+        content: none !important;
+      }
+
+      .date-input-shell #requiredDate.date-native-picker {
+        position: absolute !important;
+        z-index: 5 !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 38px !important;
+        min-width: 38px !important;
+        height: 39px !important;
+        min-height: 39px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        opacity: 0.001 !important;
+        cursor: pointer !important;
+      }
+
+      .date-input-shell #requiredDateDisplay {
+        width: 100% !important;
+        min-width: 0 !important;
+        height: 39px !important;
+        min-height: 39px !important;
+        margin: 0 !important;
+        padding: 0 8px 0 42px !important;
+        color: var(--ink) !important;
+        background: #fff !important;
+        border: 0 !important;
+        border-radius: 0 !important;
+        outline: 0 !important;
+        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+        font-size: 11px !important;
+        font-weight: 400 !important;
+      }
+
+      .date-input-shell #requiredDateDisplay::placeholder {
+        color: #aab0b2 !important;
+        opacity: 1 !important;
+      }
+
+      .date-input-shell #requiredDateDisplay:focus {
+        position: relative;
+        z-index: 2;
+        box-shadow: inset 0 0 0 2px var(--bell-green);
+      }
+    `;
+    document.head.append(style);
+  }
+
+  function initialiseRequiredDateControl() {
+    const nativeInput = document.getElementById("requiredDate");
+    const shell = nativeInput?.closest(".date-input-shell");
+    if (!nativeInput || !shell) return { syncFromNative() {} };
+
+    let displayInput = document.getElementById("requiredDateDisplay");
+    if (!displayInput) {
+      displayInput = document.createElement("input");
+      displayInput.id = "requiredDateDisplay";
+      displayInput.type = "text";
+      displayInput.inputMode = "numeric";
+      displayInput.autocomplete = "off";
+      displayInput.maxLength = 10;
+      displayInput.placeholder = "DD/MM/YYYY";
+      displayInput.setAttribute("aria-label", "Required date");
+      shell.append(displayInput);
+    }
+
+    nativeInput.classList.add("date-native-picker");
+    nativeInput.tabIndex = -1;
+    nativeInput.setAttribute("aria-label", "Choose required date from calendar");
+    document.querySelector('label[for="requiredDate"]')?.setAttribute("for", "requiredDateDisplay");
+
+    const syncFromNative = () => {
+      displayInput.value = requiredDateDisplay(nativeInput.value);
+    };
+
+    displayInput.addEventListener("input", () => {
+      const formatted = formatRequiredDateTyping(displayInput.value);
+      if (displayInput.value !== formatted) displayInput.value = formatted;
+      const iso = parseRequiredDateDisplay(formatted);
+      if (nativeInput.value === iso) return;
+      nativeInput.value = iso;
+      nativeInput.dispatchEvent(new Event("input", { bubbles: true }));
+      nativeInput.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+
+    displayInput.addEventListener("blur", () => {
+      const iso = parseRequiredDateDisplay(displayInput.value);
+      if (iso) displayInput.value = requiredDateDisplay(iso);
+    });
+
+    nativeInput.addEventListener("change", syncFromNative);
+    syncFromNative();
+    return { syncFromNative };
+  }
+
+  function formatRequiredDateTyping(input) {
+    const digits = String(input || "").replace(/\D/g, "").slice(0, 8);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+  }
+
+  function parseRequiredDateDisplay(input) {
+    const digits = String(input || "").replace(/\D/g, "");
+    if (digits.length !== 8) return "";
+    const day = Number(digits.slice(0, 2));
+    const month = Number(digits.slice(2, 4));
+    const year = Number(digits.slice(4, 8));
+    const date = new Date(Date.UTC(year, month - 1, day));
+    if (
+      date.getUTCFullYear() !== year
+      || date.getUTCMonth() !== month - 1
+      || date.getUTCDate() !== day
+    ) return "";
+    return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+
+  function requiredDateDisplay(iso) {
+    const match = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return match ? `${match[3]}/${match[2]}/${match[1]}` : "";
   }
 
   function applyOrderSheetCopy() {
