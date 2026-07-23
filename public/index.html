@@ -9,8 +9,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css?v=20260722-1">
-  <link rel="stylesheet" href="/refinement.css?v=20260722-4">
+  <link rel="stylesheet" href="/refinement.css?v=20260723-1">
   <link rel="stylesheet" href="/ux-refinement.css?v=20260722-1">
+  <link rel="stylesheet" href="/board-refinement.css?v=20260723-1">
 </head>
 <body class="order-form-page">
   <header class="portal-header">
@@ -58,9 +59,8 @@
               <input id="orderDateIso" type="hidden">
             </label>
             <label class="form-field">
-              <span>Reference *</span>
-              <input id="reference" type="text" maxlength="80" autocomplete="off" required placeholder="Your Accrivia order reference">
-              <small class="field-help">Must be unique for this customer.</small>
+              <span>PO number *</span>
+              <input id="reference" type="text" maxlength="80" autocomplete="off" required placeholder="Enter purchase order number">
             </label>
             <label class="form-field">
               <span>Required date *</span>
@@ -94,7 +94,6 @@
                 <input id="deliveryAddress" type="hidden">
                 <input id="deliveryAddressLine1" type="hidden">
                 <input id="deliveryAddressLine2" type="hidden">
-                <small class="field-help">Select a Google result for the correctly formatted address, or type the complete address manually.</small>
               </div>
 
               <fieldset class="form-field option-field time-slot-field">
@@ -151,10 +150,7 @@
 
         <section class="products-area" aria-labelledby="productsHeading">
           <div class="products-toolbar">
-            <div>
-              <p class="eyebrow">Products</p>
-              <h2 id="productsHeading">Product quantities</h2>
-            </div>
+            <h2 id="productsHeading">Products</h2>
             <div class="floor-tabs" role="tablist" aria-label="Order floor">
               <button class="floor-tab is-active" type="button" role="tab" aria-selected="true" data-floor-tab="ground">Ground Floor</button>
               <button class="floor-tab" type="button" role="tab" aria-selected="false" data-floor-tab="first">1st Floor</button>
@@ -178,7 +174,7 @@
         <header class="review-heading">
           <p class="eyebrow">Final check</p>
           <h1>Review Order</h1>
-          <p>Confirm the customer, delivery details and product quantities before submitting.</p>
+          <p>Confirm the customer, delivery details and products before submitting.</p>
         </header>
 
         <div class="review-paper">
@@ -205,7 +201,7 @@
         <p class="eyebrow">Order submitted</p>
         <h1 id="successTitle">Order created</h1>
         <p id="successSummary"></p>
-        <div class="success-reference">Reference <strong id="orderNumberDisplay"></strong></div>
+        <div class="success-reference">PO number <strong id="orderNumberDisplay"></strong></div>
         <div id="generatedFiles" class="success-files"></div>
         <div class="form-actions success-actions">
           <button id="viewHistoryButton" class="button button-secondary" type="button">View order history</button>
@@ -228,10 +224,11 @@
     <div id="historyList" class="history-list"><p class="empty-state">Loading orders…</p></div>
   </aside>
 
-  <script src="/app.js?v=20260722-4" defer></script>
+  <script src="/app.js?v=20260723-1" defer></script>
   <script src="/app-products.js?v=20260722-4" defer></script>
   <script src="/app-order.js?v=20260722-4" defer></script>
   <script src="/app-address.js?v=20260722-4" defer></script>
+  <script src="/board-refinement.js?v=20260723-1" defer></script>
   <script src="/ux-refinement.js?v=20260722-1" defer></script>
 </body>
 </html>
