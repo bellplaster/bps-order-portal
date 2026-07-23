@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="/refinement.css?v=20260723-1">
   <link rel="stylesheet" href="/ux-refinement.css?v=20260722-1">
   <link rel="stylesheet" href="/board-refinement.css?v=20260723-2">
-  <link rel="stylesheet" href="/top-form-refinement.css?v=20260723-2">
+  <link rel="stylesheet" href="/top-form-refinement.css?v=20260723-3">
 </head>
 <body class="order-form-page">
   <header class="portal-header">
@@ -57,16 +57,15 @@
           <input id="orderDateIso" type="hidden">
           <input id="customerName" type="hidden">
 
-          <div class="basic-details-grid customer-entry-grid">
-            <div class="form-field floating-form-field">
-              <div class="floating-control">
-                <input id="reference" type="text" maxlength="80" autocomplete="off" required placeholder="Order number" aria-label="Order number">
-                <label class="floating-label" for="reference">Order number</label>
-              </div>
+          <div class="sheet-details-grid">
+            <div class="sheet-field-row">
+              <label for="reference">Order number</label>
+              <input id="reference" type="text" maxlength="80" autocomplete="off" required placeholder="Order number">
             </div>
 
-            <div class="form-field floating-form-field">
-              <div class="floating-control date-input-shell">
+            <div class="sheet-field-row">
+              <label for="requiredDate">Required date</label>
+              <div class="date-input-shell">
                 <span class="date-leading-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="5" width="18" height="16" rx="2"></rect>
@@ -74,32 +73,27 @@
                   </svg>
                 </span>
                 <input id="requiredDate" type="date" required aria-label="Required date">
-                <label class="floating-label" for="requiredDate">Required date</label>
               </div>
             </div>
 
-            <div class="form-field floating-form-field">
-              <div class="floating-control">
-                <input id="contactName" type="text" maxlength="100" autocomplete="name" required placeholder="Name" aria-label="Contact">
-                <label class="floating-label" for="contactName">Contact</label>
-              </div>
+            <div class="sheet-field-row">
+              <label for="contactName">Contact</label>
+              <input id="contactName" type="text" maxlength="100" autocomplete="name" required placeholder="Contact">
             </div>
 
-            <div class="form-field floating-form-field">
-              <div class="floating-control">
-                <input id="contactMobile" type="tel" maxlength="14" inputmode="tel" autocomplete="tel" required placeholder="Phone" aria-label="Phone">
-                <label class="floating-label" for="contactMobile">Phone</label>
-              </div>
+            <div class="sheet-field-row">
+              <label for="contactMobile">Phone</label>
+              <input id="contactMobile" type="tel" maxlength="14" inputmode="tel" autocomplete="tel" required placeholder="Phone">
             </div>
           </div>
 
           <section class="delivery-block" aria-labelledby="deliveryHeading">
             <h3 id="deliveryHeading" class="delivery-block-title">Delivery</h3>
             <div class="delivery-grid">
-              <div class="form-field delivery-address-field floating-form-field">
-                <div class="address-control floating-control">
-                  <input id="deliveryAddressSearch" type="text" maxlength="500" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="addressSearchResults" placeholder="Address" aria-label="Address">
-                  <label class="floating-label" for="deliveryAddressSearch">Address</label>
+              <div class="delivery-address-field sheet-field-row sheet-field-wide">
+                <label for="deliveryAddressSearch">Address</label>
+                <div class="address-control">
+                  <input id="deliveryAddressSearch" type="text" maxlength="500" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="addressSearchResults" placeholder="Address">
                   <button id="clearAddressButton" class="clear-input" type="button" aria-label="Clear delivery address" hidden>×</button>
                   <div id="addressSearchResults" class="address-search-results" role="listbox" hidden></div>
                 </div>
@@ -125,8 +119,8 @@
                   <div class="generated-notes-label"><span aria-hidden="true">●</span> Automatically added from the delivery selections</div>
                   <div id="generatedDeliverySummary" class="generated-notes-content" aria-live="polite"></div>
                 </div>
-                <label class="additional-instructions-label" for="deliveryInstructions">Additional instructions (optional)</label>
-                <textarea id="deliveryInstructions" rows="3" maxlength="1500" placeholder="Additional instructions"></textarea>
+                <label class="additional-instructions-label" for="deliveryInstructions">Instructions</label>
+                <textarea id="deliveryInstructions" rows="3" maxlength="1500" placeholder="Access, unloading or site notes"></textarea>
               </div>
 
               <div class="delivery-controls-stack">
@@ -236,12 +230,11 @@
     <div id="historyList" class="history-list"><p class="empty-state">Loading orders…</p></div>
   </aside>
 
-  <script src="/app.js?v=20260723-3" defer></script>
+  <script src="/app.js?v=20260723-4" defer></script>
   <script src="/app-products.js?v=20260722-4" defer></script>
   <script src="/app-order.js?v=20260723-1" defer></script>
   <script src="/app-address.js?v=20260722-4" defer></script>
   <script src="/board-refinement.js?v=20260723-3" defer></script>
   <script src="/ux-refinement.js?v=20260722-1" defer></script>
-  <script src="/top-form-refinement.js?v=20260723-1" defer></script>
 </body>
 </html>
