@@ -167,8 +167,19 @@ function formatAddressDisplay(value) {
 }
 
 function loadDeliveryRefinement() {
+  const style = document.createElement("link");
+  style.rel = "stylesheet";
+  style.href = "/final-ui-polish.css?v=20260723-1";
+  document.head.append(style);
+
   const script = document.createElement("script");
   script.src = "/delivery-refinement.js?v=20260723-5";
   script.defer = true;
+  script.addEventListener("load", () => {
+    const polish = document.createElement("script");
+    polish.src = "/final-ui-polish.js?v=20260723-1";
+    polish.defer = true;
+    document.body.append(polish);
+  });
   document.body.append(script);
 }
