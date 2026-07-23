@@ -69,13 +69,11 @@
     let placeholder = timeSelect.querySelector('option[value=""]');
     if (!placeholder) {
       placeholder = new Option("Select time slot", "");
-      placeholder.disabled = true;
       timeSelect.insertBefore(placeholder, timeSelect.firstChild);
-    } else {
-      placeholder.textContent = "Select time slot";
-      placeholder.disabled = true;
-      placeholder.hidden = false;
     }
+    placeholder.textContent = "Select time slot";
+    placeholder.disabled = false;
+    placeholder.hidden = false;
     timeSelect.required = true;
 
     if (!timeSelect.dataset.polished) {
