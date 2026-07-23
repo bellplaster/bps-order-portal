@@ -14,23 +14,27 @@
     const extrasField = document.querySelector(".extras-field");
     if (!grid || !addressField || !notesField || !timeField || !typeField || !extrasField) return;
 
+    applyOrderSheetCopy();
     hideNonEditableOrderFields();
     addressField.querySelector(".field-help")?.remove();
+
+    const deliveryBlock = grid.closest(".delivery-block");
+    deliveryBlock?.querySelector(".delivery-block-title")?.remove();
+    deliveryBlock?.removeAttribute("aria-labelledby");
 
     const sourceControls = document.createElement("div");
     sourceControls.className = "delivery-source-controls";
     sourceControls.hidden = true;
 
-    const timeSelect = createSyncedSelect("timeSlot", "Time slot", false);
-    const deliverySelect = createSyncedSelect("deliveryType", "Delivery type", true);
+    const timeSelect = createSyncedSelect("timeSlot", "Time Slot", false);
+    const deliverySelect = createSyncedSelect("deliveryType", "Delivery Type", true);
     const extrasControl = createExtrasDropdown(extrasField);
 
     const controlRow = document.createElement("div");
-    controlRow.className = "delivery-instruction-controls";
+    controlRow.className = "delivery-instruction-controls delivery-table-row";
     controlRow.append(timeSelect.wrapper, deliverySelect.wrapper, extrasControl.wrapper);
 
-    const heading = notesField.querySelector(":scope > span");
-    if (heading) heading.textContent = "Delivery instructions";
+    notesField.querySelector(":scope > span")?.remove();
     notesField.querySelector(".generated-delivery-notes")?.remove();
 
     const textLabel = notesField.querySelector(".additional-instructions-label");
@@ -49,7 +53,6 @@
 
     sourceControls.append(timeField, typeField, extrasField);
     notesField.replaceChildren(
-      ...(heading ? [heading] : []),
       controlRow,
       ...(instructionRow.childElementCount ? [instructionRow] : []),
       sourceControls,
@@ -62,6 +65,7 @@
       syncSelectFromRadios(timeSelect.select, "timeSlot");
       syncSelectFromRadios(deliverySelect.select, "deliveryType");
       extrasControl.updateSummary();
+      updateAddressPlaceholder();
     };
 
     const originalApplyPayload = window.applyPayload;
@@ -77,11 +81,39 @@
       window.setTimeout(() => window.syncUnifiedDeliveryControls?.(), 0);
     });
 
+    document.querySelectorAll('input[name="deliveryType"]').forEach((input) => {
+      input.addEventListener("change", updateAddressPlaceholder);
+    });
+
     document.addEventListener("click", (event) => {
       if (!extrasControl.details.contains(event.target)) extrasControl.details.open = false;
     });
 
     window.syncUnifiedDeliveryControls();
+  }
+
+  function applyOrderSheetCopy() {
+    const heading = document.getElementById("orderDetailsHeading");
+    if (heading) heading.textContent = "Order Details";
+
+    const reference = document.getElementById("reference");
+    const referenceLabel = document.querySelector('label[for="reference"]');
+    if (referenceLabel) referenceLabel.textContent = "Reference";
+    if (reference) reference.placeholder = "Purchase order or order number";
+
+    const contact = document.getElementById("contactName");
+    if (contact) contact.placeholder = "Name";
+
+    const address = document.getElementById("deliveryAddressSearch");
+    if (address) address.placeholder = "Address";
+  }
+
+  function updateAddressPlaceholder() {
+    const input = document.getElementById("deliveryAddressSearch");
+    if (!input) return;
+    input.placeholder = selectedRadio("deliveryType") === "Pickup (Customer to collect)"
+      ? "Not required for pickup"
+      : "Address";
   }
 
   function hideNonEditableOrderFields() {
