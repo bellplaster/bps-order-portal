@@ -23,8 +23,8 @@
 }
 
 .unified-board-table {
-  width: 2312px;
-  min-width: 2312px;
+  width: auto;
+  min-width: 0;
   table-layout: fixed;
   border-collapse: collapse;
   font-size: 11px;
@@ -35,7 +35,7 @@
 }
 
 .unified-board-table .board-quantity-column {
-  width: 112px;
+  width: 68px;
 }
 
 .unified-board-table th,
@@ -130,7 +130,7 @@
 
 @media (max-width: 900px) {
   .unified-board-table {
-    width: 2312px;
-    min-width: 2312px;
+    width: auto;
+    min-width: 0;
   }
 }
