@@ -23,10 +23,11 @@
 }
 
 .unified-board-table {
-  width: 1992px;
-  min-width: 1992px;
+  width: 2312px;
+  min-width: 2312px;
   table-layout: fixed;
   border-collapse: collapse;
+  font-size: 11px;
 }
 
 .unified-board-table .board-length-column {
@@ -34,43 +35,48 @@
 }
 
 .unified-board-table .board-quantity-column {
-  width: 96px;
+  width: 112px;
 }
 
 .unified-board-table th,
 .unified-board-table td {
-  padding: 0 2px;
+  padding: 1px 3px;
+  font-size: 11px;
 }
 
 .unified-board-table thead tr:first-child th {
-  height: 28px !important;
+  height: 34px !important;
 }
 
 .unified-board-table thead tr:nth-child(2) th,
-.unified-board-table thead tr:nth-child(3) th,
+.unified-board-table thead tr:nth-child(3) th {
+  height: 29px !important;
+  min-height: 29px;
+}
+
 .unified-board-table tbody th,
 .unified-board-table tbody td {
-  height: 24px !important;
-  min-height: 24px;
+  height: 28px !important;
+  min-height: 28px;
 }
 
 .unified-board-table thead th {
-  line-height: 1;
+  line-height: 1.1;
 }
 
 .unified-board-table .board-corner-heading {
-  padding-left: 6px;
+  padding-left: 7px;
   background: var(--section);
   text-align: left;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
 }
 
 .unified-board-table .board-product-heading {
-  padding: 1px 3px;
+  padding: 2px 5px;
   background: var(--section);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 700 !important;
   letter-spacing: -.01em;
   white-space: nowrap;
@@ -82,49 +88,49 @@
 .unified-board-table .board-axis-heading {
   background: #f7f9f8;
   text-align: left;
-  padding-left: 6px;
-  font-size: 8.5px;
+  padding-left: 7px;
+  font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
 }
 
 .unified-board-table .board-thickness-heading,
 .unified-board-table .board-width-heading {
-  padding-inline: 2px;
-  font-size: 8px;
+  padding-inline: 3px;
+  font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
 }
 
 .unified-board-table .board-row-heading {
-  height: 24px !important;
-  padding-left: 6px;
+  height: 28px !important;
+  padding-left: 7px;
   text-align: left;
-  font-size: 8.5px;
+  font-size: 11px;
   font-weight: 600;
   line-height: 1;
   white-space: nowrap;
 }
 
 .unified-board-table .quantity-cell {
-  height: 24px !important;
-  min-height: 24px;
-  padding: 1px !important;
+  height: 28px !important;
+  min-height: 28px;
+  padding: 2px !important;
 }
 
 .unified-board-table .quantity-input {
   width: 100%;
-  height: 18px !important;
-  min-height: 18px !important;
-  padding: 0 2px;
+  height: 22px !important;
+  min-height: 22px !important;
+  padding: 1px 3px;
   border-radius: 2px;
-  font-size: 8.5px;
+  font-size: 11px;
   line-height: 1;
 }
 
 @media (max-width: 900px) {
   .unified-board-table {
-    width: 1992px;
-    min-width: 1992px;
+    width: 2312px;
+    min-width: 2312px;
   }
 }
