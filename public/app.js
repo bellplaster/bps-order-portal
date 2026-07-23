@@ -169,7 +169,7 @@ function formatAddressDisplay(value) {
 function loadDeliveryRefinement() {
   const style = document.createElement("link");
   style.rel = "stylesheet";
-  style.href = "/final-ui-polish.css?v=20260723-1";
+  style.href = "/final-ui-polish.css?v=20260723-2";
   document.head.append(style);
 
   const script = document.createElement("script");
@@ -177,7 +177,7 @@ function loadDeliveryRefinement() {
   script.defer = true;
   script.addEventListener("load", () => {
     const polish = document.createElement("script");
-    polish.src = "/final-ui-polish.js?v=20260723-1";
+    polish.src = "/final-ui-polish.js?v=20260723-2";
     polish.defer = true;
     document.body.append(polish);
   });
