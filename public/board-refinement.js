@@ -78,7 +78,7 @@
     const table = document.createElement("table");
     table.className = "pdf-table main-board-table unified-board-table";
 
-    const lengthColumnWidth = 72;
+    const lengthColumnWidth = 54;
     const productColumnWidths = products.flatMap((product) => calculateProductColumnWidths(product));
     const tableWidth = lengthColumnWidth + productColumnWidths.reduce((total, width) => total + width, 0);
     table.style.width = `${tableWidth}px`;
@@ -158,14 +158,19 @@
   }
 
   function calculateProductColumnWidths(product) {
-    const minimumColumnWidth = 68;
-    const maximumColumnWidth = 120;
-    const headingHorizontalPadding = 12;
-    const estimatedCharacterWidth = 6.2;
-    const headingWidth = Math.ceil(product.title.length * estimatedCharacterWidth + headingHorizontalPadding);
-    const requiredPerColumn = Math.ceil(headingWidth / product.columns.length);
-    const columnWidth = Math.min(maximumColumnWidth, Math.max(minimumColumnWidth, requiredPerColumn));
-    return product.columns.map(() => columnWidth);
+    const widthByProduct = {
+      "SHEETROCK® ONE": 48,
+      "SHEETROCK® PLUS": 48,
+      "WETSTOP®": 46,
+      "FIRESTOP®": 48,
+      "ImpactStop™": 55,
+      "MultiStop™ ONE": 58,
+      "MultiStop™ ONE HI": 110,
+      "FLEXIBOARD": 84,
+      "Villaboard": 50,
+    };
+    const width = widthByProduct[product.title] || 50;
+    return product.columns.map(() => width);
   }
 
   function buildMainProducts(definition) {
