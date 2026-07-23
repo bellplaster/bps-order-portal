@@ -80,9 +80,12 @@
 
     const lengthColumnWidth = 54;
     const productColumnWidths = products.flatMap((product) => calculateProductColumnWidths(product));
-    const tableWidth = lengthColumnWidth + productColumnWidths.reduce((total, width) => total + width, 0);
-    table.style.width = `${tableWidth}px`;
-    table.style.minWidth = `${tableWidth}px`;
+    const minimumTableWidth = lengthColumnWidth + productColumnWidths.reduce((total, width) => total + width, 0);
+
+    // Fill the available card width when there is spare room, but retain the
+    // compact calculated width as the minimum before horizontal scrolling.
+    table.style.width = "100%";
+    table.style.minWidth = `${minimumTableWidth}px`;
 
     const colgroup = document.createElement("colgroup");
     const lengthColumn = document.createElement("col");
@@ -160,7 +163,7 @@
   function calculateProductColumnWidths(product) {
     const widthByProduct = {
       "SHEETROCK® ONE": 48,
-      "SHEETROCK® PLUS": 48,
+      "SHEETROCK® PLUS": 60,
       "WETSTOP®": 46,
       "FIRESTOP®": 48,
       "ImpactStop™": 55,
