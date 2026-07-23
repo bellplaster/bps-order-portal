@@ -150,6 +150,14 @@
   line-height: 39px !important;
 }
 
+.order-form-page .delivery-select option {
+  color: #17211f !important;
+}
+
+.order-form-page .delivery-select option[value=""] {
+  color: #7d8884 !important;
+}
+
 .order-form-page .extras-dropdown-field .extras-dropdown > summary {
   border-right: 0 !important;
 }
