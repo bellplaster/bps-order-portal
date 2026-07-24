@@ -2,6 +2,8 @@
   const originalRenderReview = window.renderReview;
 
   window.renderUnifiedFloorSheet = function renderUnifiedFloorSheet(floor) {
+    removeUnavailableQuantities(floor);
+
     const root = document.getElementById(`${floor}OrderSheet`);
     root.replaceChildren();
 
@@ -49,23 +51,25 @@
       ...buildMainProducts(mainDefinition),
       ...buildSpecialtyProducts(specialtyGroups),
       ...buildVillaboardProduct(villaboardDefinition),
-    ].filter((product) => product.columns.length);
+    ].filter((product) => product.columns.some((column) => column.cells.size));
 
     const preferredLengths = ["6000", "4800", "4200", "3600", "3000", "2700", "2400"];
     const discoveredLengths = new Set(preferredLengths);
     products.forEach((product) => product.columns.forEach((column) => {
       column.cells.forEach((_key, length) => discoveredLengths.add(String(length)));
     }));
-    const lengths = [...discoveredLengths].sort((left, right) => {
-      const leftIndex = preferredLengths.indexOf(left);
-      const rightIndex = preferredLengths.indexOf(right);
-      if (leftIndex >= 0 || rightIndex >= 0) {
-        if (leftIndex < 0) return 1;
-        if (rightIndex < 0) return -1;
-        return leftIndex - rightIndex;
-      }
-      return Number(right) - Number(left);
-    });
+    const lengths = [...discoveredLengths]
+      .filter((length) => products.some((product) => product.columns.some((column) => column.cells.has(length))))
+      .sort((left, right) => {
+        const leftIndex = preferredLengths.indexOf(left);
+        const rightIndex = preferredLengths.indexOf(right);
+        if (leftIndex >= 0 || rightIndex >= 0) {
+          if (leftIndex < 0) return 1;
+          if (rightIndex < 0) return -1;
+          return leftIndex - rightIndex;
+        }
+        return Number(right) - Number(left);
+      });
 
     const section = document.createElement("section");
     section.className = "pdf-product-section unified-board-section";
@@ -195,9 +199,10 @@
         const cells = new Map();
         (definition.rows || []).forEach((row) => {
           const key = row.cells?.[sourceIndex];
-          if (key) cells.set(String(row.length), key);
+          if (hasValidProductKey(key)) cells.set(String(row.length), key);
         });
         product.columns.push({
+          thickness: normaliseThickness(group.subgroup),
           width: String(sourceColumn.variant || ""),
           cells,
         });
@@ -212,7 +217,7 @@
       const columns = [];
       (group.rows || []).forEach((row) => {
         const dimensions = parseBoardDimensions(`${row.label || ""} ${row.detail || ""}`);
-        if (!dimensions || !row.key) return;
+        if (!dimensions || !hasValidProductKey(row.key)) return;
         columns.push({
           thickness: dimensions.thickness,
           width: dimensions.width,
@@ -235,15 +240,30 @@
       const cells = new Map();
       (definition.rows || []).forEach((row) => {
         const key = row.cells?.[source.index];
-        if (key) cells.set(String(row.label ?? row.length ?? ""), key);
+        if (hasValidProductKey(key)) cells.set(String(row.label ?? row.length ?? ""), key);
       });
-      return { width: source.width.replace(/\s*mm$/i, ""), cells };
+      return { thickness: "6 mm", width: source.width.replace(/\s*mm$/i, ""), cells };
     });
     return [{
       title: "Villaboard",
       thicknesses: [{ label: "6 mm", span: columns.length }],
       columns,
     }];
+  }
+
+  function hasValidProductKey(key) {
+    if (!key) return false;
+    const product = state.catalog?.[key];
+    const sku = String(product?.sku || "").trim().toUpperCase();
+    return Boolean(product && product.mapped !== false && sku && sku !== "N/A");
+  }
+
+  function removeUnavailableQuantities(floor) {
+    const quantities = state.quantities?.[floor];
+    if (!(quantities instanceof Map)) return;
+    [...quantities.keys()].forEach((key) => {
+      if (!hasValidProductKey(key)) quantities.delete(key);
+    });
   }
 
   function mergeThicknesses(columns) {
