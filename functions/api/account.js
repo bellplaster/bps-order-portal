@@ -1,4 +1,5 @@
 import { hashPassword, verifyPassword } from "../_shared/auth.js";
+import { normaliseAustralianPhone } from "../_shared/phone.js";
 import { json } from "../_shared/responses.js";
 
 export async function onRequestGet(context) {
@@ -49,7 +50,10 @@ export async function onRequestPut(context) {
 
     const companyName = cleanRequired(body.companyName ?? account.company_name, "Company name", 160);
     const defaultContactName = cleanOptional(body.defaultContactName ?? account.default_contact_name, 100);
-    const defaultMobile = normaliseMobile(body.defaultMobile ?? account.default_mobile, true);
+    const defaultMobile = normaliseAustralianPhone(body.defaultMobile ?? account.default_mobile, {
+      optional: true,
+      error: "Enter a valid Australian phone number.",
+    });
     const debtorCode = auth.role === "admin"
       ? cleanRequired(body.debtorCode ?? account.debtor_code, "Debtor code", 80).toUpperCase()
       : account.debtor_code;
@@ -91,12 +95,15 @@ export async function onRequestPost(context) {
       const debtorCode = cleanRequired(body.debtorCode, "Debtor code", 80).toUpperCase();
       const companyName = cleanRequired(body.companyName, "Company name", 160);
       const contact = cleanOptional(body.defaultContactName, 100);
-      const mobile = normaliseMobile(body.defaultMobile, true);
+      const phone = normaliseAustralianPhone(body.defaultMobile, {
+        optional: true,
+        error: "Enter a valid Australian phone number.",
+      });
       const result = await context.env.DB.prepare(
         `INSERT INTO customer_accounts (
            debtor_code, company_name, default_contact_name, default_mobile, active, created_at, updated_at
          ) VALUES (?, ?, ?, ?, 1, ?, ?)`,
-      ).bind(debtorCode, companyName, contact, mobile, nowIso(), nowIso()).run();
+      ).bind(debtorCode, companyName, contact, phone, nowIso(), nowIso()).run();
       return json({ ok: true, accountId: Number(result?.meta?.last_row_id || 0) }, 201);
     }
 
@@ -195,13 +202,6 @@ function cleanRequired(value, label, maxLength) {
 }
 function cleanOptional(value, maxLength) {
   return String(value || "").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, maxLength);
-}
-function normaliseMobile(value, optional = false) {
-  let digits = String(value || "").replace(/\D/g, "");
-  if (!digits && optional) return "";
-  if (digits.startsWith("61") && digits.length === 11) digits = `0${digits.slice(2)}`;
-  if (!/^04\d{8}$/.test(digits)) throw badRequest("Mobile must be an Australian mobile number beginning with 04.");
-  return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`;
 }
 function nowIso() { return new Date().toISOString(); }
 function apiError(error) {
