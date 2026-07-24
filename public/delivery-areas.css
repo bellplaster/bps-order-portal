@@ -1,1 +1,275 @@
-.products-area{padding-top:0!important}.products-area>.floor-tabs{position:static!important;display:flex!important;align-items:center!important;gap:4px!important;width:100%!important;margin:0 0 8px!important;padding:0!important;overflow-x:auto!important;overflow-y:hidden!important;border:0!important;background:transparent!important;box-shadow:none!important}.products-area>.floor-tabs::before,.products-area>.floor-tabs::after,.area-tab-shell::before,.area-tab-shell::after,.floor-tab::before,.floor-tab::after{display:none!important;content:none!important}.area-tab-shell{display:inline-flex;box-sizing:border-box;flex:0 0 auto;height:34px;overflow:hidden;align-items:stretch;border:1px solid #cfd6d4;border-radius:0;background:#f4f6f5;clip-path:none!important;box-shadow:none}.area-tab-shell.is-active{border-color:var(--bell-maroon);background:var(--bell-maroon)}.floor-tab{display:flex!important;box-sizing:border-box!important;min-width:0!important;height:32px!important;margin:0!important;padding:0 10px!important;align-items:center!important;justify-content:center!important;gap:7px!important;border:0!important;border-radius:0!important;background:transparent!important;color:#4e5a56!important;clip-path:none!important;box-shadow:none!important;font-size:11px!important;font-weight:600!important;line-height:1!important;text-align:center!important;white-space:nowrap}.area-tab-shell.is-active .floor-tab{color:#fff!important;background:transparent!important}.area-tab-label{display:inline-flex;min-width:0;height:100%;align-items:center;white-space:nowrap}.area-tab-count{display:inline-grid;box-sizing:border-box;min-width:17px;height:17px;padding:0 4px;place-items:center;border-radius:2px;background:#dce2e0;color:#43504c;font-size:10px;font-weight:700;line-height:17px}.area-tab-shell.is-active .area-tab-count{background:rgba(255,255,255,.2);color:#fff}.area-tab-count[hidden]{display:none!important}.area-tab-delete{display:grid;box-sizing:border-box;width:27px;height:32px;margin:0;padding:0;place-items:center;border:0;border-left:1px solid rgba(82,96,92,.18);border-radius:0;background:transparent;color:#68736f;font-size:15px;font-weight:400;line-height:1;cursor:pointer}.area-tab-shell.is-active .area-tab-delete{color:#fff;border-left-color:rgba(255,255,255,.25)}.area-tab-delete:hover,.area-tab-delete:focus{background:rgba(0,0,0,.055);outline:0}.area-tab-shell.is-active .area-tab-delete:hover,.area-tab-shell.is-active .area-tab-delete:focus{background:rgba(255,255,255,.12)}.area-tab-add{display:grid;box-sizing:border-box;flex:0 0 auto;width:34px;height:34px;margin:0;padding:0;place-items:center;border:1px solid #cfd6d4;border-radius:0;background:#fff;color:var(--bell-maroon);font-size:17px;font-weight:500;line-height:1;cursor:pointer;box-shadow:none}.area-tab-add:hover,.area-tab-add:focus{border-color:var(--bell-maroon);background:#fbf3f5;outline:0}.area-tab-add:disabled{cursor:not-allowed;opacity:.45}.area-name-editor{display:flex;flex:0 0 auto;height:34px;margin-left:1px}.area-name-editor input{box-sizing:border-box;width:190px;height:34px;margin:0;padding:0 9px;border:1px solid var(--bell-green);border-radius:0;outline:0;background:#fff;font:400 11px/32px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.area-name-editor button{box-sizing:border-box;height:34px;margin:0 0 0 -1px;padding:0 10px;border:1px solid #cfd6d4;border-radius:0;background:#fff;color:#17211f;font-size:11px;font-weight:600;cursor:pointer}.area-name-editor button[type="submit"]{border-color:var(--bell-maroon);background:var(--bell-maroon);color:#fff}.floor-panels{width:100%}.floor-panel{width:100%}.products-area .pdf-form-sheet{padding:0!important}@media(max-width:760px){.area-tab-shell,.area-tab-add,.area-name-editor,.area-name-editor input,.area-name-editor button{height:32px}.floor-tab,.area-tab-delete{height:30px}.area-name-editor input{width:150px}}
+.products-area {
+  padding-top: 0 !important;
+}
+
+.products-area > .floor-tabs {
+  position: static !important;
+  display: flex !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  margin: 0 0 8px !important;
+  padding: 4px !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 4px !important;
+  overflow: visible !important;
+  border: 1px solid #cfd6d4 !important;
+  background: #eef1f0 !important;
+  box-shadow: none !important;
+}
+
+.products-area > .floor-tabs::before,
+.products-area > .floor-tabs::after,
+.area-tab-shell::before,
+.area-tab-shell::after,
+.floor-tab::before,
+.floor-tab::after {
+  display: none !important;
+  content: none !important;
+}
+
+.area-tab-shell,
+.floor-tab,
+.area-tab-delete,
+.area-tab-add,
+.area-name-editor,
+.area-name-editor input,
+.area-name-editor button {
+  box-sizing: border-box !important;
+  border-radius: 0 !important;
+  clip-path: none !important;
+  -webkit-clip-path: none !important;
+  mask: none !important;
+  -webkit-mask: none !important;
+  transform: none !important;
+  background-image: none !important;
+}
+
+.area-tab-shell {
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+  min-width: 88px !important;
+  height: 32px !important;
+  align-items: stretch !important;
+  overflow: hidden !important;
+  border: 1px solid #bcc6c3 !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+}
+
+.area-tab-shell:hover {
+  border-color: #8f9b97 !important;
+}
+
+.area-tab-shell.is-active {
+  border-color: var(--bell-maroon) !important;
+  background: var(--bell-maroon) !important;
+}
+
+.floor-tab {
+  display: flex !important;
+  min-width: 0 !important;
+  height: 30px !important;
+  margin: 0 !important;
+  padding: 0 10px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #35413d !important;
+  box-shadow: none !important;
+  font: 600 11px/1 Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+.area-tab-shell.is-active .floor-tab {
+  color: #ffffff !important;
+}
+
+.area-tab-label {
+  display: inline-flex !important;
+  min-width: 0 !important;
+  height: 100% !important;
+  align-items: center !important;
+  justify-content: center !important;
+  white-space: nowrap !important;
+}
+
+.area-tab-count {
+  display: inline-grid !important;
+  min-width: 18px !important;
+  height: 18px !important;
+  padding: 0 5px !important;
+  place-items: center !important;
+  border: 1px solid #c8d0ce !important;
+  border-radius: 999px !important;
+  background: #e8eceb !important;
+  color: #35413d !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  line-height: 16px !important;
+}
+
+.area-tab-shell.is-active .area-tab-count {
+  border-color: rgba(255,255,255,.34) !important;
+  background: rgba(255,255,255,.18) !important;
+  color: #ffffff !important;
+}
+
+.area-tab-count[hidden] {
+  display: none !important;
+}
+
+.area-tab-delete {
+  display: grid !important;
+  width: 28px !important;
+  height: 30px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  place-items: center !important;
+  border: 0 !important;
+  border-left: 1px solid #d6dcda !important;
+  background: transparent !important;
+  color: #6b7672 !important;
+  box-shadow: none !important;
+  font-size: 15px !important;
+  font-weight: 400 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+}
+
+.area-tab-shell.is-active .area-tab-delete {
+  border-left-color: rgba(255,255,255,.28) !important;
+  color: #ffffff !important;
+}
+
+.area-tab-delete:hover,
+.area-tab-delete:focus-visible {
+  background: rgba(0,0,0,.06) !important;
+  outline: 0 !important;
+}
+
+.area-tab-shell.is-active .area-tab-delete:hover,
+.area-tab-shell.is-active .area-tab-delete:focus-visible {
+  background: rgba(255,255,255,.14) !important;
+}
+
+.area-tab-add {
+  display: grid !important;
+  flex: 0 0 auto !important;
+  width: 32px !important;
+  height: 32px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  place-items: center !important;
+  border: 1px solid #bcc6c3 !important;
+  background: #ffffff !important;
+  color: var(--bell-maroon) !important;
+  box-shadow: none !important;
+  font-size: 17px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+}
+
+.area-tab-add:hover,
+.area-tab-add:focus-visible {
+  border-color: var(--bell-maroon) !important;
+  background: #fbf3f5 !important;
+  outline: 0 !important;
+}
+
+.area-tab-add:disabled {
+  cursor: not-allowed !important;
+  opacity: .45 !important;
+}
+
+.area-name-editor {
+  display: flex !important;
+  flex: 1 0 100% !important;
+  width: 100% !important;
+  height: 34px !important;
+  margin: 2px 0 0 !important;
+  padding: 0 !important;
+  align-items: stretch !important;
+  background: transparent !important;
+}
+
+.area-name-editor input {
+  width: min(280px, calc(100vw - 190px)) !important;
+  height: 34px !important;
+  margin: 0 !important;
+  padding: 0 10px !important;
+  border: 1px solid var(--bell-green) !important;
+  outline: 0 !important;
+  background: #ffffff !important;
+  color: #17211f !important;
+  font: 400 11px/32px Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+}
+
+.area-name-editor input:invalid {
+  border-color: #c23a4d !important;
+}
+
+.area-name-editor button {
+  height: 34px !important;
+  margin: 0 0 0 -1px !important;
+  padding: 0 12px !important;
+  border: 1px solid #cfd6d4 !important;
+  background: #ffffff !important;
+  color: #17211f !important;
+  box-shadow: none !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+}
+
+.area-name-editor button[type="submit"] {
+  border-color: var(--bell-maroon) !important;
+  background: var(--bell-maroon) !important;
+  color: #ffffff !important;
+}
+
+.area-name-editor button:hover,
+.area-name-editor button:focus-visible {
+  filter: brightness(.97) !important;
+  outline: 0 !important;
+}
+
+.floor-panels,
+.floor-panel {
+  width: 100% !important;
+}
+
+.products-area .pdf-form-sheet {
+  padding: 0 !important;
+}
+
+@media (max-width: 760px) {
+  .products-area > .floor-tabs {
+    padding: 3px !important;
+  }
+
+  .area-tab-shell,
+  .area-tab-add {
+    height: 30px !important;
+  }
+
+  .floor-tab,
+  .area-tab-delete {
+    height: 28px !important;
+  }
+
+  .area-name-editor,
+  .area-name-editor input,
+  .area-name-editor button {
+    height: 32px !important;
+  }
+
+  .area-name-editor input {
+    width: calc(100% - 112px) !important;
+    line-height: 30px !important;
+  }
+}
