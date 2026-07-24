@@ -117,9 +117,7 @@ function setToday() {
   setValue("orderDate", formatDate(iso));
   const required = document.getElementById("requiredDate");
   required.min = iso;
-  const max = new Date(`${iso}T00:00:00Z`);
-  max.setUTCFullYear(max.getUTCFullYear() + 1);
-  required.max = max.toISOString().slice(0, 10);
+  required.removeAttribute("max");
 }
 
 function scheduleDraft() {
@@ -224,8 +222,8 @@ function value(id) { return document.getElementById(id)?.value?.trim() || ""; }
 function setValue(id, valueToSet) { const element = document.getElementById(id); if (element) element.value = valueToSet || ""; }
 function daysBetween(from, to) { return Math.round((new Date(`${to}T00:00:00Z`) - new Date(`${from}T00:00:00Z`)) / 86400000); }
 function formatDate(iso) { if (!iso) return ""; const [year, month, day] = iso.split("-"); return `${day}-${month}-${year}`; }
-function normaliseMobile(input) { let digits = String(input || "").replace(/\D/g, ""); if (digits.startsWith("61") && digits.length === 11) digits = `0${digits.slice(2)}`; return /^04\d{8}$/.test(digits) ? `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}` : ""; }
-function formatMobileTyping(input) { const digits = String(input || "").replace(/\D/g, "").slice(0, 10); return [digits.slice(0, 4), digits.slice(4, 7), digits.slice(7, 10)].filter(Boolean).join(" "); }
+function normaliseMobile(input) { let digits = String(input || "").replace(/\D/g, ""); if (digits.startsWith("61") && digits.length >= 11) digits = `0${digits.slice(2)}`; if (/^04\d{8}$/.test(digits)) return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`; if (/^0[2378]\d{8}$/.test(digits)) return `${digits.slice(0, 2)} ${digits.slice(2, 6)} ${digits.slice(6)}`; if (/^(1300|1800)\d{6}$/.test(digits)) return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`; if (/^13\d{4}$/.test(digits)) return `${digits.slice(0, 2)} ${digits.slice(2, 4)} ${digits.slice(4)}`; return ""; }
+function formatMobileTyping(input) { let digits = String(input || "").replace(/\D/g, ""); if (digits.startsWith("61")) digits = `0${digits.slice(2)}`; digits = digits.slice(0, 10); if (digits.startsWith("04")) return [digits.slice(0, 4), digits.slice(4, 7), digits.slice(7)].filter(Boolean).join(" "); if (/^0[2378]/.test(digits)) return [digits.slice(0, 2), digits.slice(2, 6), digits.slice(6)].filter(Boolean).join(" "); if (/^(1300|1800)/.test(digits)) return [digits.slice(0, 4), digits.slice(4, 7), digits.slice(7)].filter(Boolean).join(" "); if (digits.startsWith("13")) return [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 6)].filter(Boolean).join(" "); return digits; }
 function fieldError(id, message) { document.getElementById(id)?.focus(); return new Error(message); }
 function showGlobal(message, type = "error") { const box = document.getElementById("globalMessage"); box.textContent = message; box.className = `portal-message is-${type}`; box.hidden = false; window.scrollTo({ top: 0, behavior: "smooth" }); }
 function showFormMessage(message, type = "error") { const box = document.getElementById("formMessage"); box.textContent = message; box.className = `portal-message is-${type}`; box.hidden = false; box.scrollIntoView({ behavior: "smooth", block: "center" }); }
