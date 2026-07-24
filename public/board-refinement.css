@@ -38,34 +38,34 @@
   width: 48px;
 }
 
+.unified-board-table tr {
+  height: 26px !important;
+}
+
 .unified-board-table th,
 .unified-board-table td {
-  padding: 1px 2px;
+  box-sizing: border-box !important;
+  height: 26px !important;
+  min-height: 26px !important;
+  max-height: 26px !important;
+  padding: 1px 2px !important;
+  vertical-align: middle !important;
   font-size: 11px;
+  line-height: 24px !important;
 }
 
-.unified-board-table thead tr:first-child th {
-  height: 34px !important;
-}
-
+.unified-board-table thead tr:first-child th,
 .unified-board-table thead tr:nth-child(2) th,
-.unified-board-table thead tr:nth-child(3) th {
-  height: 29px !important;
-  min-height: 29px;
-}
-
+.unified-board-table thead tr:nth-child(3) th,
 .unified-board-table tbody th,
 .unified-board-table tbody td {
-  height: 28px !important;
-  min-height: 28px;
-}
-
-.unified-board-table thead th {
-  line-height: 1.1;
+  height: 26px !important;
+  min-height: 26px !important;
+  max-height: 26px !important;
 }
 
 .unified-board-table .board-corner-heading {
-  padding-left: 5px;
+  padding-left: 5px !important;
   background: var(--section);
   text-align: left;
   font-size: 11px;
@@ -74,7 +74,7 @@
 }
 
 .unified-board-table .board-product-heading {
-  padding: 2px 4px;
+  padding: 1px 4px !important;
   background: var(--section);
   font-size: 11px;
   font-weight: 700 !important;
@@ -86,9 +86,9 @@
 }
 
 .unified-board-table .board-axis-heading {
+  padding-left: 5px !important;
   background: #f7f9f8;
   text-align: left;
-  padding-left: 5px;
   font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
@@ -96,36 +96,48 @@
 
 .unified-board-table .board-thickness-heading,
 .unified-board-table .board-width-heading {
-  padding-inline: 2px;
+  padding-inline: 2px !important;
   font-size: 11px;
   font-weight: 600;
   white-space: nowrap;
 }
 
 .unified-board-table .board-row-heading {
-  height: 28px !important;
-  padding-left: 5px;
+  height: 26px !important;
+  min-height: 26px !important;
+  max-height: 26px !important;
+  padding-left: 5px !important;
   text-align: left;
   font-size: 11px;
   font-weight: 600;
-  line-height: 1;
+  line-height: 24px !important;
   white-space: nowrap;
 }
 
+.unified-board-table .quantity-cell,
+.unified-board-table .unavailable-cell {
+  box-sizing: border-box !important;
+  height: 26px !important;
+  min-height: 26px !important;
+  max-height: 26px !important;
+}
+
 .unified-board-table .quantity-cell {
-  height: 28px !important;
-  min-height: 28px;
   padding: 1px !important;
 }
 
 .unified-board-table .quantity-input {
+  display: block !important;
+  box-sizing: border-box !important;
   width: 100%;
-  height: 22px !important;
-  min-height: 22px !important;
-  padding: 1px 2px;
-  border-radius: 2px;
+  height: 24px !important;
+  min-height: 24px !important;
+  max-height: 24px !important;
+  margin: 0 !important;
+  padding: 0 2px !important;
+  border-radius: 0 !important;
   font-size: 11px;
-  line-height: 1;
+  line-height: 24px !important;
 }
 
 @media (max-width: 900px) {
