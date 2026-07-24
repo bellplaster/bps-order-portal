@@ -65,15 +65,31 @@
   box-shadow: none !important;
 }
 
-/* Lower catalogue quantities use the same thin ring without changing their
-   existing dimensions. */
+/* Lower catalogue quantities fill the complete table cell, matching the
+   edge-to-edge board matrix instead of leaving a white inset around values. */
+.pdf-lower-grid .quantity-cell,
+.lower-catalogue-grid .quantity-cell {
+  padding: 0 !important;
+}
+
 .pdf-lower-grid .quantity-input,
 .lower-catalogue-grid .quantity-input,
 .pdf-lower-grid .quantity-input.has-value,
 .lower-catalogue-grid .quantity-input.has-value {
+  display: block !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: none !important;
+  height: 26px !important;
+  min-height: 26px !important;
+  max-height: 26px !important;
+  margin: 0 !important;
+  padding: 0 2px !important;
   border: 0 !important;
+  border-radius: 0 !important;
   outline: 0 !important;
   box-shadow: none !important;
+  line-height: 26px !important;
 }
 
 .pdf-lower-grid .quantity-input:focus,
@@ -83,4 +99,14 @@
   outline: 1px solid #006557 !important;
   outline-offset: -1px !important;
   box-shadow: none !important;
+}
+
+/* Entered quantities are a confirmed/active state, so use Bell green rather
+   than the maroon/error-like treatment. */
+.unified-board-table .quantity-input.has-value,
+.pdf-lower-grid .quantity-input.has-value,
+.lower-catalogue-grid .quantity-input.has-value {
+  background: #edf7f4 !important;
+  color: #006557 !important;
+  font-weight: 700 !important;
 }
