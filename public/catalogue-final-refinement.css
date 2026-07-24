@@ -1,0 +1,14 @@
+.fasteners-table tbody>tr:first-child{display:table-row!important}
+.fasteners-table .lower-group-heading th{font-size:11px!important;line-height:24px!important}
+.fasteners-table .lower-group-heading th::before,.fasteners-table .lower-group-heading th::after,.fasteners-table tbody>tr:nth-child(2) th::before,.fasteners-table tbody>tr:nth-child(2) th::after,.fasteners-table tbody>tr:nth-child(6) th::before,.fasteners-table tbody>tr:nth-child(6) th::after{display:none!important;content:none!important}
+.fasteners-table .lower-matrix-header th:first-child{text-align:left!important}
+.fasteners-table .lower-matrix-header th:not(:first-child){text-align:center!important}
+.fasteners-table th{overflow:visible!important;text-overflow:clip!important}
+.insulation-table col:nth-child(1){width:32%!important}
+.insulation-table col:nth-child(2){width:28%!important}
+.insulation-table col:nth-child(3),.insulation-table col:nth-child(4){width:20%!important}
+.insulation-table .lower-item-detail{overflow:visible!important;text-overflow:clip!important;white-space:nowrap!important}
+.acoustics-table .lower-item-detail{text-align:center!important}
+.acoustics-table .acoustic-weight-cell{vertical-align:middle!important;text-align:left!important}
+.rondo-table col:first-child{width:36%!important}
+.rondo-table .lower-matrix-header th:not(:first-child),.rondo-table td{text-align:center!important}
