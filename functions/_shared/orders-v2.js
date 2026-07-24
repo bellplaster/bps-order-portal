@@ -434,7 +434,6 @@ function normaliseOrderDetails(rawPayload, account, existingReference = "") {
   if (!isValidIsoDate(requiredDate)) throw new Error("Required Date is invalid.");
   const daysAhead = differenceInIsoCalendarDays(orderDate, requiredDate);
   if (daysAhead < 0) throw new Error("Required Date cannot be earlier than the Order Date.");
-  if (daysAhead > 365) throw new Error("Required Date cannot be more than 12 months after the Order Date.");
   if (daysAhead >= 180 && rawPayload?.futureDateConfirmed !== true) throw new Error("The Required Date is six months or more in the future and must be confirmed.");
 
   const timeSlot = cleanRequiredText(rawPayload?.timeSlot, "Time Slot", 10).toUpperCase();
@@ -447,9 +446,7 @@ function normaliseOrderDetails(rawPayload, account, existingReference = "") {
 
   const contact = cleanRequiredText(rawPayload?.contact || rawPayload?.siteContact || account.default_contact_name, "Contact Name", 120);
   if (!isValidContactName(contact)) throw new Error("Contact Name must contain at least two letters and cannot contain numbers.");
-  const mobile = normaliseAustralianPhone(rawPayload?.mobile || rawPayload?.siteContactPhone || account.default_mobile, {
-    error: "Enter a valid Australian phone number.",
-  });
+  const mobile = normaliseAustralianPhone(rawPayload?.mobile || rawPayload?.siteContactPhone || account.default_mobile);
   const reference = existingReference || cleanRequiredText(rawPayload?.reference || rawPayload?.customerReference, "Reference", 80);
 
   return {
