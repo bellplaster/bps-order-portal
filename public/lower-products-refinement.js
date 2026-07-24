@@ -4,6 +4,13 @@
 
   const ACCESSORY_PATTERN = /^(Stud Adhesive|Paper Tape|Fibreglass Tape)$/i;
   const RONDO_LENGTHS = ["1800", "2400", "2700", "3000", "3600", "6000", "6100"];
+  const REMOVED_LIST_ROWS = new Set([
+    "basecote 45|10 kg",
+    "sheetrock total lite (blue lid)|17.5 kg",
+    "patching plaster|1.5 kg",
+    "cornice adhesive 45|10 kg",
+    "firesound cartridge|450 ml",
+  ]);
   const LABEL_OVERRIDES = new Map([
     ["IIPWBATT", "50mm Partiwall Batt (3 Pack)"],
     ["LS55", "16mm Small Head DP"],
@@ -199,8 +206,8 @@
 
     const products = new Map();
     (definition?.rows || []).forEach((row) => {
-      if (!hasValidProductKey(row.key)) return;
       const label = String(row.label || "").trim();
+      if (/^Battens Cyclonic$/i.test(label) || !hasValidProductKey(row.key)) return;
       const length = String(row.detail || "").match(/\d+/)?.[0] || "";
       if (!products.has(label)) products.set(label, new Map());
       if (length) products.get(label).set(length, row.key);
@@ -224,7 +231,7 @@
   function renderCornicesCategory(floor, cove, decorative) {
     const section = makeCategory("CORNICES", "cornices-category");
 
-    const coveRows = normaliseMatrixRows(cove?.rows || []);
+    const coveRows = normaliseMatrixRows(cove?.rows || []).filter((row) => String(row.label || "").trim() === "4800");
     if (coveRows.length) {
       const coveTable = makeTable("cornice-cove-table");
       addColgroup(coveTable, [46, 18, 18, 18]);
@@ -326,6 +333,7 @@
     normaliseMatrixRows(matrix?.rows || []).forEach((row) => appendMatrixRow(tbody, floor, row.label || "", row.cells || []));
 
     const rows = normaliseListRows([...(accessories?.rows || []), ...(screws?.rows || [])])
+      .filter((row) => !/^Aluminium Clips Flat(?: \(each\))?$/i.test(String(row.label || "").trim()))
       .map((row, index) => ({ row, index, rank: PARTIWALL_ORDER.get(getSku(row.key)) ?? 100 + index }))
       .sort((left, right) => left.rank - right.rank || left.index - right.index)
       .map((entry) => entry.row);
@@ -347,7 +355,7 @@
 
   function normaliseListRows(rows) {
     return (rows || [])
-      .filter((row) => hasValidProductKey(row.key))
+      .filter((row) => hasValidProductKey(row.key) && !REMOVED_LIST_ROWS.has(listRowSignature(row)))
       .map((row) => applyLabelOverride(row));
   }
 
@@ -366,6 +374,10 @@
     if (!label) return row;
     if (state.catalog?.[row.key]) state.catalog[row.key].label = label;
     return { ...row, label };
+  }
+
+  function listRowSignature(row) {
+    return `${String(row?.label || "").trim().toLowerCase()}|${String(row?.detail || "").trim().toLowerCase()}`;
   }
 
   function hasValidProductKey(key) {
