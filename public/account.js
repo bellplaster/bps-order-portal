@@ -3,14 +3,16 @@ let data = null;
 document.addEventListener("DOMContentLoaded", initialise);
 
 async function initialise() {
-  document.getElementById("logoutButton").addEventListener("click", logout);
-  document.getElementById("accountForm").addEventListener("submit", saveAccount);
-  document.getElementById("passwordForm").addEventListener("submit", changePassword);
-  document.getElementById("createAccountForm").addEventListener("submit", createAccount);
-  document.getElementById("createUserForm").addEventListener("submit", createUser);
-  document.getElementById("newUserRole").addEventListener("change", toggleUserAccount);
-  document.getElementById("defaultMobile").addEventListener("input", formatMobileField);
-  document.getElementById("newDefaultMobile").addEventListener("input", formatMobileField);
+  document.getElementById("logoutButton")?.addEventListener("click", logout);
+  document.getElementById("accountForm")?.addEventListener("submit", saveAccount);
+  document.getElementById("passwordForm")?.addEventListener("submit", changePassword);
+  document.getElementById("togglePasswordPanel")?.addEventListener("click", () => togglePasswordPanel());
+  document.getElementById("cancelPasswordChange")?.addEventListener("click", () => togglePasswordPanel(false));
+  document.getElementById("createAccountForm")?.addEventListener("submit", createAccount);
+  document.getElementById("createUserForm")?.addEventListener("submit", createUser);
+  document.getElementById("newUserRole")?.addEventListener("change", toggleUserAccount);
+  document.getElementById("defaultMobile")?.addEventListener("input", formatMobileField);
+  document.getElementById("newDefaultMobile")?.addEventListener("input", formatMobileField);
   await loadAccount();
 }
 
@@ -54,6 +56,10 @@ async function saveAccount(event) {
 async function changePassword(event) {
   event.preventDefault();
   const newPassword = document.getElementById("newPassword").value;
+  if (newPassword.length < 8) {
+    showMessage("Password must contain at least 8 characters.", "error");
+    return;
+  }
   if (newPassword !== document.getElementById("confirmPassword").value) {
     showMessage("New passwords do not match.", "error");
     return;
@@ -68,10 +74,23 @@ async function changePassword(event) {
       }),
     });
     event.target.reset();
+    togglePasswordPanel(false);
     showMessage("Password changed.", "success");
   } catch (error) {
     showMessage(error.message || String(error), "error");
   }
+}
+
+function togglePasswordPanel(force) {
+  const panel = document.getElementById("passwordPanel");
+  const button = document.getElementById("togglePasswordPanel");
+  if (!panel || !button) return;
+  const open = typeof force === "boolean" ? force : panel.hidden;
+  panel.hidden = !open;
+  button.setAttribute("aria-expanded", String(open));
+  button.querySelector("b").textContent = open ? "Close" : "Change";
+  if (open) window.setTimeout(() => document.getElementById("currentPassword")?.focus(), 0);
+  else document.getElementById("passwordForm")?.reset();
 }
 
 async function createAccount(event) {
@@ -143,14 +162,23 @@ function renderAdminData() {
 }
 
 function toggleUserAccount() {
-  const admin = document.getElementById("newUserRole").value === "admin";
-  document.getElementById("newUserAccount").disabled = admin;
-  if (admin) document.getElementById("newUserAccount").value = "";
+  const role = document.getElementById("newUserRole");
+  const account = document.getElementById("newUserAccount");
+  if (!role || !account) return;
+  const admin = role.value === "admin";
+  account.disabled = admin;
+  if (admin) account.value = "";
 }
 
 function formatMobileField(event) {
-  const digits = event.target.value.replace(/\D/g, "").slice(0, 10);
-  event.target.value = [digits.slice(0, 4), digits.slice(4, 7), digits.slice(7)].filter(Boolean).join(" ");
+  let digits = event.target.value.replace(/\D/g, "");
+  if (digits.startsWith("61")) digits = `0${digits.slice(2)}`;
+  digits = digits.slice(0, 10);
+  if (digits.startsWith("04")) event.target.value = [digits.slice(0, 4), digits.slice(4, 7), digits.slice(7)].filter(Boolean).join(" ");
+  else if (/^0[2378]/.test(digits)) event.target.value = [digits.slice(0, 2), digits.slice(2, 6), digits.slice(6)].filter(Boolean).join(" ");
+  else if (/^(1300|1800)/.test(digits)) event.target.value = [digits.slice(0, 4), digits.slice(4, 7), digits.slice(7)].filter(Boolean).join(" ");
+  else if (digits.startsWith("13")) event.target.value = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 6)].filter(Boolean).join(" ");
+  else event.target.value = digits;
 }
 
 async function logout() {
@@ -177,6 +205,6 @@ function showMessage(message, type) {
   box.textContent = message;
   box.className = `portal-message is-${type}`;
   box.hidden = false;
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  box.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 function escapeHtml(value) { return String(value ?? "").replace(/[&<>'\"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '\"': "&quot;" })[character]); }
