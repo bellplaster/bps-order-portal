@@ -1,5 +1,16 @@
 (() => {
   const originalRenderReview = window.renderReview;
+  const BLOCKED_BOARD_VARIANTS = new Set([
+    "SHEETROCK® ONE|13 mm|1350|4200",
+    "SHEETROCK® ONE|10 mm|1200|2700",
+    "SHEETROCK® PLUS|10 mm|1200|2700",
+    "WETSTOP®|13 mm|1200|3600",
+    "WETSTOP®|13 mm|1200|2700",
+    "WETSTOP®|13 mm|1200|2400",
+    "Villaboard|6 mm|1200|4200",
+    "Villaboard|6 mm|1350|4200",
+    "Villaboard|6 mm|1350|2700",
+  ]);
 
   window.renderUnifiedFloorSheet = function renderUnifiedFloorSheet(floor) {
     removeUnavailableQuantities(floor);
@@ -199,7 +210,9 @@
         const cells = new Map();
         (definition.rows || []).forEach((row) => {
           const key = row.cells?.[sourceIndex];
-          if (hasValidProductKey(key)) cells.set(String(row.length), key);
+          if (hasValidProductKey(key) && !isBlockedBoardVariant(title, group.subgroup, sourceColumn.variant, row.length)) {
+            cells.set(String(row.length), key);
+          }
         });
         product.columns.push({
           thickness: normaliseThickness(group.subgroup),
@@ -240,7 +253,10 @@
       const cells = new Map();
       (definition.rows || []).forEach((row) => {
         const key = row.cells?.[source.index];
-        if (hasValidProductKey(key)) cells.set(String(row.label ?? row.length ?? ""), key);
+        const length = String(row.label ?? row.length ?? "");
+        if (hasValidProductKey(key) && !isBlockedBoardVariant("Villaboard", "6 mm", source.width, length)) {
+          cells.set(length, key);
+        }
       });
       return { thickness: "6 mm", width: source.width.replace(/\s*mm$/i, ""), cells };
     });
@@ -249,6 +265,16 @@
       thicknesses: [{ label: "6 mm", span: columns.length }],
       columns,
     }];
+  }
+
+  function isBlockedBoardVariant(title, thickness, width, length) {
+    const signature = [
+      displayProductName(title),
+      normaliseThickness(thickness),
+      String(width || "").replace(/\s*mm$/i, "").trim(),
+      String(length || "").trim(),
+    ].join("|");
+    return BLOCKED_BOARD_VARIANTS.has(signature);
   }
 
   function hasValidProductKey(key) {
