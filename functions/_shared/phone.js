@@ -1,5 +1,5 @@
 export function normaliseAustralianPhone(value, options = {}) {
-  const { optional = false, error = "Enter a valid Australian phone number." } = options;
+  const { optional = false } = options;
   let digits = String(value || "").replace(/\D/g, "");
   if (!digits && optional) return "";
   if (digits.startsWith("61") && digits.length >= 11) digits = `0${digits.slice(2)}`;
@@ -17,7 +17,7 @@ export function normaliseAustralianPhone(value, options = {}) {
     return `${digits.slice(0, 2)} ${digits.slice(2, 4)} ${digits.slice(4)}`;
   }
 
-  const validationError = new Error(error);
+  const validationError = new Error("Enter a valid number.");
   validationError.status = 400;
   throw validationError;
 }
