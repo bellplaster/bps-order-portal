@@ -1,40 +1,86 @@
-/* Consistent thin focus treatment for the order form. */
-.sheet-field-row > input:focus,
-.sheet-field-row > input:focus-visible,
-.sheet-field-row .date-input-shell > input:focus,
-.sheet-field-row .date-input-shell > input:focus-visible,
-.sheet-field-row .address-control > input:focus,
-.sheet-field-row .address-control > input:focus-visible,
-.delivery-select:focus,
-.delivery-select:focus-visible,
-.extras-dropdown[open] > summary,
-.extras-dropdown > summary:focus,
-.extras-dropdown > summary:focus-visible {
-  outline: 0 !important;
-  border: 0 !important;
-  box-shadow: inset 0 0 0 1px #006557 !important;
+/* One consistent focus treatment across every editable order-detail control. */
+.order-details-section input:focus,
+.order-details-section input:focus-visible,
+.order-details-section select:focus,
+.order-details-section select:focus-visible,
+.order-details-section textarea:focus,
+.order-details-section textarea:focus-visible,
+.order-details-section .extras-dropdown[open] > summary,
+.order-details-section .extras-dropdown > summary:focus,
+.order-details-section .extras-dropdown > summary:focus-visible {
+  outline: 1px solid #006557 !important;
+  outline-offset: -1px !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
 }
 
-/* Keep quantity inputs structurally unchanged while drawing one stable ring
-   on the table cell. This prevents the thick/uneven border after typing. */
+/* Remove older focus effects that were being stacked underneath the new ring. */
+.sheet-field-row > input:focus,
+.sheet-field-row .date-input-shell > input:focus,
+.sheet-field-row .address-control > input:focus,
+.delivery-select:focus,
+.delivery-select:focus-visible,
+.extras-dropdown[open] > summary {
+  box-shadow: none !important;
+}
+
+/* Board quantities: the input itself owns the focus ring. Drawing it on the
+   parent cell caused the border to appear thicker or change after has-value
+   was toggled while typing. */
+.unified-board-table .quantity-cell {
+  position: relative;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
+.unified-board-table .quantity-cell:focus-within {
+  box-shadow: none !important;
+}
+
 .unified-board-table .quantity-input,
-.unified-board-table .quantity-input:focus,
-.unified-board-table .quantity-input:focus-visible,
+.unified-board-table .quantity-input:hover,
 .unified-board-table .quantity-input:active,
-.unified-board-table .quantity-input.has-value,
+.unified-board-table .quantity-input.has-value {
+  display: block !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: none !important;
+  height: 26px !important;
+  min-height: 26px !important;
+  max-height: 26px !important;
+  margin: 0 !important;
+  padding: 0 2px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  line-height: 26px !important;
+}
+
+.unified-board-table .quantity-input:focus,
+.unified-board-table .quantity-input:focus-visible {
+  border: 0 !important;
+  outline: 1px solid #006557 !important;
+  outline-offset: -1px !important;
+  box-shadow: none !important;
+}
+
+/* Lower catalogue quantities use the same thin ring without changing their
+   existing dimensions. */
+.pdf-lower-grid .quantity-input,
 .lower-catalogue-grid .quantity-input,
-.lower-catalogue-grid .quantity-input:focus,
-.lower-catalogue-grid .quantity-input:focus-visible,
-.lower-catalogue-grid .quantity-input:active,
+.pdf-lower-grid .quantity-input.has-value,
 .lower-catalogue-grid .quantity-input.has-value {
   border: 0 !important;
   outline: 0 !important;
   box-shadow: none !important;
 }
 
-.unified-board-table .quantity-cell:focus-within,
-.lower-catalogue-grid .quantity-cell:focus-within {
-  position: relative;
-  z-index: 2;
-  box-shadow: inset 0 0 0 1px #006557 !important;
+.pdf-lower-grid .quantity-input:focus,
+.pdf-lower-grid .quantity-input:focus-visible,
+.lower-catalogue-grid .quantity-input:focus,
+.lower-catalogue-grid .quantity-input:focus-visible {
+  outline: 1px solid #006557 !important;
+  outline-offset: -1px !important;
+  box-shadow: none !important;
 }
