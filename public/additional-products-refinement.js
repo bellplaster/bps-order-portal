@@ -2,11 +2,25 @@
   const MAX_RESULTS = 100;
   let attempts = 0;
 
+  function refinePanelLabels(panel) {
+    const selectedHeader = panel?.querySelector('.selected-additional-header');
+    if (selectedHeader) {
+      const labels = selectedHeader.querySelectorAll(':scope > span');
+      if (labels[0]) labels[0].textContent = 'SKU';
+      if (labels[1]) labels[1].textContent = 'Product';
+      if (labels[2]) labels[2].textContent = 'Qty';
+    }
+  }
+
   function restructureFloor(floor) {
     const root = document.getElementById(`${floor}OrderSheet`);
     const grid = root?.querySelector('.lower-catalogue-grid');
     const panel = root?.querySelector('.additional-products-panel');
-    if (!root || !grid || !panel || grid.querySelector(':scope > .lower-catalogue-main')) return;
+    if (!root || !grid || !panel) return;
+
+    refinePanelLabels(panel);
+
+    if (grid.querySelector(':scope > .lower-catalogue-main')) return;
 
     const columns = [...grid.querySelectorAll(':scope > .lower-catalogue-column')];
     if (columns.length < 4) return;
@@ -25,6 +39,7 @@
     if (heading) heading.textContent = 'Additional products';
     const input = panel.querySelector('.additional-search input');
     if (input) input.placeholder = 'Stock code, product name or size';
+    refinePanelLabels(panel);
   }
 
   function restructureAll() {
@@ -65,7 +80,7 @@
         } else {
           const header = document.createElement('div');
           header.className = 'additional-result-header';
-          header.innerHTML = '<span>SKU</span><span>Product description</span><span></span>';
+          header.innerHTML = '<span>SKU</span><span>Product</span><span></span>';
           results.append(header);
           products.forEach((product) => {
             const row = document.createElement('button');
