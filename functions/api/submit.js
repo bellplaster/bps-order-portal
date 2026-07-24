@@ -36,7 +36,8 @@ export async function onRequestPost(context) {
     return Response.json({ ...result, requestId }, { headers: { "Cache-Control": "no-store", "X-Request-ID": requestId } });
   } catch (error) {
     const message = error?.message || String(error);
-    const status = /already been used|is required|invalid|cannot|must|contains no products|complete Victorian/i.test(message) ? 400 : 500;
+    const inferredStatus = /already been used|is required|invalid|cannot|must|contains no products|complete Victorian/i.test(message) ? 400 : 500;
+    const status = Number(error?.status || inferredStatus);
     return Response.json({ ok: false, error: message, diagnostic: error?.diagnostic || null, requestId }, { status, headers: { "X-Request-ID": requestId } });
   }
 }
