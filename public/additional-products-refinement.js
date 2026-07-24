@@ -1,14 +1,4 @@
 (() => {
-  const metricsStyle = document.createElement('link');
-  metricsStyle.rel = 'stylesheet';
-  metricsStyle.href = '/review-metrics-refinement.css?v=20260724-1';
-  document.head.append(metricsStyle);
-
-  const metricsScript = document.createElement('script');
-  metricsScript.src = '/review-metrics-refinement.js?v=20260724-1';
-  metricsScript.defer = true;
-  document.body.append(metricsScript);
-
   const MAX_RESULTS = 100;
   let attempts = 0;
 
