@@ -21,9 +21,8 @@ function validateForm() {
   if (!requiredDate) throw fieldError("requiredDate", "Choose the required date.");
   const today = value("orderDateIso");
   if (requiredDate < today) throw fieldError("requiredDate", "Required date cannot be earlier than today.");
-  if (daysBetween(today, requiredDate) > 365) throw fieldError("requiredDate", "Required date cannot be more than 12 months away.");
   if (daysBetween(today, requiredDate) >= 180 && !document.getElementById("confirmFutureRequiredDate").checked) {
-    throw new Error("Confirm the required date because it is at least six months away.");
+    throw new Error("Confirm the required date to continue.");
   }
 
   const contact = value("contactName");
@@ -32,7 +31,7 @@ function validateForm() {
   }
 
   const mobile = normaliseMobile(value("contactMobile"));
-  if (!mobile) throw fieldError("contactMobile", "Enter an Australian mobile number beginning with 04.");
+  if (!mobile) throw fieldError("contactMobile", "Enter a valid number.");
 
   const deliveryType = selectedRadio("deliveryType");
   if (!deliveryTypes.has(deliveryType)) throw new Error("Choose a delivery type.");
@@ -88,10 +87,10 @@ function buildFloorPayload(floor) {
 
 function deliveryTypeLabel(value) {
   const labels = {
-    "Manual Unload (Knauf Labour)": "Manual unload (Knauf labour)",
-    "Mechanical (Forklift/Crane/Own)": "Mechanical (forklift / crane / own)",
-    "Mixed Unload (Hand + Machine)": "Mixed unload (hand + machine)",
-    "Pickup (Customer to collect)": "Pickup (customer to collect)",
+    "Manual Unload (Knauf Labour)": "Manual unload",
+    "Mechanical (Forklift/Crane/Own)": "Mechanical",
+    "Mixed Unload (Hand + Machine)": "Mixed unload",
+    "Pickup (Customer to collect)": "Pickup",
   };
   return labels[value] || "Not selected";
 }
@@ -131,22 +130,47 @@ function combinedDeliveryNotes(payload) {
   return lines.join("\n");
 }
 
+function formatAddressForDisplay(input) {
+  const cleaned = String(input || "")
+    .replace(/,?\s*Australia\s*$/i, "")
+    .replace(/\bVictoria\b/gi, "VIC")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return "";
+  return cleaned
+    .toLowerCase()
+    .replace(/\b([a-z])/g, (match) => match.toUpperCase())
+    .replace(/\bVic\b/g, "VIC")
+    .replace(/\bNsw\b/g, "NSW")
+    .replace(/\bQld\b/g, "QLD")
+    .replace(/\bSa\b/g, "SA")
+    .replace(/\bWa\b/g, "WA")
+    .replace(/\bAct\b/g, "ACT")
+    .replace(/\bNt\b/g, "NT");
+}
+
+function reviewFieldClass(label) {
+  return `review-field-${String(label || "field").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+}
+
 function renderReview() {
   const payload = buildPayload();
   const details = [
-    ["Customer", state.account?.companyName],
-    ["Debtor code", state.account?.debtorCode],
-    ["Reference", payload.reference],
-    ["Required", `${formatDate(payload.requiredDate)} · ${timeSlotLabel(payload.timeSlot)}`],
-    ["Contact", `${payload.contact} · ${payload.mobile}`],
-    ["Delivery address", payload.deliveryAddress],
-    ["Delivery instructions", combinedDeliveryNotes(payload)],
+    ["Order number", payload.reference],
+    ["Required date", `${formatDate(payload.requiredDate)} · ${timeSlotLabel(payload.timeSlot)}`],
+    ["Contact", payload.contact],
+    ["Phone", payload.mobile],
+    ["Address", formatAddressForDisplay(payload.deliveryAddress)],
+    ["Delivery", deliveryTypeLabel(payload.deliveryType)],
+    ["Extras", payload.extras.join(", ") || "None"],
+    ["Instructions", payload.deliveryInstructions || "—"],
   ];
 
   const detailsRoot = document.getElementById("reviewDetails");
   detailsRoot.replaceChildren();
   details.forEach(([label, content]) => {
     const item = document.createElement("div");
+    item.className = reviewFieldClass(label);
     item.innerHTML = `<span>${escapeHtml(label)}</span><strong>${escapeHtml(content || "—")}</strong>`;
     detailsRoot.append(item);
   });
@@ -207,7 +231,7 @@ function showSuccess(result) {
   const screen = document.getElementById("successScreen");
   screen.hidden = false;
   document.getElementById("successTitle").textContent = result.updated ? "Order updated" : "Order created";
-  document.getElementById("successSummary").textContent = `${result.companyName || state.account?.companyName || "Customer"} order has been saved and the Accrivia files are ready.`;
+  document.getElementById("successSummary").textContent = "Your order has been saved. Accrivia files are ready.";
   document.getElementById("orderNumberDisplay").textContent = result.customerReference || result.submissionId;
 
   const files = document.getElementById("generatedFiles");
@@ -251,9 +275,9 @@ function renderHistoryOrder(order) {
 
   const meta = document.createElement("dl");
   meta.innerHTML = `
-    <div><dt>Required</dt><dd>${escapeHtml([formatDate(details.required_date), details.time_slot].filter(Boolean).join(" · ") || "—")}</dd></div>
-    <div><dt>Delivery</dt><dd>${escapeHtml(details.delivery_type || "—")}</dd></div>
-    <div><dt>Address</dt><dd>${escapeHtml(details.delivery_address || "—")}</dd></div>
+    <div><dt>Required</dt><dd>${escapeHtml([formatDate(details.required_date), timeSlotLabel(details.time_slot)].filter(Boolean).join(" · ") || "—")}</dd></div>
+    <div><dt>Delivery</dt><dd>${escapeHtml(deliveryTypeLabel(details.delivery_type))}</dd></div>
+    <div><dt>Address</dt><dd>${escapeHtml(formatAddressForDisplay(details.delivery_address) || "—")}</dd></div>
   `;
 
   const files = document.createElement("div");
@@ -339,7 +363,7 @@ function applyPayload(payload) {
   setValue("contactName", payload.contact || payload.siteContact || state.account?.defaultContactName || "");
   setValue("contactMobile", payload.mobile || payload.siteContactPhone || state.account?.defaultMobile || "");
   setValue("requiredDate", payload.requiredDate || "");
-  setValue("deliveryAddressSearch", formatAddressDisplay(payload.deliveryAddress || ""));
+  setValue("deliveryAddressSearch", formatAddressForDisplay(payload.deliveryAddress || ""));
   setValue("deliveryAddress", payload.deliveryAddress || "");
   setValue("deliveryAddressLine1", payload.addressLine1 || payload.siteAddress1 || "");
   setValue("deliveryAddressLine2", payload.addressLine2 || payload.siteAddress2 || "");
