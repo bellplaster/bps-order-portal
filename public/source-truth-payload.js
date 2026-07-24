@@ -46,7 +46,9 @@
     reorderPartiwall(floor);
     refineFasteners(floor);
     mergeAcousticWeights(floor);
+    mergeInsulationTypes(floor);
     removeEmptyRondo6100(floor);
+    renameRondoProductHeader(floor);
     return result;
   };
 
@@ -103,23 +105,35 @@
     if (!table) return;
 
     const rows = [...table.querySelectorAll("tbody > tr:not(.lower-subheader)")];
+    mergeRepeatedFirstColumn(rows, "acoustic-weight-cell");
+  }
+
+  function mergeInsulationTypes(floor) {
+    const table = document.querySelector(`#${CSS.escape(floor)}OrderSheet .insulation-table`);
+    if (!table) return;
+
+    const rows = [...table.querySelectorAll("tbody > tr:not(.lower-subheader)")];
+    mergeRepeatedFirstColumn(rows, "insulation-type-cell");
+  }
+
+  function mergeRepeatedFirstColumn(rows, className) {
     for (let index = 0; index < rows.length;) {
       const firstCell = rows[index].querySelector(":scope > th:first-child");
       if (!firstCell) {
         index += 1;
         continue;
       }
-      const weight = normalise(firstCell.textContent);
+      const value = normalise(firstCell.textContent);
       let end = index + 1;
       while (end < rows.length) {
         const nextCell = rows[end].querySelector(":scope > th:first-child");
-        if (!nextCell || normalise(nextCell.textContent) !== weight) break;
+        if (!nextCell || normalise(nextCell.textContent) !== value) break;
         end += 1;
       }
       const span = end - index;
       if (span > 1) {
         firstCell.rowSpan = span;
-        firstCell.classList.add("acoustic-weight-cell");
+        firstCell.classList.add(className);
         for (let rowIndex = index + 1; rowIndex < end; rowIndex += 1) {
           rows[rowIndex].querySelector(":scope > th:first-child")?.remove();
         }
@@ -140,6 +154,12 @@
     table.querySelector(`colgroup col:nth-child(${columnIndex + 1})`)?.remove();
   }
 
+  function renameRondoProductHeader(floor) {
+    const table = document.querySelector(`#${CSS.escape(floor)}OrderSheet .rondo-table`);
+    const heading = table?.querySelector(".lower-matrix-header th:first-child");
+    if (heading) heading.textContent = "Product";
+  }
+
   function installCatalogueStyles() {
     if (document.getElementById("catalogueFinalRefinementStyles")) return;
     const style = document.createElement("style");
@@ -154,7 +174,9 @@
       .insulation-table col:nth-child(1){width:32%!important}
       .insulation-table col:nth-child(2){width:28%!important}
       .insulation-table col:nth-child(3),.insulation-table col:nth-child(4){width:20%!important}
-      .insulation-table .lower-item-detail{overflow:visible!important;text-overflow:clip!important;white-space:nowrap!important}
+      .insulation-table .lower-item-detail{overflow:visible!important;text-overflow:clip!important;white-space:nowrap!important;text-align:center!important}
+      .insulation-table .lower-matrix-header th:nth-child(2){text-align:center!important}
+      .insulation-table .insulation-type-cell{vertical-align:middle!important;text-align:left!important}
       .acoustics-table .lower-item-detail{text-align:center!important}
       .acoustics-table .acoustic-weight-cell{vertical-align:middle!important;text-align:left!important}
       .rondo-table col:first-child{width:36%!important}
