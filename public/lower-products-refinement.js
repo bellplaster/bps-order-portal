@@ -4,6 +4,21 @@
 
   const ACCESSORY_PATTERN = /^(Stud Adhesive|Paper Tape|Fibreglass Tape)$/i;
   const RONDO_LENGTHS = ["1800", "2400", "2700", "3000", "3600", "6000", "6100"];
+  const LABEL_OVERRIDES = new Map([
+    ["IIPWBATT", "50mm Partiwall Batt (3 Pack)"],
+    ["LS55", "16mm Small Head DP"],
+    ["NPBUZYCO725-PWR", "25mm Coarse NP"],
+    ["NPBUZYCO732-PWR", "32mm Coarse NP"],
+    ["LAMZ1038500", "38mm Laminating"],
+  ]);
+  const PARTIWALL_ORDER = new Map([
+    ["RPWALLCLIP", 10],
+    ["IIPWBATT", 20],
+    ["LS55", 30],
+    ["NPBUZYCO725-PWR", 40],
+    ["NPBUZYCO732-PWR", 50],
+    ["LAMZ1038500", 1000],
+  ]);
 
   const refinedRenderer = function renderUnifiedFloorSheetWithLowerCatalogue(floor, ...args) {
     const result = originalRenderer.call(this, floor, ...args);
@@ -19,7 +34,7 @@
     const sections = state.layout?.sections;
     if (!root || !currentGrid || !sections) return;
 
-    const compounds = sections.compounds?.rows || [];
+    const compounds = normaliseListRows(sections.compounds?.rows || []);
     const compoundRows = compounds.filter((row) => !ACCESSORY_PATTERN.test(String(row.label || "")));
     const accessoryRows = compounds.filter((row) => ACCESSORY_PATTERN.test(String(row.label || "")));
 
@@ -119,7 +134,7 @@
     appendMatrixHeader(tbody, "Screws", screws?.columns || ["25 mm", "32 mm"]);
 
     let currentGroup = "";
-    (screws?.rows || []).forEach((row) => {
+    normaliseMatrixRows(screws?.rows || []).forEach((row) => {
       const match = String(row.label || "").match(/^(Loose|Collated)\s*-\s*(.+)$/i);
       const group = match?.[1] || "Screws";
       const label = match?.[2] || row.label || "";
@@ -130,8 +145,11 @@
       appendMatrixRow(tbody, floor, label, row.cells || []);
     });
 
-    appendMatrixHeader(tbody, "Nails", nails?.columns || ["30 mm", "40 mm"]);
-    (nails?.rows || []).forEach((row) => appendMatrixRow(tbody, floor, row.label || "", row.cells || []));
+    const nailRows = normaliseMatrixRows(nails?.rows || []);
+    if (nailRows.length) {
+      appendMatrixHeader(tbody, "Nails", nails?.columns || ["30 mm", "40 mm"]);
+      nailRows.forEach((row) => appendMatrixRow(tbody, floor, row.label || "", row.cells || []));
+    }
 
     table.append(tbody);
     section.append(table);
@@ -181,6 +199,7 @@
 
     const products = new Map();
     (definition?.rows || []).forEach((row) => {
+      if (!hasValidProductKey(row.key)) return;
       const label = String(row.label || "").trim();
       const length = String(row.detail || "").match(/\d+/)?.[0] || "";
       if (!products.has(label)) products.set(label, new Map());
@@ -205,39 +224,44 @@
   function renderCornicesCategory(floor, cove, decorative) {
     const section = makeCategory("CORNICES", "cornices-category");
 
-    const coveTable = makeTable("cornice-cove-table");
-    addColgroup(coveTable, [46, 18, 18, 18]);
-    const coveBody = document.createElement("tbody");
-    appendMatrixHeader(coveBody, "Sheetrock® Cove", cove?.columns || ["55 mm", "75 mm", "90 mm"]);
-    (cove?.rows || []).forEach((row) => appendMatrixRow(coveBody, floor, row.label || "", row.cells || []));
-    coveTable.append(coveBody);
-    section.append(coveTable);
-
-    const decorativeTable = makeTable("decorative-cornice-table");
-    addColgroup(decorativeTable, [41, 9, 41, 9]);
-    const decorativeBody = document.createElement("tbody");
-    appendSubheading(decorativeBody, "Decorative Cornice 4200 mm", 4);
-    const rows = decorative?.rows || [];
-    for (let index = 0; index < rows.length; index += 2) {
-      const tr = document.createElement("tr");
-      [rows[index], rows[index + 1]].forEach((row) => {
-        if (row) {
-          const th = document.createElement("th");
-          th.scope = "row";
-          th.textContent = row.label || "";
-          tr.append(th, createQuantityCell(floor, row.key || null));
-        } else {
-          const emptyName = document.createElement("td");
-          const emptyQuantity = document.createElement("td");
-          emptyName.className = "empty-cornice-cell";
-          emptyQuantity.className = "empty-cornice-cell";
-          tr.append(emptyName, emptyQuantity);
-        }
-      });
-      decorativeBody.append(tr);
+    const coveRows = normaliseMatrixRows(cove?.rows || []);
+    if (coveRows.length) {
+      const coveTable = makeTable("cornice-cove-table");
+      addColgroup(coveTable, [46, 18, 18, 18]);
+      const coveBody = document.createElement("tbody");
+      appendMatrixHeader(coveBody, "Sheetrock® Cove", cove?.columns || ["55 mm", "75 mm", "90 mm"]);
+      coveRows.forEach((row) => appendMatrixRow(coveBody, floor, row.label || "", row.cells || []));
+      coveTable.append(coveBody);
+      section.append(coveTable);
     }
-    decorativeTable.append(decorativeBody);
-    section.append(decorativeTable);
+
+    const rows = normaliseListRows(decorative?.rows || []);
+    if (rows.length) {
+      const decorativeTable = makeTable("decorative-cornice-table");
+      addColgroup(decorativeTable, [41, 9, 41, 9]);
+      const decorativeBody = document.createElement("tbody");
+      appendSubheading(decorativeBody, "Decorative Cornice 4200 mm", 4);
+      for (let index = 0; index < rows.length; index += 2) {
+        const tr = document.createElement("tr");
+        [rows[index], rows[index + 1]].forEach((row) => {
+          if (row) {
+            const th = document.createElement("th");
+            th.scope = "row";
+            th.textContent = row.label || "";
+            tr.append(th, createQuantityCell(floor, row.key || null));
+          } else {
+            const emptyName = document.createElement("td");
+            const emptyQuantity = document.createElement("td");
+            emptyName.className = "empty-cornice-cell";
+            emptyQuantity.className = "empty-cornice-cell";
+            tr.append(emptyName, emptyQuantity);
+          }
+        });
+        decorativeBody.append(tr);
+      }
+      decorativeTable.append(decorativeBody);
+      section.append(decorativeTable);
+    }
     return section;
   }
 
@@ -248,7 +272,7 @@
     const tbody = document.createElement("tbody");
     appendMatrixHeader(tbody, "Type", ["R", "430 mm", "580 mm"]);
 
-    (rows || []).forEach((row) => {
+    normaliseMatrixRows(rows || []).forEach((row) => {
       const match = String(row.label || "").match(/^(Wall|Ceiling)\s+R?([\d.]+)/i);
       const tr = document.createElement("tr");
       const type = document.createElement("th");
@@ -272,9 +296,9 @@
     const table = makeTable("acoustics-table");
     addColgroup(table, [30, 28, 21, 21]);
     const tbody = document.createElement("tbody");
-    appendMatrixHeader(tbody, "kg", ["mm", "430 mm", "580 mm"]);
+    appendMatrixHeader(tbody, "kg", ["mm", "450 mm", "600 mm"]);
 
-    (rows || []).forEach((row) => {
+    normaliseMatrixRows(rows || []).forEach((row) => {
       const match = String(row.label || "").match(/^(\d+)\s*kg\s*-\s*(\d+)\s*mm/i);
       const tr = document.createElement("tr");
       const kg = document.createElement("th");
@@ -299,9 +323,14 @@
     addColgroup(table, [62, 19, 19]);
     const tbody = document.createElement("tbody");
     appendMatrixHeader(tbody, "Product", matrix?.columns || ["3000", "3600"]);
-    (matrix?.rows || []).forEach((row) => appendMatrixRow(tbody, floor, row.label || "", row.cells || []));
+    normaliseMatrixRows(matrix?.rows || []).forEach((row) => appendMatrixRow(tbody, floor, row.label || "", row.cells || []));
 
-    [...(accessories?.rows || []), ...(screws?.rows || [])].forEach((row) => {
+    const rows = normaliseListRows([...(accessories?.rows || []), ...(screws?.rows || [])])
+      .map((row, index) => ({ row, index, rank: PARTIWALL_ORDER.get(getSku(row.key)) ?? 100 + index }))
+      .sort((left, right) => left.rank - right.rank || left.index - right.index)
+      .map((entry) => entry.row);
+
+    rows.forEach((row) => {
       const tr = document.createElement("tr");
       const th = document.createElement("th");
       th.scope = "row";
@@ -314,5 +343,39 @@
     table.append(tbody);
     section.append(table);
     return section;
+  }
+
+  function normaliseListRows(rows) {
+    return (rows || [])
+      .filter((row) => hasValidProductKey(row.key))
+      .map((row) => applyLabelOverride(row));
+  }
+
+  function normaliseMatrixRows(rows) {
+    return (rows || [])
+      .map((row) => ({
+        ...row,
+        cells: (row.cells || []).map((key) => (hasValidProductKey(key) ? key : null)),
+      }))
+      .filter((row) => row.cells.some(Boolean));
+  }
+
+  function applyLabelOverride(row) {
+    const sku = getSku(row.key);
+    const label = LABEL_OVERRIDES.get(sku);
+    if (!label) return row;
+    if (state.catalog?.[row.key]) state.catalog[row.key].label = label;
+    return { ...row, label };
+  }
+
+  function hasValidProductKey(key) {
+    if (!key) return false;
+    const product = state.catalog?.[key];
+    const sku = String(product?.sku || "").trim().toUpperCase();
+    return Boolean(product && product.mapped !== false && sku && sku !== "N/A");
+  }
+
+  function getSku(key) {
+    return String(state.catalog?.[key]?.sku || "").trim().toUpperCase();
   }
 })();
