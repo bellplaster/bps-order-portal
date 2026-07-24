@@ -52,7 +52,7 @@ export async function passwordsMatch(expected, supplied) {
 
 export async function hashPassword(password, salt = randomSalt(), iterations = PASSWORD_ITERATIONS) {
   const clean = String(password || "");
-  if (clean.length < 10) throw new Error("Password must contain at least 10 characters.");
+  if (clean.length < 8) throw new Error("Password must contain at least 8 characters.");
   const safeIterations = normaliseIterations(iterations);
   const derived = await derivePassword(clean, salt, safeIterations);
   return { hash: toBase64Url(derived), salt, iterations: safeIterations };
