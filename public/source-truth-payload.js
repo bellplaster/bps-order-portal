@@ -1,4 +1,6 @@
 (() => {
+  installCatalogueStyles();
+
   buildFloorPayload = function buildSourceTruthFloorPayload(floor) {
     const totals = new Map();
     [...state.quantities[floor].entries()]
@@ -41,23 +43,127 @@
   const previousRenderer = window.renderUnifiedFloorSheet;
   window.renderUnifiedFloorSheet = function renderSourceTruthOrder(floor, ...args) {
     const result = previousRenderer.call(this, floor, ...args);
-    const body = document.querySelector(`#${CSS.escape(floor)}OrderSheet .partiwall-table tbody`);
-    if (body) {
-      const labels = [
-        "Aluminium Clips Angled (each)",
-        "Aluminium Clips Flat (each)",
-        "50mm Partiwall Batt (3 Pack)",
-        "16mm Small Head DP",
-        "25mm Coarse NP",
-        "32mm Coarse NP",
-        "38mm Laminating",
-      ];
-      const rows = [...body.querySelectorAll("tr")];
-      labels.forEach((label) => {
-        const row = rows.find((candidate) => candidate.textContent.includes(label));
-        if (row) body.append(row);
-      });
-    }
+    reorderPartiwall(floor);
+    refineFasteners(floor);
+    mergeAcousticWeights(floor);
+    removeEmptyRondo6100(floor);
     return result;
   };
+
+  function reorderPartiwall(floor) {
+    const body = document.querySelector(`#${CSS.escape(floor)}OrderSheet .partiwall-table tbody`);
+    if (!body) return;
+    const labels = [
+      "Aluminium Clips Angled (each)",
+      "Aluminium Clips Flat (each)",
+      "50mm Partiwall Batt (3 Pack)",
+      "16mm Small Head DP",
+      "25mm Coarse NP",
+      "32mm Coarse NP",
+      "38mm Laminating",
+    ];
+    const rows = [...body.querySelectorAll("tr")];
+    labels.forEach((label) => {
+      const row = rows.find((candidate) => candidate.textContent.includes(label));
+      if (row) body.append(row);
+    });
+  }
+
+  function refineFasteners(floor) {
+    const table = document.querySelector(`#${CSS.escape(floor)}OrderSheet .fasteners-table`);
+    if (!table) return;
+
+    [...table.querySelectorAll("tbody > tr")].forEach((row) => {
+      const firstText = normalise(row.cells[0]?.textContent);
+      if (firstText === "SCREWS") {
+        row.remove();
+        return;
+      }
+      if (firstText === "LOOSE") setMatrixHeader(row, "Loose Screws", ["25 mm", "32 mm"]);
+      if (firstText === "COLLATED") setMatrixHeader(row, "Collated Screws", ["25 mm", "32 mm"]);
+    });
+
+    const nailHeader = [...table.querySelectorAll("tbody > tr")]
+      .find((row) => normalise(row.cells[0]?.textContent) === "NAILS");
+    if (nailHeader) setMatrixHeader(nailHeader, "Nails", ["30 mm", "40 mm"]);
+  }
+
+  function setMatrixHeader(row, title, columns) {
+    row.replaceChildren();
+    row.className = "lower-subheader lower-matrix-header";
+    [title, ...columns].forEach((text) => {
+      const th = document.createElement("th");
+      th.textContent = text;
+      row.append(th);
+    });
+  }
+
+  function mergeAcousticWeights(floor) {
+    const table = document.querySelector(`#${CSS.escape(floor)}OrderSheet .acoustics-table`);
+    if (!table) return;
+
+    const rows = [...table.querySelectorAll("tbody > tr:not(.lower-subheader)")];
+    for (let index = 0; index < rows.length;) {
+      const firstCell = rows[index].querySelector(":scope > th:first-child");
+      if (!firstCell) {
+        index += 1;
+        continue;
+      }
+      const weight = normalise(firstCell.textContent);
+      let end = index + 1;
+      while (end < rows.length) {
+        const nextCell = rows[end].querySelector(":scope > th:first-child");
+        if (!nextCell || normalise(nextCell.textContent) !== weight) break;
+        end += 1;
+      }
+      const span = end - index;
+      if (span > 1) {
+        firstCell.rowSpan = span;
+        firstCell.classList.add("acoustic-weight-cell");
+        for (let rowIndex = index + 1; rowIndex < end; rowIndex += 1) {
+          rows[rowIndex].querySelector(":scope > th:first-child")?.remove();
+        }
+      }
+      index = end;
+    }
+  }
+
+  function removeEmptyRondo6100(floor) {
+    const table = document.querySelector(`#${CSS.escape(floor)}OrderSheet .rondo-table`);
+    if (!table) return;
+    const header = [...table.querySelectorAll("tbody > tr")]
+      .find((row) => [...row.cells].some((cell) => normalise(cell.textContent) === "6100"));
+    if (!header) return;
+    const columnIndex = [...header.cells].findIndex((cell) => normalise(cell.textContent) === "6100");
+    if (columnIndex < 0) return;
+    table.querySelectorAll("tbody > tr").forEach((row) => row.cells[columnIndex]?.remove());
+    table.querySelector(`colgroup col:nth-child(${columnIndex + 1})`)?.remove();
+  }
+
+  function installCatalogueStyles() {
+    if (document.getElementById("catalogueFinalRefinementStyles")) return;
+    const style = document.createElement("style");
+    style.id = "catalogueFinalRefinementStyles";
+    style.textContent = `
+      .fasteners-table tbody>tr:first-child{display:table-row!important}
+      .fasteners-table .lower-group-heading th{font-size:11px!important;line-height:24px!important}
+      .fasteners-table .lower-group-heading th::before,.fasteners-table .lower-group-heading th::after,.fasteners-table tbody>tr:nth-child(2) th::before,.fasteners-table tbody>tr:nth-child(2) th::after,.fasteners-table tbody>tr:nth-child(6) th::before,.fasteners-table tbody>tr:nth-child(6) th::after{display:none!important;content:none!important}
+      .fasteners-table .lower-matrix-header th:first-child{text-align:left!important}
+      .fasteners-table .lower-matrix-header th:not(:first-child){text-align:center!important}
+      .fasteners-table th{overflow:visible!important;text-overflow:clip!important}
+      .insulation-table col:nth-child(1){width:32%!important}
+      .insulation-table col:nth-child(2){width:28%!important}
+      .insulation-table col:nth-child(3),.insulation-table col:nth-child(4){width:20%!important}
+      .insulation-table .lower-item-detail{overflow:visible!important;text-overflow:clip!important;white-space:nowrap!important}
+      .acoustics-table .lower-item-detail{text-align:center!important}
+      .acoustics-table .acoustic-weight-cell{vertical-align:middle!important;text-align:left!important}
+      .rondo-table col:first-child{width:36%!important}
+      .rondo-table .lower-matrix-header th:not(:first-child),.rondo-table td{text-align:center!important}
+    `;
+    document.head.append(style);
+  }
+
+  function normalise(value) {
+    return String(value || "").replace(/\s+/g, " ").trim().toUpperCase();
+  }
 })();
