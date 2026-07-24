@@ -34,6 +34,7 @@
 }
 
 .unified-board-table .quantity-cell:focus-within {
+  outline: 0 !important;
   box-shadow: none !important;
 }
 
@@ -69,7 +70,15 @@
    edge-to-edge board matrix instead of leaving a white inset around values. */
 .pdf-lower-grid .quantity-cell,
 .lower-catalogue-grid .quantity-cell {
+  position: relative;
   padding: 0 !important;
+  box-shadow: none !important;
+}
+
+.order-form-page .pdf-lower-grid .quantity-cell:focus-within,
+.order-form-page .lower-catalogue-grid .quantity-cell:focus-within {
+  outline: 0 !important;
+  box-shadow: none !important;
 }
 
 .pdf-lower-grid .quantity-input,
@@ -92,10 +101,11 @@
   line-height: 26px !important;
 }
 
-.pdf-lower-grid .quantity-input:focus,
-.pdf-lower-grid .quantity-input:focus-visible,
-.lower-catalogue-grid .quantity-input:focus,
-.lower-catalogue-grid .quantity-input:focus-visible {
+.order-form-page .pdf-lower-grid .quantity-input:focus,
+.order-form-page .pdf-lower-grid .quantity-input:focus-visible,
+.order-form-page .lower-catalogue-grid .quantity-input:focus,
+.order-form-page .lower-catalogue-grid .quantity-input:focus-visible {
+  border: 0 !important;
   outline: 1px solid #006557 !important;
   outline-offset: -1px !important;
   box-shadow: none !important;
