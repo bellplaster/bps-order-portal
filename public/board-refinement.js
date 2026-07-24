@@ -51,7 +51,7 @@
       ...buildVillaboardProduct(villaboardDefinition),
     ].filter((product) => product.columns.length);
 
-    const preferredLengths = ["6000", "4800", "4200", "3600", "3000", "2700", "2400", "1800"];
+    const preferredLengths = ["6000", "4800", "4200", "3600", "3000", "2700", "2400"];
     const discoveredLengths = new Set(preferredLengths);
     products.forEach((product) => product.columns.forEach((column) => {
       column.cells.forEach((_key, length) => discoveredLengths.add(String(length)));
