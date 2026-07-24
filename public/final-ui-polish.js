@@ -16,14 +16,29 @@
 
   document.addEventListener("input", (event) => {
     if (event.target.matches(".quantity-input")) updateAreaCounts();
+    if (event.target.matches(".area-name-editor input")) {
+      event.target.setCustomValidity("");
+      event.target.removeAttribute("aria-invalid");
+    }
   });
 
   document.addEventListener("submit", (event) => {
-    if (event.target.matches(".area-name-editor")) window.setTimeout(polishDeliveryAreaTabs, 0);
-  });
+    if (!event.target.matches(".area-name-editor")) return;
+    const input = event.target.querySelector("input");
+    input?.setCustomValidity("");
+    window.setTimeout(() => {
+      polishDeliveryAreaTabs();
+      polishAreaEditor();
+    }, 0);
+  }, true);
 
   document.addEventListener("click", (event) => {
     if (event.target.closest("[data-delete-area]")) window.setTimeout(polishDeliveryAreaTabs, 0);
+    if (event.target.closest("[data-add-area]")) window.setTimeout(polishAreaEditor, 0);
+  });
+
+  document.addEventListener("dblclick", (event) => {
+    if (event.target.closest("[data-floor-tab]")) window.setTimeout(polishAreaEditor, 0);
   });
 
   const retryTimer = window.setInterval(() => {
@@ -36,6 +51,7 @@
     removeCeilingTileProduct();
     polishDeliveryControls();
     polishDeliveryAreaTabs();
+    polishAreaEditor();
 
     const controlsReady = Boolean(
       document.querySelector(".delivery-select-timeSlot .delivery-select")
@@ -53,6 +69,7 @@
       clearTimeSlotSelection();
       polishDeliveryControls();
       polishDeliveryAreaTabs();
+      polishAreaEditor();
     }, 0);
   });
 
@@ -289,6 +306,26 @@
       add.setAttribute("aria-label", "Add tab");
     }
     updateAreaCounts();
+  }
+
+  function polishAreaEditor() {
+    const editor = document.querySelector(".area-name-editor");
+    if (!editor || editor.dataset.polished === "true") return;
+    editor.dataset.polished = "true";
+    editor.setAttribute("aria-label", "Tab name editor");
+    const input = editor.querySelector("input");
+    const submit = editor.querySelector('button[type="submit"]');
+    const cancel = editor.querySelector("[data-cancel-area]");
+    if (input) {
+      input.placeholder = "Tab name";
+      input.setCustomValidity("");
+      input.addEventListener("input", () => input.setCustomValidity(""));
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") cancel?.click();
+      });
+    }
+    if (submit) submit.textContent = "Save";
+    if (cancel) cancel.textContent = "Cancel";
   }
 
   function updateAreaCounts() {
