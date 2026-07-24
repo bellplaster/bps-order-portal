@@ -52,13 +52,13 @@
       group.className = 'review-floor-group';
       const heading = document.createElement('h3');
       heading.className = 'review-column-heading';
-      heading.innerHTML = `<span>${escapeHtml(floorLabels[floor])}</span><small>Area</small><small>Qty</small>`;
+      heading.innerHTML = `<span>${escapeHtml(floorLabels[floor])}</span><small>m²</small><small>Qty</small>`;
       group.append(heading);
       lines.forEach((line) => {
         const area = boardArea(line, keys);
         const row = document.createElement('div');
         row.className = 'review-line review-line-metrics';
-        row.innerHTML = `<div><strong>${escapeHtml(line.label)}</strong><span>${escapeHtml(line.sku || '')}</span></div><em>${area === null ? '—' : `${area.toFixed(2)} m²`}</em><b>${line.quantity}</b>`;
+        row.innerHTML = `<div><strong>${escapeHtml(line.label)}</strong><span>${escapeHtml(line.sku || '')}</span></div><em>${area === null ? '' : `${area.toFixed(2)} m²`}</em><b>${line.quantity}</b>`;
         group.append(row);
         lineCount += 1;
         unitCount += Number(line.quantity || 0);
