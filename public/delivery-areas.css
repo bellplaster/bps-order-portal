@@ -7,14 +7,14 @@
   display: flex !important;
   box-sizing: border-box !important;
   width: 100% !important;
-  min-height: 32px !important;
+  min-height: 34px !important;
   margin: 0 0 8px !important;
-  padding: 0 !important;
+  padding: 1px 0 !important;
   align-items: center !important;
   flex-wrap: nowrap !important;
   gap: 4px !important;
   overflow-x: auto !important;
-  overflow-y: hidden !important;
+  overflow-y: auto !important;
   border: 0 !important;
   border-radius: 0 !important;
   background: transparent !important;
@@ -85,7 +85,7 @@
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
   font-size: 11px !important;
   font-weight: 600 !important;
-  line-height: 30px !important;
+  line-height: 1 !important;
   text-align: center !important;
   white-space: nowrap !important;
 }
@@ -100,7 +100,7 @@
   height: 30px !important;
   align-items: center !important;
   justify-content: center !important;
-  line-height: 30px !important;
+  line-height: 1 !important;
   white-space: nowrap !important;
 }
 
@@ -144,7 +144,7 @@
   box-shadow: none !important;
   font-size: 15px !important;
   font-weight: 400 !important;
-  line-height: 30px !important;
+  line-height: 1 !important;
   cursor: pointer !important;
 }
 
@@ -178,7 +178,7 @@
   box-shadow: none !important;
   font-size: 17px !important;
   font-weight: 600 !important;
-  line-height: 30px !important;
+  line-height: 1 !important;
   cursor: pointer !important;
 }
 
@@ -201,24 +201,30 @@
   height: 32px !important;
   margin: 0 !important;
   padding: 0 !important;
-  align-items: stretch !important;
+  align-items: center !important;
+  overflow: visible !important;
   background: transparent !important;
+  vertical-align: middle !important;
 }
 
 .area-name-editor input {
+  display: block !important;
   flex: 0 0 170px !important;
   width: 170px !important;
   height: 32px !important;
+  min-height: 32px !important;
   margin: 0 !important;
   padding: 0 9px !important;
-  border: 1px solid var(--bell-green) !important;
+  border: 1px solid #006557 !important;
+  border-bottom: 1px solid #006557 !important;
   outline: 0 !important;
   background: #ffffff !important;
   color: #17211f !important;
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
   font-size: 11px !important;
   font-weight: 400 !important;
-  line-height: 30px !important;
+  line-height: normal !important;
+  vertical-align: middle !important;
 }
 
 .area-name-editor input:invalid {
@@ -228,6 +234,7 @@
 .area-name-editor button {
   display: inline-flex !important;
   height: 32px !important;
+  min-height: 32px !important;
   margin: 0 0 0 -1px !important;
   padding: 0 11px !important;
   align-items: center !important;
@@ -236,9 +243,11 @@
   background: #ffffff !important;
   color: #17211f !important;
   box-shadow: none !important;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
   font-size: 11px !important;
   font-weight: 600 !important;
-  line-height: 30px !important;
+  line-height: 1 !important;
+  vertical-align: middle !important;
   cursor: pointer !important;
 }
 
@@ -265,7 +274,9 @@
 
 @media (max-width: 760px) {
   .products-area > .floor-tabs {
+    min-height: 32px !important;
     gap: 3px !important;
+    padding: 1px 0 !important;
   }
 
   .area-tab-shell,
@@ -274,22 +285,18 @@
   .area-name-editor input,
   .area-name-editor button {
     height: 30px !important;
+    min-height: 30px !important;
   }
 
   .floor-tab,
   .area-tab-delete,
   .area-tab-label {
     height: 28px !important;
-    line-height: 28px !important;
+    line-height: 1 !important;
   }
 
   .area-name-editor input {
     flex-basis: 140px !important;
     width: 140px !important;
-    line-height: 28px !important;
-  }
-
-  .area-name-editor button {
-    line-height: 28px !important;
   }
 }
