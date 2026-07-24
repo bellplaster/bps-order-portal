@@ -9,10 +9,11 @@
 
   function boardArea(line, keys) {
     if (!line.key || !keys.has(line.key)) return null;
-    const numbers = [...String(line.label || '').matchAll(/(\d+(?:\.\d+)?)\s*mm/gi)].map((match) => Number(match[1]));
-    if (numbers.length < 2) return null;
-    const width = numbers.at(-2);
-    const length = numbers.at(-1);
+    const label = String(line.label || '');
+    const dimensionMatch = label.match(/\b(\d{3,4})\s*[×xX]\s*(\d{3,4})\b/);
+    if (!dimensionMatch) return null;
+    const width = Number(dimensionMatch[1]);
+    const length = Number(dimensionMatch[2]);
     return width > 0 && length > 0 ? (width * length * Number(line.quantity || 0)) / 1_000_000 : null;
   }
 
