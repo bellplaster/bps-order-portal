@@ -1,4 +1,5 @@
 import { PRODUCT_CATALOG } from "./catalog.js";
+import { normaliseAustralianPhone } from "./phone.js";
 import { createAccriviaXlsx } from "./xlsx.js";
 export { deleteOrderPermanently, getStatusResponse, setOrderArchiveStatus } from "./orders.js";
 
@@ -446,8 +447,9 @@ function normaliseOrderDetails(rawPayload, account, existingReference = "") {
 
   const contact = cleanRequiredText(rawPayload?.contact || rawPayload?.siteContact || account.default_contact_name, "Contact Name", 120);
   if (!isValidContactName(contact)) throw new Error("Contact Name must contain at least two letters and cannot contain numbers.");
-  const mobile = normaliseAustralianContactNumber(rawPayload?.mobile || rawPayload?.siteContactPhone || account.default_mobile);
-  if (!mobile) throw new Error("Mobile must be a valid Australian mobile number beginning with 04.");
+  const mobile = normaliseAustralianPhone(rawPayload?.mobile || rawPayload?.siteContactPhone || account.default_mobile, {
+    error: "Enter a valid Australian phone number.",
+  });
   const reference = existingReference || cleanRequiredText(rawPayload?.reference || rawPayload?.customerReference, "Reference", 80);
 
   return {
@@ -637,13 +639,6 @@ function isValidContactName(value) {
   const name = String(value || "").trim();
   const letters = name.match(/\p{L}/gu) || [];
   return letters.length >= 2 && /^[\p{L}\p{M}'’.\-\s]+$/u.test(name);
-}
-
-function normaliseAustralianContactNumber(value) {
-  let digits = String(value || "").replace(/\D/g, "");
-  if (digits.startsWith("61") && digits.length >= 11) digits = `0${digits.slice(2)}`;
-  if (/^04\d{8}$/.test(digits)) return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`;
-  return "";
 }
 
 function safeFilename(value) {
