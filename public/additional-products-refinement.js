@@ -1,6 +1,60 @@
 (() => {
   const MAX_RESULTS = 100;
+  const DEFAULT_TAB = { id: 'tab-1', label: 'Tab 1' };
   let attempts = 0;
+  let defaultTabInitialised = false;
+
+  function setDefaultTabState() {
+    state.deliveryAreas = [{ ...DEFAULT_TAB }];
+    state.activeFloor = DEFAULT_TAB.id;
+    state.quantities = { [DEFAULT_TAB.id]: new Map() };
+    state.otherMaterials = { [DEFAULT_TAB.id]: [] };
+    Object.keys(floorLabels).forEach((key) => delete floorLabels[key]);
+    floorLabels[DEFAULT_TAB.id] = DEFAULT_TAB.label;
+  }
+
+  function initialiseDefaultTab() {
+    if (defaultTabInitialised || typeof state === 'undefined') return;
+    defaultTabInitialised = true;
+    setDefaultTabState();
+  }
+
+  function patchResetOrder() {
+    const original = window.resetOrder;
+    if (typeof original !== 'function' || original.__tabOneDefault) return;
+    const patched = function resetOrderWithTabOne(...args) {
+      const result = original.apply(this, args);
+      if (typeof applyPayload === 'function') {
+        applyPayload({
+          reference: '',
+          contact: state.account?.defaultContactName || '',
+          mobile: state.account?.defaultMobile || '',
+          requiredDate: '',
+          deliveryAddress: '',
+          addressLine1: '',
+          addressLine2: '',
+          deliveryInstructions: '',
+          timeSlot: 'ANY',
+          deliveryType: '',
+          extras: [],
+          activeArea: DEFAULT_TAB.id,
+          floors: {
+            [DEFAULT_TAB.id]: {
+              label: DEFAULT_TAB.label,
+              items: [],
+              otherMaterials: [],
+            },
+          },
+        });
+      } else {
+        setDefaultTabState();
+      }
+      return result;
+    };
+    patched.__tabOneDefault = true;
+    window.resetOrder = patched;
+    try { resetOrder = patched; } catch (_error) { }
+  }
 
   function refinePanelLabels(panel) {
     const selectedHeader = panel?.querySelector('.selected-additional-header');
@@ -12,12 +66,45 @@
     }
   }
 
+  function markBoardProductBoundaries(root) {
+    const table = root?.querySelector('.unified-board-table');
+    if (!table) return;
+
+    table.querySelectorAll('.board-group-end').forEach((cell) => cell.classList.remove('board-group-end'));
+    const productHeadings = [...table.querySelectorAll('thead tr:first-child .board-product-heading')];
+    if (!productHeadings.length) return;
+
+    const groupEnds = [];
+    let columnTotal = 0;
+    productHeadings.forEach((heading) => {
+      columnTotal += Number(heading.colSpan || 1);
+      groupEnds.push(columnTotal);
+      heading.classList.add('board-group-end');
+    });
+
+    const markSpanningRow = (row) => {
+      if (!row) return;
+      let position = 0;
+      [...row.cells].slice(1).forEach((cell) => {
+        position += Number(cell.colSpan || 1);
+        if (groupEnds.includes(position)) cell.classList.add('board-group-end');
+      });
+    };
+
+    const headerRows = table.tHead?.rows || [];
+    markSpanningRow(headerRows[1]);
+    markSpanningRow(headerRows[2]);
+    [...(table.tBodies?.[0]?.rows || [])].forEach(markSpanningRow);
+  }
+
   function restructureFloor(floor) {
     const root = document.getElementById(`${floor}OrderSheet`);
     const grid = root?.querySelector('.lower-catalogue-grid');
     const panel = root?.querySelector('.additional-products-panel');
-    if (!root || !grid || !panel) return;
+    if (!root) return;
 
+    markBoardProductBoundaries(root);
+    if (!grid || !panel) return;
     refinePanelLabels(panel);
 
     if (grid.querySelector(':scope > .lower-catalogue-main')) return;
@@ -105,6 +192,8 @@
   }
 
   function initialise() {
+    initialiseDefaultTab();
+    patchResetOrder();
     patchRenderer();
     patchSearch();
     restructureAll();
