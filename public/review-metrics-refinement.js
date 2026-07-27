@@ -1,20 +1,20 @@
 (() => {
-  function boardKeys() {
-    const keys = new Set();
-    const main = state.layout?.mainBoard;
-    (main?.rows || []).forEach((row) => (row.cells || []).forEach((key) => key && keys.add(key)));
-    (state.layout?.specialtyBoards || []).forEach((group) => (group.rows || []).forEach((row) => row.key && keys.add(row.key)));
-    return keys;
-  }
-
-  function boardArea(line, keys) {
-    if (!line.key || !keys.has(line.key)) return null;
-    const label = String(line.label || '');
+  function boardArea(line) {
+    const label = String(line?.label || '');
     const dimensionMatch = label.match(/\b(\d{3,4})\s*[×xX]\s*(\d{3,4})\b/);
     if (!dimensionMatch) return null;
-    const width = Number(dimensionMatch[1]);
-    const length = Number(dimensionMatch[2]);
-    return width > 0 && length > 0 ? (width * length * Number(line.quantity || 0)) / 1_000_000 : null;
+
+    const first = Number(dimensionMatch[1]);
+    const second = Number(dimensionMatch[2]);
+    const width = Math.min(first, second);
+    const length = Math.max(first, second);
+    const quantity = Number(line?.quantity || 0);
+
+    // Sheet-board dimensions: normal board widths and lengths. This includes
+    // Villaboard, Flexiboard, plasterboard and other fibre-cement sheet products,
+    // while excluding tracks, cornice, trims, fasteners and insulation sizes.
+    if (width < 900 || width > 1500 || length < 1800 || length > 6000 || quantity <= 0) return null;
+    return (width * length * quantity) / 1_000_000;
   }
 
   function refinedRenderReview() {
@@ -38,7 +38,6 @@
       detailsRoot.append(item);
     });
 
-    const keys = boardKeys();
     const linesRoot = document.getElementById('reviewOrderLines');
     linesRoot.replaceChildren();
     let lineCount = 0;
@@ -59,7 +58,7 @@
       heading.innerHTML = `<span>${escapeHtml(areaDefinition.label || floorLabels[areaId] || areaId)}</span><small>m²</small><small>Qty</small>`;
       group.append(heading);
       lines.forEach((line) => {
-        const area = boardArea(line, keys);
+        const area = boardArea(line);
         const row = document.createElement('div');
         row.className = 'review-line review-line-metrics';
         row.innerHTML = `<div><strong>${escapeHtml(line.label)}</strong><span>${escapeHtml(line.sku || '')}</span></div><em>${area === null ? '' : `${area.toFixed(2)} m²`}</em><b>${line.quantity}</b>`;
