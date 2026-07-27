@@ -34,7 +34,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     [document.getElementById("contactMobile"), document.getElementById("defaultMobile"), document.getElementById("newDefaultMobile")].filter(Boolean).forEach((input) => {
       input.maxLength = 16;
-      input.placeholder = "03 0000 0000";
+      input.placeholder = "Phone";
       input.setAttribute("aria-label", "Phone");
     });
     const address = document.getElementById("deliveryAddressSearch");
