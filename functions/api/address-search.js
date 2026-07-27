@@ -78,7 +78,56 @@ async function autocomplete(apiKey, input, mode, referrer) {
     suggestions.sort((a, b) => Number(b.types.some((type) => suburbTypes.has(type))) - Number(a.types.some((type) => suburbTypes.has(type))));
   }
 
-  return json({ ok: true, suggestions: suggestions.slice(0, 7) });
+  suggestions = await Promise.all(
+    suggestions.slice(0, 7).map((suggestion) => enrichSuggestion(apiKey, suggestion, mode, referrer)),
+  );
+
+  return json({ ok: true, suggestions: suggestions.filter(Boolean) });
+}
+
+async function enrichSuggestion(apiKey, suggestion, mode, referrer) {
+  if (!suggestion?.placeId) return null;
+  try {
+    const response = await fetch(`${PLACES_DETAILS_URL}/${encodeURIComponent(suggestion.placeId)}`, {
+      headers: {
+        "X-Goog-Api-Key": apiKey,
+        "X-Goog-FieldMask": "addressComponents",
+        Referer: referrer,
+      },
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) return normaliseSuggestion(suggestion);
+
+    const components = Array.isArray(payload.addressComponents) ? payload.addressComponents : [];
+    const get = (type, short = false) => {
+      const component = components.find((entry) => entry.types?.includes(type));
+      return component ? String(component[short ? "shortText" : "longText"] || "") : "";
+    };
+    const state = String(get("administrative_area_level_1", true) || "").toUpperCase();
+    if (state && state !== "VIC") return null;
+
+    const suburb = get("locality") || get("postal_town") || get("sublocality_level_1") || get("sublocality") || get("administrative_area_level_2");
+    const postcode = get("postal_code");
+    const secondaryText = mode === "suburb"
+      ? ["VIC", postcode].filter(Boolean).join(" ")
+      : [suburb, "VIC", postcode].filter(Boolean).join(" ");
+
+    return {
+      ...suggestion,
+      text: [suggestion.mainText, secondaryText].filter(Boolean).join(", "),
+      secondaryText,
+    };
+  } catch (_error) {
+    return normaliseSuggestion(suggestion);
+  }
+}
+
+function normaliseSuggestion(suggestion) {
+  const secondaryText = String(suggestion.secondaryText || "")
+    .replace(/\bVictoria\b/gi, "VIC")
+    .replace(/,?\s*Australia\s*$/i, "")
+    .trim();
+  return { ...suggestion, secondaryText };
 }
 
 async function resolvePlace(apiKey, placeId, referrer) {
