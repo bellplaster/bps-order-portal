@@ -109,3 +109,95 @@ details.extras-dropdown[open]>div{
   position:relative!important;
   z-index:1!important;
 }
+
+/* Review rows and totals share the same metric columns. */
+.review-column-heading,
+.review-line.review-line-metrics{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 150px 82px!important;
+  width:100%!important;
+  box-sizing:border-box!important;
+}
+.review-column-heading>small:nth-of-type(1),
+.review-line.review-line-metrics>em{
+  width:100%!important;
+  padding-right:22px!important;
+  text-align:right!important;
+  box-sizing:border-box!important;
+}
+.review-column-heading>small:nth-of-type(2),
+.review-line.review-line-metrics>b{
+  width:100%!important;
+  padding-right:28px!important;
+  text-align:right!important;
+  box-sizing:border-box!important;
+}
+.review-total{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 150px 82px!important;
+  align-items:stretch!important;
+  padding:0!important;
+}
+#reviewLineTotal{
+  grid-column:1!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  min-width:0!important;
+  padding:12px 10px!important;
+  border-right:1px solid var(--line)!important;
+}
+#reviewUnitTotal{
+  display:contents!important;
+}
+.review-footer-metric{
+  display:flex!important;
+  min-width:0!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:8px!important;
+  padding:12px 14px!important;
+  white-space:nowrap!important;
+  box-sizing:border-box!important;
+}
+.review-footer-area{
+  grid-column:2!important;
+  border-right:1px solid var(--line)!important;
+}
+.review-footer-units{
+  grid-column:3!important;
+  padding-right:16px!important;
+}
+.review-footer-metric small{
+  color:inherit!important;
+  font:inherit!important;
+  font-size:9px!important;
+  font-weight:700!important;
+  text-transform:uppercase!important;
+}
+.review-footer-metric strong{
+  flex:0 0 auto!important;
+}
+
+@media(max-width:760px){
+  .review-column-heading,
+  .review-line.review-line-metrics,
+  .review-total{
+    grid-template-columns:minmax(0,1fr) 104px 62px!important;
+  }
+  .review-column-heading>small:nth-of-type(1),
+  .review-line.review-line-metrics>em{
+    padding-right:12px!important;
+  }
+  .review-column-heading>small:nth-of-type(2),
+  .review-line.review-line-metrics>b{
+    padding-right:14px!important;
+  }
+  .review-footer-metric{
+    gap:4px!important;
+    padding:10px 8px!important;
+  }
+  .review-footer-metric small{
+    font-size:8px!important;
+  }
+}
