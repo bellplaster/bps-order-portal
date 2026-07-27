@@ -1,4 +1,5 @@
 import { processOrderSubmission } from "../_shared/orders-v2.js";
+import { sendOrderFilesEmail } from "../_shared/order-email.js";
 
 export async function onRequestPost(context) {
   const requestId = crypto.randomUUID();
@@ -33,11 +34,43 @@ export async function onRequestPost(context) {
     }
 
     const result = await processOrderSubmission(context.env, payload, context.data?.auth);
-    return Response.json({ ...result, requestId }, { headers: { "Cache-Control": "no-store", "X-Request-ID": requestId } });
+    await preservePickupSiteReference(context.env, payload, result).catch((error) => {
+      console.warn("Pickup site reference could not be stored.", error);
+    });
+
+    let email = { sent: false, reason: "not_attempted" };
+    try {
+      email = await sendOrderFilesEmail(context.env, payload, result);
+    } catch (error) {
+      email = { sent: false, reason: "send_failed", error: error?.message || String(error) };
+      console.error("Order email could not be sent.", error);
+    }
+
+    return Response.json({
+      ...result,
+      emailSent: email.sent === true,
+      emailMessageId: email.messageId || null,
+      emailStatus: email.reason || (email.sent ? "sent" : "not_sent"),
+      requestId,
+    }, { headers: { "Cache-Control": "no-store", "X-Request-ID": requestId } });
   } catch (error) {
     const message = error?.message || String(error);
     const inferredStatus = /already been used|is required|invalid|cannot|must|contains no products|complete Victorian/i.test(message) ? 400 : 500;
     const status = Number(error?.status || inferredStatus);
     return Response.json({ ok: false, error: message, diagnostic: error?.diagnostic || null, requestId }, { status, headers: { "X-Request-ID": requestId } });
   }
+}
+
+async function preservePickupSiteReference(env, payload, result) {
+  if (!env?.DB || payload?.deliveryType !== "Pickup (Customer to collect)") return;
+  const submissionId = String(result?.submissionId || payload?.submissionId || "").trim();
+  if (!submissionId) return;
+  const street = String(payload?.addressLine1 || "").trim();
+  const suburbStatePostcode = String(payload?.addressLine2 || "").trim();
+  if (!suburbStatePostcode) return;
+  await env.DB.prepare(
+    `UPDATE orders
+     SET site_address = ?, suburb_state_postcode = ?
+     WHERE submission_id = ?`,
+  ).bind(street, suburbStatePostcode, submissionId).run();
 }
