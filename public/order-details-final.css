@@ -1,0 +1,165 @@
+/* Final order-details sizing and grid treatment.
+   Keeps the compact catalogue rhythm without clipping native date/phone controls. */
+body.order-form-page .order-details-section {
+  border: 1px solid #c7cecc !important;
+}
+
+body.order-form-page .order-details-section .sheet-details-grid,
+body.order-form-page .order-details-section .delivery-grid-unified {
+  grid-auto-rows: 32px !important;
+}
+
+body.order-form-page .order-details-section .sheet-field-row:not(.instruction-sheet-row),
+body.order-form-page .order-details-section .delivery-address-field,
+body.order-form-page .order-details-section .delivery-field,
+body.order-form-page .order-details-section .delivery-table-row:not(.delivery-instruction-controls),
+body.order-form-page .order-details-section .delivery-instruction-controls {
+  box-sizing: border-box !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  border-bottom: 1px solid #c7cecc !important;
+}
+
+body.order-form-page .order-details-section .sheet-details-grid .sheet-field-row:nth-child(odd) {
+  border-right: 1px solid #c7cecc !important;
+}
+
+body.order-form-page .order-details-section .sheet-field-row > label,
+body.order-form-page .order-details-section .delivery-address-field > label,
+body.order-form-page .order-details-section .delivery-select-field > span,
+body.order-form-page .order-details-section .instruction-sheet-row > label {
+  box-sizing: border-box !important;
+  display: flex !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  align-items: center !important;
+  padding: 0 7px !important;
+  border-right: 1px solid #c7cecc !important;
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+}
+
+body.order-form-page .order-details-section .delivery-select,
+body.order-form-page .order-details-section .extras-dropdown {
+  border-right: 1px solid #c7cecc !important;
+}
+
+body.order-form-page .order-details-section .extras-dropdown-field .extras-dropdown {
+  border-right: 0 !important;
+}
+
+body.order-form-page .order-details-section input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),
+body.order-form-page .order-details-section select,
+body.order-form-page .order-details-section .extras-dropdown > summary,
+body.order-form-page .order-details-section .address-control,
+body.order-form-page .order-details-section .date-input-shell,
+body.order-form-page .order-details-section .required-date-inline {
+  box-sizing: border-box !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  margin: 0 !important;
+  font-size: 11px !important;
+}
+
+body.order-form-page .order-details-section input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),
+body.order-form-page .order-details-section select,
+body.order-form-page .order-details-section .extras-dropdown > summary {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+body.order-form-page .order-details-section .delivery-select,
+body.order-form-page .order-details-section .extras-dropdown > summary {
+  height: 32px !important;
+  min-height: 32px !important;
+  line-height: 32px !important;
+}
+
+body.order-form-page .order-details-section .required-date-inline {
+  align-items: stretch !important;
+}
+
+body.order-form-page .order-details-section .required-date-inline > .date-input-shell,
+body.order-form-page .order-details-section .date-input-shell {
+  height: 32px !important;
+  min-height: 32px !important;
+}
+
+body.order-form-page .order-details-section .date-leading-icon {
+  left: 9px !important;
+  width: 14px !important;
+  height: 14px !important;
+}
+
+body.order-form-page .order-details-section .date-leading-icon svg {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+body.order-form-page .order-details-section #requiredDate {
+  display: block !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 8px 0 36px !important;
+  line-height: normal !important;
+}
+
+body.order-form-page .order-details-section #requiredDate::-webkit-datetime-edit,
+body.order-form-page .order-details-section #requiredDate::-webkit-datetime-edit-fields-wrapper {
+  padding: 0 !important;
+  line-height: normal !important;
+}
+
+body.order-form-page .order-details-section .date-input-shell::after {
+  left: 36px !important;
+  font-size: 11px !important;
+}
+
+body.order-form-page .order-details-section #contactMobile {
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 8px !important;
+  line-height: 32px !important;
+}
+
+body.order-form-page .order-details-section #contactMobile::placeholder {
+  color: #aab0b2 !important;
+  opacity: 1 !important;
+}
+
+body.order-form-page .order-details-section .clear-address-button,
+body.order-form-page .order-details-section .clear-input {
+  top: 3px !important;
+  width: 26px !important;
+  height: 26px !important;
+  min-height: 26px !important;
+}
+
+body.order-form-page .order-details-section .instruction-sheet-row {
+  box-sizing: border-box !important;
+  height: 56px !important;
+  min-height: 56px !important;
+}
+
+body.order-form-page .order-details-section .instruction-sheet-row > label {
+  height: 56px !important;
+  min-height: 56px !important;
+  align-items: flex-start !important;
+  padding-top: 7px !important;
+}
+
+body.order-form-page .order-details-section #deliveryInstructions {
+  box-sizing: border-box !important;
+  height: 56px !important;
+  min-height: 56px !important;
+  margin: 0 !important;
+  padding: 6px 7px !important;
+  font-size: 11px !important;
+  line-height: 16px !important;
+}
+
+body.order-form-page .order-details-section .future-confirmation:not([hidden]) {
+  box-sizing: border-box !important;
+  height: 32px !important;
+  min-height: 32px !important;
+}
