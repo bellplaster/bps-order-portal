@@ -1,0 +1,154 @@
+/* Final review product table: SKU | Product | m² | Qty */
+.review-floor-group{
+  border:0!important;
+}
+.review-area-heading{
+  display:flex!important;
+  min-height:28px!important;
+  align-items:center!important;
+  margin:0!important;
+  padding:0 11px!important;
+  border:0!important;
+  background:#cbd1cf!important;
+  color:#17211f!important;
+  font:700 10px/1 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+}
+.review-column-heading,
+.review-line.review-line-metrics,
+.review-total{
+  display:grid!important;
+  grid-template-columns:130px minmax(0,1fr) 110px 64px!important;
+  width:100%!important;
+  box-sizing:border-box!important;
+}
+.review-column-heading{
+  min-height:28px!important;
+  align-items:center!important;
+  margin:0!important;
+  padding:0!important;
+  border-top:1px solid var(--line)!important;
+  border-bottom:1px solid var(--line)!important;
+  background:#eef1f0!important;
+}
+.review-column-heading>span,
+.review-column-heading>small{
+  display:flex!important;
+  min-width:0!important;
+  height:100%!important;
+  align-items:center!important;
+  margin:0!important;
+  padding:0 11px!important;
+  border:0!important;
+  color:#43504d!important;
+  font:700 9px/1 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  text-align:left!important;
+  text-transform:uppercase!important;
+  box-sizing:border-box!important;
+}
+.review-column-heading>small:nth-last-child(-n+2){
+  justify-content:center!important;
+  padding-inline:4px!important;
+}
+.review-line.review-line-metrics{
+  min-height:48px!important;
+  align-items:stretch!important;
+  gap:0!important;
+  padding:0!important;
+  border-bottom:1px solid var(--line-light)!important;
+}
+.review-line.review-line-metrics>*{
+  display:flex!important;
+  min-width:0!important;
+  align-items:center!important;
+  margin:0!important;
+  padding:8px 11px!important;
+  border:0!important;
+  box-sizing:border-box!important;
+}
+.review-line-sku{
+  color:#66736f!important;
+  font:500 10px/1.25 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  overflow-wrap:anywhere!important;
+}
+.review-line-product{
+  color:#17211f!important;
+  font:700 11px/1.3 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+}
+.review-line.review-line-metrics>em,
+.review-line.review-line-metrics>b{
+  justify-content:center!important;
+  padding-inline:4px!important;
+  text-align:center!important;
+  white-space:nowrap!important;
+}
+.review-line.review-line-metrics>em{
+  color:#3e4c48!important;
+  font:600 10px/1 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  font-style:normal!important;
+}
+.review-line.review-line-metrics>b{
+  color:#006557!important;
+  font:700 11px/1 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+}
+.review-total{
+  min-height:42px!important;
+  align-items:stretch!important;
+  padding:0!important;
+  border-top:1px solid var(--line)!important;
+  background:#fff!important;
+}
+#reviewLineTotal{
+  grid-column:1 / span 2!important;
+  display:flex!important;
+  min-width:0!important;
+  align-items:center!important;
+  gap:7px!important;
+  padding:8px 11px!important;
+  border:0!important;
+  color:#52615d!important;
+  white-space:nowrap!important;
+}
+#reviewUnitTotal{
+  display:contents!important;
+}
+#reviewUnitTotal .review-footer-area,
+#reviewUnitTotal .review-footer-units{
+  display:flex!important;
+  min-width:0!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:3px!important;
+  padding:6px 4px!important;
+  border:0!important;
+  box-sizing:border-box!important;
+  white-space:nowrap!important;
+}
+#reviewUnitTotal .review-footer-area{grid-column:3!important}
+#reviewUnitTotal .review-footer-units{grid-column:4!important}
+.review-total span,
+.review-total small{
+  color:#65716e!important;
+  font:650 9px/1 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  text-transform:uppercase!important;
+}
+.review-total strong{
+  color:#17211f!important;
+  font:700 11px/1 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+}
+#reviewUnitTotal .review-footer-area strong{
+  color:#006557!important;
+}
+@media(max-width:760px){
+  .review-column-heading,
+  .review-line.review-line-metrics,
+  .review-total{
+    grid-template-columns:92px minmax(0,1fr) 76px 48px!important;
+  }
+  .review-column-heading>span,
+  .review-line.review-line-metrics>*{
+    padding-inline:7px!important;
+  }
+  .review-line-product{font-size:10px!important}
+  .review-line-sku{font-size:9px!important}
+}
