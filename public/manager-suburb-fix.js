@@ -2,6 +2,7 @@
   let googleRetry = 0;
   let tabControlObserver = null;
   let addressObserver = null;
+  let arrangingTabControls = false;
 
   document.addEventListener("click", (event) => {
     const reset = event.target.closest(".area-tabs-reset");
@@ -18,7 +19,7 @@
       return;
     }
 
-    if (event.target.closest("[data-floor-tab], .area-tab-label")) {
+    if (event.target.closest("[data-floor-tab], .area-tab-label, .area-tab-rename")) {
       window.setTimeout(stabiliseTabControls, 0);
       window.setTimeout(stabiliseTabControls, 40);
     }
@@ -35,7 +36,6 @@
     sanitiseStructuredAddress();
     stabiliseTabControls();
   });
-  window.addEventListener("resize", positionRenameEditor);
 
   function start() {
     bindWhenReady();
@@ -48,16 +48,41 @@
   }
 
   function stabiliseTabControls() {
-    normaliseAddTabControl();
-    positionRenameEditor();
+    if (arrangingTabControls) return;
+    arrangingTabControls = true;
+    try {
+      normaliseAddTabControl();
+      positionRenameEditor();
+    } finally {
+      arrangingTabControls = false;
+    }
   }
 
   function normaliseAddTabControl() {
-    const add = document.querySelector(".floor-tabs > [data-add-area]");
-    if (!add) return;
-    if (add.textContent !== "+") add.textContent = "+";
+    const tabs = document.getElementById("deliveryAreaTabs") || document.querySelector(".floor-tabs");
+    const add = tabs?.querySelector(":scope > [data-add-area]");
+    if (!tabs || !add) return;
+
+    add.replaceChildren(document.createTextNode("+"));
     add.setAttribute("aria-label", "Add tab");
     add.setAttribute("title", "Add tab");
+    add.style.setProperty("display", "inline-flex", "important");
+    add.style.setProperty("align-items", "center", "important");
+    add.style.setProperty("justify-content", "center", "important");
+    add.style.setProperty("flex", "0 0 30px", "important");
+    add.style.setProperty("width", "30px", "important");
+    add.style.setProperty("min-width", "30px", "important");
+    add.style.setProperty("max-width", "30px", "important");
+    add.style.setProperty("height", "30px", "important");
+    add.style.setProperty("min-height", "30px", "important");
+    add.style.setProperty("padding", "0", "important");
+    add.style.setProperty("line-height", "1", "important");
+    add.style.setProperty("box-sizing", "border-box", "important");
+    add.style.setProperty("overflow", "hidden", "important");
+    add.style.removeProperty("position");
+    add.style.removeProperty("left");
+    add.style.removeProperty("top");
+    add.style.removeProperty("transform");
   }
 
   function positionRenameEditor() {
@@ -65,21 +90,31 @@
     const editor = tabs?.querySelector(":scope > .area-name-editor");
     if (!tabs || !editor) return;
 
-    const activeElement = tabs.querySelector(
-      ":scope > .area-tab-shell .is-active, :scope > .area-tab-shell [aria-selected='true'], :scope > .area-tab-shell [data-floor-tab].is-active"
+    const activeTab = tabs.querySelector(
+      ":scope > .area-tab-shell [data-floor-tab].is-active, " +
+      ":scope > .area-tab-shell [data-floor-tab][aria-selected='true'], " +
+      ":scope > .area-tab-shell .area-tab-label.is-active, " +
+      ":scope > .area-tab-shell .is-active"
     );
-    const activeShell = activeElement?.closest(".area-tab-shell")
+    const activeShell = activeTab?.closest(".area-tab-shell")
       || [...tabs.querySelectorAll(":scope > .area-tab-shell")].find((shell) => shell.contains(document.activeElement))
       || tabs.querySelector(":scope > .area-tab-shell");
     if (!activeShell) return;
 
-    tabs.style.position = "relative";
-    editor.style.position = "absolute";
-    editor.style.zIndex = "20";
-    editor.style.top = `${activeShell.offsetTop}px`;
-    editor.style.left = `${activeShell.offsetLeft + activeShell.offsetWidth + 4}px`;
-    editor.style.height = `${activeShell.offsetHeight}px`;
-    editor.style.margin = "0";
+    editor.style.removeProperty("position");
+    editor.style.removeProperty("z-index");
+    editor.style.removeProperty("top");
+    editor.style.removeProperty("left");
+    editor.style.removeProperty("height");
+    editor.style.removeProperty("transform");
+    editor.style.setProperty("display", "inline-flex", "important");
+    editor.style.setProperty("align-items", "center", "important");
+    editor.style.setProperty("flex", "0 0 auto", "important");
+    editor.style.setProperty("margin", "0 0 0 4px", "important");
+
+    if (activeShell.nextElementSibling !== editor) {
+      tabs.insertBefore(editor, activeShell.nextSibling);
+    }
   }
 
   function observeTabControls() {
@@ -87,8 +122,16 @@
     if (!tabs || tabs.dataset.addControlObserved === "true") return;
     tabs.dataset.addControlObserved = "true";
     tabControlObserver?.disconnect();
-    tabControlObserver = new MutationObserver(() => window.requestAnimationFrame(stabiliseTabControls));
-    tabControlObserver.observe(tabs, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["class", "aria-selected", "style"] });
+    tabControlObserver = new MutationObserver(() => {
+      if (!arrangingTabControls) window.requestAnimationFrame(stabiliseTabControls);
+    });
+    tabControlObserver.observe(tabs, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ["class", "aria-selected"]
+    });
     stabiliseTabControls();
   }
 
