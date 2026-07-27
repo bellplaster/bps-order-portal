@@ -71,7 +71,10 @@
     });
 
     document.getElementById('reviewLineTotal').innerHTML = `<span>Product lines</span><strong>${lineCount}</strong>`;
-    document.getElementById('reviewUnitTotal').innerHTML = `<span>Board area</span><strong>${totalBoardArea.toFixed(2)} m²</strong><span>Total units</span><strong>${unitCount}</strong>`;
+    document.getElementById('reviewUnitTotal').innerHTML = `
+      <span class="review-footer-metric review-footer-area"><small>Board area</small><strong>${totalBoardArea.toFixed(2)} m²</strong></span>
+      <span class="review-footer-metric review-footer-units"><small>Total units</small><strong>${unitCount}</strong></span>
+    `;
   }
 
   function enableEditablePostcode() {
@@ -120,7 +123,7 @@
         link.dataset.finalControlState = 'true';
         document.head.append(link);
       }
-      link.href = '/final-control-state.css?v=20260727-3';
+      link.href = '/final-control-state.css?v=20260727-4';
     };
 
     const loadLateHotfixStyles = () => {
