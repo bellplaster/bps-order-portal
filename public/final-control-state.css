@@ -110,24 +110,35 @@ details.extras-dropdown[open]>div{
   z-index:1!important;
 }
 
-/* Restore the original compact review summary row. */
+/* Review header, rows and footer share the same final m² and quantity tracks. */
 .review-column-heading,
 .review-line.review-line-metrics{
   grid-template-columns:minmax(0,1fr) 86px 52px!important;
 }
+.review-column-heading>small:nth-of-type(1),
+.review-line.review-line-metrics>em{
+  padding:0!important;
+  text-align:center!important;
+}
+.review-column-heading>small:nth-of-type(2),
+.review-line.review-line-metrics>b{
+  padding:0!important;
+  text-align:center!important;
+}
 .review-total{
   display:grid!important;
-  grid-template-columns:minmax(0,1fr) auto!important;
-  min-height:0!important;
-  align-items:stretch!important;
+  grid-template-columns:minmax(0,1fr) max-content 86px max-content 52px!important;
+  min-height:38px!important;
+  align-items:center!important;
   gap:0!important;
   padding:0!important;
   border-top:1px solid var(--line)!important;
   background:#fff!important;
 }
-#reviewLineTotal,
-#reviewUnitTotal{
+#reviewLineTotal{
+  grid-column:1!important;
   display:flex!important;
+  min-width:0!important;
   min-height:38px!important;
   align-items:center!important;
   gap:7px!important;
@@ -137,12 +148,24 @@ details.extras-dropdown[open]>div{
   font-weight:500!important;
   white-space:nowrap!important;
 }
-#reviewUnitTotal{
-  justify-content:flex-end!important;
-  border-left:1px solid var(--line)!important;
-}
+#reviewUnitTotal,
 #reviewUnitTotal .review-footer-metric{
   display:contents!important;
+}
+#reviewUnitTotal .review-footer-area small{grid-column:2!important}
+#reviewUnitTotal .review-footer-area strong{grid-column:3!important}
+#reviewUnitTotal .review-footer-units small{grid-column:4!important}
+#reviewUnitTotal .review-footer-units strong{grid-column:5!important}
+#reviewUnitTotal small,
+#reviewUnitTotal strong{
+  display:flex!important;
+  min-height:38px!important;
+  align-items:center!important;
+  justify-content:center!important;
+  margin:0!important;
+  padding:0 6px!important;
+  box-sizing:border-box!important;
+  white-space:nowrap!important;
 }
 .review-total span,
 .review-total small{
@@ -154,10 +177,8 @@ details.extras-dropdown[open]>div{
 .review-total strong{
   color:#17211f!important;
   font:700 11px/1.2 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
-  white-space:nowrap!important;
 }
 #reviewUnitTotal .review-footer-area strong{
-  margin-right:12px!important;
   color:var(--bell-green)!important;
 }
 
@@ -175,11 +196,13 @@ details.extras-dropdown[open]>div{
     grid-template-columns:minmax(0,1fr) 70px 44px!important;
   }
   .review-total{
-    grid-template-columns:1fr!important;
+    grid-template-columns:minmax(0,1fr) max-content 70px max-content 44px!important;
   }
-  #reviewUnitTotal{
-    justify-content:flex-start!important;
-    border-top:1px solid var(--line)!important;
-    border-left:0!important;
+  #reviewLineTotal{
+    padding-inline:8px!important;
+  }
+  #reviewUnitTotal small,
+  #reviewUnitTotal strong{
+    padding-inline:3px!important;
   }
 }
