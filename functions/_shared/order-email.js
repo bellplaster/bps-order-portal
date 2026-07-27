@@ -84,10 +84,14 @@ export async function sendOrderFilesEmail(env, payload, result) {
 
 function displayDeliveryType(value) {
   const labels = {
-    "Pickup (Customer to collect)": "Pickup",
-    "Manual Unload (Knauf Labour)": "Hand unload",
-    "Mechanical (Forklift/Crane/Own)": "Forklift",
-    "Mixed Unload (Hand + Machine)": "Delivery (No assistance)",
+    "Pickup (Customer to collect)": "Customer Pickup",
+    "Manual Unload (Knauf Labour)": "Hand Unload",
+    "Mechanical (Forklift/Crane/Own)": "Forklift Delivery",
+    "Mixed Unload (Hand + Machine)": "Delivery (No Assistance)",
+    "Hand unload": "Hand Unload",
+    Forklift: "Forklift Delivery",
+    Crane: "Crane Delivery",
+    "Delivery (No assistance)": "Delivery (No Assistance)",
   };
   return labels[String(value || "")] || String(value || "—");
 }
