@@ -1,0 +1,121 @@
+/* Final alignment, tab control and server-side address-search refinements. */
+.structured-address-grid{
+  grid-template-columns:minmax(360px,calc((100% + 112px)/2)) minmax(220px,1fr) 78px 108px!important;
+}
+.structured-address-cell,
+.structured-address-cell input,
+.structured-address-cell .address-control,
+.structured-address-cell .address-control>input{
+  border-bottom:0!important;
+  box-shadow:none!important;
+}
+.structured-address-cell .address-control::before,
+.structured-address-cell .address-control::after,
+.structured-address-suburb::before,
+.structured-address-suburb::after{
+  display:none!important;
+  content:none!important;
+}
+.structured-address-cell:focus-within{
+  outline:1px solid var(--bell-green)!important;
+  outline-offset:-1px!important;
+  box-shadow:none!important;
+}
+.structured-address-cell.has-manager-results{
+  z-index:40!important;
+}
+.manager-address-results{
+  position:absolute;
+  z-index:100001;
+  top:100%;
+  left:-1px;
+  right:-1px;
+  max-height:260px;
+  overflow-y:auto;
+  background:#fff;
+  border:1px solid var(--line);
+  box-shadow:0 8px 20px rgba(23,33,31,.12);
+}
+.manager-address-results[hidden]{display:none!important}
+.manager-address-result{
+  width:100%;
+  display:grid;
+  gap:2px;
+  margin:0;
+  padding:8px 10px;
+  text-align:left;
+  color:var(--ink);
+  background:#fff;
+  border:0;
+  border-bottom:1px solid #e1e6e4;
+  border-radius:0;
+  cursor:pointer;
+}
+.manager-address-result:last-child{border-bottom:0}
+.manager-address-result:hover,
+.manager-address-result.is-active{background:#eef6f3}
+.manager-address-result strong{
+  font-size:11px;
+  font-weight:650;
+  line-height:1.25;
+}
+.manager-address-result span{
+  color:#66736f;
+  font-size:10px;
+  font-weight:400;
+  line-height:1.25;
+}
+.floor-tabs{
+  align-items:flex-end!important;
+}
+.floor-tabs>.area-tab-shell,
+.floor-tabs>[data-add-area],
+.floor-tabs>.area-tabs-reset{
+  height:32px!important;
+  min-height:32px!important;
+}
+.floor-tabs>.area-tab-shell .area-tab,
+.floor-tabs>.area-tab-shell>button{
+  height:32px!important;
+  min-height:32px!important;
+}
+.floor-tabs>[data-add-area]{
+  width:32px!important;
+  min-width:32px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  margin:0!important;
+  padding:0!important;
+  font-size:18px!important;
+  font-weight:600!important;
+  line-height:1!important;
+}
+.area-tabs-reset{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  height:32px!important;
+  min-height:32px!important;
+  margin:0 0 0 2px!important;
+  padding:0 11px!important;
+  line-height:1!important;
+}
+.area-tab-summary{
+  align-self:flex-end!important;
+  height:32px!important;
+  min-height:32px!important;
+  margin-top:0!important;
+  margin-bottom:0!important;
+  padding-top:0!important;
+  padding-bottom:0!important;
+}
+@media(max-width:1100px){
+  .structured-address-grid{
+    grid-template-columns:minmax(310px,calc((100% + 112px)/2)) minmax(190px,1fr) 70px 94px!important;
+  }
+}
+@media(max-width:760px){
+  .structured-address-grid{grid-template-columns:1fr 1fr!important}
+  .area-tab-summary{height:30px!important;min-height:30px!important}
+}
