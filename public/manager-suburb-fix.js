@@ -2,7 +2,6 @@
   let googleRetry = 0;
   let tabControlObserver = null;
   let addressObserver = null;
-  let arrangingEditor = false;
 
   document.addEventListener("click", (event) => {
     const reset = event.target.closest(".area-tabs-reset");
@@ -36,6 +35,7 @@
     sanitiseStructuredAddress();
     stabiliseTabControls();
   });
+  window.addEventListener("resize", positionRenameEditor);
 
   function start() {
     bindWhenReady();
@@ -61,7 +61,6 @@
   }
 
   function positionRenameEditor() {
-    if (arrangingEditor) return;
     const tabs = document.getElementById("deliveryAreaTabs") || document.querySelector(".floor-tabs");
     const editor = tabs?.querySelector(":scope > .area-name-editor");
     if (!tabs || !editor) return;
@@ -72,11 +71,15 @@
     const activeShell = activeElement?.closest(".area-tab-shell")
       || [...tabs.querySelectorAll(":scope > .area-tab-shell")].find((shell) => shell.contains(document.activeElement))
       || tabs.querySelector(":scope > .area-tab-shell");
-    if (!activeShell || activeShell.nextElementSibling === editor) return;
+    if (!activeShell) return;
 
-    arrangingEditor = true;
-    tabs.insertBefore(editor, activeShell.nextSibling);
-    arrangingEditor = false;
+    tabs.style.position = "relative";
+    editor.style.position = "absolute";
+    editor.style.zIndex = "20";
+    editor.style.top = `${activeShell.offsetTop}px`;
+    editor.style.left = `${activeShell.offsetLeft + activeShell.offsetWidth + 4}px`;
+    editor.style.height = `${activeShell.offsetHeight}px`;
+    editor.style.margin = "0";
   }
 
   function observeTabControls() {
@@ -84,10 +87,8 @@
     if (!tabs || tabs.dataset.addControlObserved === "true") return;
     tabs.dataset.addControlObserved = "true";
     tabControlObserver?.disconnect();
-    tabControlObserver = new MutationObserver(() => {
-      if (!arrangingEditor) window.requestAnimationFrame(stabiliseTabControls);
-    });
-    tabControlObserver.observe(tabs, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["class", "aria-selected"] });
+    tabControlObserver = new MutationObserver(() => window.requestAnimationFrame(stabiliseTabControls));
+    tabControlObserver.observe(tabs, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["class", "aria-selected", "style"] });
     stabiliseTabControls();
   }
 
