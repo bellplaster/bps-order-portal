@@ -122,20 +122,52 @@
   padding-bottom:0!important;
 }
 
-/* Search header, search rows and selected rows must share one column definition. */
+/* Search results have three cells: SKU, product and Add. */
 .additional-search-results .additional-result-header,
 .additional-search-results .additional-result-row,
 .additional-results .additional-result-header,
 .additional-results .additional-result-row,
 .additional-products-panel .additional-result-header,
-.additional-products-panel .additional-result-row,
-.additional-products-panel .selected-additional-header,
-.additional-products-panel .selected-additional-row{
+.additional-products-panel .additional-result-row{
   display:grid!important;
   grid-template-columns:minmax(205px,205px) minmax(0,1fr) 68px!important;
   width:100%!important;
   box-sizing:border-box!important;
 }
+
+/* Selected products have four cells: SKU, description, quantity and remove. */
+.additional-products-panel .selected-additional-header,
+.additional-products-panel .selected-additional-row{
+  display:grid!important;
+  grid-template-columns:minmax(205px,205px) minmax(0,1fr) 68px 30px!important;
+  width:100%!important;
+  min-height:30px!important;
+  box-sizing:border-box!important;
+  align-items:stretch!important;
+}
+.additional-products-panel .selected-additional-header{
+  height:30px!important;
+}
+.additional-products-panel .selected-additional-row{
+  height:32px!important;
+  max-height:32px!important;
+}
+.additional-products-panel .selected-additional-row>*{
+  height:32px!important;
+  min-height:32px!important;
+  margin:0!important;
+  padding-top:0!important;
+  padding-bottom:0!important;
+  display:flex!important;
+  align-items:center!important;
+  box-sizing:border-box!important;
+}
+.additional-products-panel .selected-additional-row>:last-child{
+  width:30px!important;
+  min-width:30px!important;
+  justify-content:center!important;
+}
+
 .additional-search-results .additional-result-header>*,
 .additional-search-results .additional-result-row>*,
 .additional-results .additional-result-header>*,
@@ -173,9 +205,11 @@
   .additional-results .additional-result-header,
   .additional-results .additional-result-row,
   .additional-products-panel .additional-result-header,
-  .additional-products-panel .additional-result-row,
+  .additional-products-panel .additional-result-row{
+    grid-template-columns:minmax(175px,175px) minmax(0,1fr) 58px!important;
+  }
   .additional-products-panel .selected-additional-header,
   .additional-products-panel .selected-additional-row{
-    grid-template-columns:minmax(175px,175px) minmax(0,1fr) 58px!important;
+    grid-template-columns:minmax(175px,175px) minmax(0,1fr) 58px 28px!important;
   }
 }
