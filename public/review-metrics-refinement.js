@@ -80,17 +80,9 @@
 
   if (!document.querySelector('script[data-manager-refinement="true"]')) {
     const script = document.createElement('script');
-    script.src = '/manager-refinement.js?v=20260727-1';
+    script.src = '/manager-refinement.js?v=20260727-2';
     script.async = false;
     script.dataset.managerRefinement = 'true';
-    script.addEventListener('load', () => {
-      if (document.querySelector('script[data-manager-suburb-fix="true"]')) return;
-      const suburbFix = document.createElement('script');
-      suburbFix.src = '/manager-suburb-fix.js?v=20260727-1';
-      suburbFix.async = false;
-      suburbFix.dataset.managerSuburbFix = 'true';
-      document.body.append(suburbFix);
-    });
     document.body.append(script);
   }
 })();
