@@ -21,7 +21,7 @@
 }
 .structured-address-grid{
   display:grid!important;
-  grid-template-columns:minmax(360px,46%) minmax(250px,1fr) 78px 108px!important;
+  grid-template-columns:calc(50% - 56px) minmax(220px,1fr) 78px 108px!important;
   min-width:0!important;
   min-height:48px!important;
   background:#fff!important;
@@ -66,6 +66,7 @@
   margin:0!important;
   padding:0!important;
   border:0!important;
+  border-bottom:0!important;
   border-radius:0!important;
   outline:0!important;
   background:#fff!important;
@@ -78,9 +79,19 @@
 .order-details-section .structured-address-cell>input:focus,
 .order-details-section .structured-address-cell .address-control>input:focus{
   border:0!important;
+  border-bottom:0!important;
   outline:0!important;
   box-shadow:none!important;
 }
+.structured-address-cell .address-control,
+.structured-address-cell .address-control::before,
+.structured-address-cell .address-control::after{
+  border:0!important;
+  border-bottom:0!important;
+  box-shadow:none!important;
+}
+.structured-address-cell .address-control::before,
+.structured-address-cell .address-control::after{display:none!important;content:none!important}
 .structured-address-cell:focus-within{
   z-index:3!important;
   outline:1px solid var(--bell-green)!important;
@@ -88,9 +99,7 @@
   box-shadow:none!important;
 }
 .structured-address-state,
-.structured-address-postcode{
-  cursor:default!important;
-}
+.structured-address-postcode{cursor:default!important}
 .structured-address-state input,
 .structured-address-postcode input{
   pointer-events:none!important;
@@ -121,18 +130,20 @@
 .floor-tabs{
   display:flex!important;
   width:100%!important;
-  align-items:stretch!important;
+  min-height:30px!important;
+  align-items:flex-end!important;
   gap:4px!important;
 }
 .floor-tabs>.area-tab-shell{order:1!important}
 .floor-tabs>[data-add-area]{order:2!important}
 .floor-tabs>.area-tabs-reset{order:3!important}
 .floor-tabs>.area-tab-summary{order:4!important;margin-left:auto!important}
+.floor-tabs>[data-add-area],
 .area-tabs-reset{
+  box-sizing:border-box!important;
   height:30px!important;
   min-height:30px!important;
-  margin:0 0 0 2px!important;
-  padding:0 10px!important;
+  margin:0!important;
   border:1px solid var(--line)!important;
   border-radius:0!important;
   background:#fff!important;
@@ -140,23 +151,42 @@
   font:650 10px/28px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
   white-space:nowrap!important;
   cursor:pointer!important;
+  vertical-align:bottom!important;
 }
-.area-tabs-reset:hover{background:#f8f4f5!important}
+.floor-tabs>[data-add-area]{
+  width:30px!important;
+  min-width:30px!important;
+  padding:0!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  font-size:20px!important;
+  line-height:1!important;
+}
+.area-tabs-reset{
+  min-width:76px!important;
+  padding:0 10px!important;
+}
+.area-tabs-reset:hover,.floor-tabs>[data-add-area]:hover{background:#f8f4f5!important}
 .area-tab-summary{
+  align-self:flex-end!important;
   display:flex!important;
+  height:30px!important;
   min-height:30px!important;
   align-items:center!important;
+  justify-content:flex-end!important;
   gap:7px!important;
-  padding-left:12px!important;
+  padding:0 0 0 12px!important;
   color:#53615e!important;
   font-size:10px!important;
+  line-height:30px!important;
   white-space:nowrap!important;
 }
 .area-summary-metric{font-weight:650!important}
 .area-summary-separator{color:#a3adaa!important}
 
 @media(max-width:1100px){
-  .structured-address-grid{grid-template-columns:minmax(300px,44%) minmax(210px,1fr) 70px 94px!important}
+  .structured-address-grid{grid-template-columns:calc(50% - 56px) minmax(190px,1fr) 70px 94px!important}
 }
 @media(max-width:760px){
   .structured-address-field{grid-template-columns:1fr!important}
