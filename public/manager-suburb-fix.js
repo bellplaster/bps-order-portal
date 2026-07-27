@@ -1,11 +1,16 @@
 (() => {
   let googleRetry = 0;
+  let tabControlObserver = null;
 
   document.addEventListener("click", (event) => {
     const reset = event.target.closest(".area-tabs-reset");
     if (!reset) return;
     const confirmed = window.confirm("Reset all tabs to one blank Tab 1? All product quantities will be cleared.");
-    if (confirmed) return;
+    if (confirmed) {
+      window.setTimeout(normaliseAddTabControl, 0);
+      window.setTimeout(normaliseAddTabControl, 80);
+      return;
+    }
     event.preventDefault();
     event.stopPropagation();
     event.stopImmediatePropagation();
@@ -17,7 +22,30 @@
   };
 
   bindWhenReady();
-  document.addEventListener("DOMContentLoaded", bindWhenReady, { once: true });
+  observeTabControls();
+  document.addEventListener("DOMContentLoaded", () => {
+    bindWhenReady();
+    observeTabControls();
+    normaliseAddTabControl();
+  }, { once: true });
+
+  function normaliseAddTabControl() {
+    const add = document.querySelector(".floor-tabs > [data-add-area]");
+    if (!add) return;
+    if (add.textContent !== "+") add.textContent = "+";
+    add.setAttribute("aria-label", "Add tab");
+    add.setAttribute("title", "Add tab");
+  }
+
+  function observeTabControls() {
+    const tabs = document.getElementById("deliveryAreaTabs") || document.querySelector(".floor-tabs");
+    if (!tabs || tabs.dataset.addControlObserved === "true") return;
+    tabs.dataset.addControlObserved = "true";
+    tabControlObserver?.disconnect();
+    tabControlObserver = new MutationObserver(() => normaliseAddTabControl());
+    tabControlObserver.observe(tabs, { childList: true, subtree: true, characterData: true });
+    normaliseAddTabControl();
+  }
 
   function bindWhenReady() {
     if (window.google?.maps?.places?.Autocomplete) {
