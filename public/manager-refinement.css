@@ -154,14 +154,18 @@
   vertical-align:bottom!important;
 }
 .floor-tabs>[data-add-area]{
+  display:inline-flex!important;
+  flex:0 0 30px!important;
   width:30px!important;
   min-width:30px!important;
+  max-width:30px!important;
+  overflow:hidden!important;
   padding:0!important;
-  display:inline-flex!important;
   align-items:center!important;
   justify-content:center!important;
   font-size:20px!important;
   line-height:1!important;
+  text-indent:0!important;
 }
 .area-tabs-reset{
   min-width:76px!important;
@@ -185,6 +189,26 @@
 .area-summary-metric{font-weight:650!important}
 .area-summary-separator{color:#a3adaa!important}
 
+/* Keep the longest Accrivia stock codes fully visible in Additional Products. */
+.additional-search-results .additional-result-row,
+.additional-results .additional-result-row,
+.additional-products-panel .additional-result-row{
+  grid-template-columns:minmax(205px,205px) minmax(0,1fr) 68px!important;
+}
+.additional-search-results .additional-result-row> :first-child,
+.additional-results .additional-result-row> :first-child,
+.additional-products-panel .additional-result-row> :first-child{
+  min-width:205px!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  white-space:nowrap!important;
+}
+.additional-search-results .additional-results-header,
+.additional-results .additional-results-header,
+.additional-products-panel .additional-results-header{
+  grid-template-columns:minmax(205px,205px) minmax(0,1fr) 68px!important;
+}
+
 @media(max-width:1100px){
   .structured-address-grid{grid-template-columns:calc(50% - 56px) minmax(190px,1fr) 70px 94px!important}
 }
@@ -196,4 +220,12 @@
   .structured-address-cell:nth-child(-n+2){border-bottom:1px solid var(--line)!important}
   .floor-tabs{flex-wrap:wrap!important}
   .area-tab-summary{width:100%!important;margin-left:0!important;justify-content:flex-end!important;border-top:1px solid var(--line)!important}
+  .additional-search-results .additional-result-row,
+  .additional-results .additional-result-row,
+  .additional-products-panel .additional-result-row,
+  .additional-search-results .additional-results-header,
+  .additional-results .additional-results-header,
+  .additional-products-panel .additional-results-header{
+    grid-template-columns:minmax(175px,175px) minmax(0,1fr) 58px!important;
+  }
 }
