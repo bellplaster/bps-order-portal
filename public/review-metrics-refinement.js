@@ -79,10 +79,24 @@
   try { renderReview = refinedRenderReview; } catch (_error) { }
 
   if (!document.querySelector('script[data-manager-refinement="true"]')) {
-    const script = document.createElement('script');
-    script.src = '/manager-refinement.js?v=20260727-2';
-    script.async = false;
-    script.dataset.managerRefinement = 'true';
-    document.body.append(script);
+    const loadManagerRefinement = () => {
+      const script = document.createElement('script');
+      script.src = '/manager-refinement.js?v=20260727-2';
+      script.async = false;
+      script.dataset.managerRefinement = 'true';
+      document.body.append(script);
+    };
+
+    if (!document.querySelector('script[data-manager-hotfix="true"]')) {
+      const hotfix = document.createElement('script');
+      hotfix.src = '/manager-hotfix.js?v=20260727-1';
+      hotfix.async = false;
+      hotfix.dataset.managerHotfix = 'true';
+      hotfix.addEventListener('load', loadManagerRefinement, { once: true });
+      hotfix.addEventListener('error', loadManagerRefinement, { once: true });
+      document.body.append(hotfix);
+    } else {
+      loadManagerRefinement();
+    }
   }
 })();
