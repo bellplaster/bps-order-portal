@@ -6,7 +6,6 @@
   let renameAreaId = "";
   let frame = 0;
 
-  installInterfaceStyles();
   initialise();
   document.addEventListener("DOMContentLoaded", initialise, { once: true });
   window.addEventListener("pageshow", initialise);
@@ -33,72 +32,6 @@
     renameAreaId = "";
     window.setTimeout(queueSync, 0);
   }, true);
-
-  function installInterfaceStyles() {
-    if (document.getElementById("consolidated-tab-interface-styles")) return;
-    const style = document.createElement("style");
-    style.id = "consolidated-tab-interface-styles";
-    style.textContent = `
-      .additional-products-panel .selected-additional-row{
-        overflow:hidden!important;
-        align-items:stretch!important;
-      }
-      .additional-products-panel .selected-additional-row>*{
-        align-self:stretch!important;
-        height:100%!important;
-        min-height:0!important;
-        max-height:none!important;
-        margin:0!important;
-        border-bottom:0!important;
-      }
-      .additional-products-panel .selected-additional-row>:nth-child(3),
-      .additional-products-panel .selected-additional-row .additional-quantity,
-      .additional-products-panel .selected-additional-row .quantity-input{
-        display:flex!important;
-        height:100%!important;
-        min-height:100%!important;
-        align-items:center!important;
-        justify-content:center!important;
-        align-self:stretch!important;
-        margin:0!important;
-        padding-top:0!important;
-        padding-bottom:0!important;
-        background:#eef8f5!important;
-        box-shadow:none!important;
-      }
-      .area-tab-summary{display:none!important}
-
-      .delivery-select-timeSlot .delivery-select:focus,
-      .delivery-select-timeSlot .delivery-select:focus-visible,
-      .delivery-select-deliveryType .delivery-select:focus,
-      .delivery-select-deliveryType .delivery-select:focus-visible,
-      .extras-dropdown>summary:focus,
-      .extras-dropdown>summary:focus-visible,
-      .extras-dropdown[open]>summary{
-        outline:1px solid var(--bell-green)!important;
-        outline-offset:-1px!important;
-        border-color:transparent!important;
-        box-shadow:none!important;
-      }
-      .delivery-select-timeSlot:focus-within,
-      .delivery-select-deliveryType:focus-within,
-      .extras-dropdown:focus-within,
-      .extras-dropdown[open]{
-        outline:0!important;
-        border-color:transparent!important;
-        box-shadow:none!important;
-      }
-      .extras-dropdown[open]>.stacked-options,
-      .extras-dropdown[open]>.extras-options,
-      .extras-dropdown[open]>div{
-        border:1px solid var(--line)!important;
-        border-top:0!important;
-        border-bottom-color:var(--line)!important;
-        box-shadow:none!important;
-      }
-    `;
-    document.head.append(style);
-  }
 
   function initialise() {
     const nextTabs = document.querySelector(TAB_ROW_SELECTOR);
