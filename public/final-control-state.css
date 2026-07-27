@@ -110,120 +110,76 @@ details.extras-dropdown[open]>div{
   z-index:1!important;
 }
 
-/* Review table and summary use the same three tracks, without boxed metric cells. */
+/* Restore the original compact review summary row. */
 .review-column-heading,
-.review-line.review-line-metrics,
+.review-line.review-line-metrics{
+  grid-template-columns:minmax(0,1fr) 86px 52px!important;
+}
 .review-total{
   display:grid!important;
-  grid-template-columns:minmax(0,1fr) 180px 110px!important;
-  width:100%!important;
-  box-sizing:border-box!important;
-}
-.review-column-heading>small:nth-of-type(1),
-.review-line.review-line-metrics>em{
-  width:100%!important;
-  padding-right:24px!important;
-  text-align:right!important;
-  box-sizing:border-box!important;
-}
-.review-column-heading>small:nth-of-type(2),
-.review-line.review-line-metrics>b{
-  width:100%!important;
-  padding-right:26px!important;
-  text-align:right!important;
-  box-sizing:border-box!important;
-}
-.review-total{
-  min-height:44px!important;
-  align-items:center!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  min-height:0!important;
+  align-items:stretch!important;
+  gap:0!important;
   padding:0!important;
   border-top:1px solid var(--line)!important;
-  background:#f8faf9!important;
-  box-shadow:none!important;
+  background:#fff!important;
 }
-#reviewLineTotal{
-  grid-column:1!important;
+#reviewLineTotal,
+#reviewUnitTotal{
   display:flex!important;
+  min-height:38px!important;
   align-items:center!important;
-  gap:8px!important;
-  min-width:0!important;
-  height:100%!important;
-  padding:0 12px!important;
-  border:0!important;
-  color:#4f5d59!important;
-  font:600 10px/1 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
-  text-transform:uppercase!important;
-}
-#reviewLineTotal strong{
-  color:var(--ink)!important;
-  font-size:11px!important;
-  font-weight:700!important;
+  gap:7px!important;
+  padding:7px 11px!important;
+  color:#52615d!important;
+  font-size:10px!important;
+  font-weight:500!important;
+  white-space:nowrap!important;
 }
 #reviewUnitTotal{
+  justify-content:flex-end!important;
+  border-left:1px solid var(--line)!important;
+}
+#reviewUnitTotal .review-footer-metric{
   display:contents!important;
 }
-.review-footer-metric{
-  display:flex!important;
-  min-width:0!important;
-  height:100%!important;
-  align-items:center!important;
-  justify-content:flex-end!important;
-  gap:10px!important;
-  padding:0 18px!important;
-  border:0!important;
-  white-space:nowrap!important;
-  box-sizing:border-box!important;
-}
-.review-footer-area{
-  grid-column:2!important;
-}
-.review-footer-units{
-  grid-column:3!important;
-  padding-right:24px!important;
-}
-.review-footer-metric small{
-  display:block!important;
-  color:#4f5d59!important;
-  font:600 10px/1 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+.review-total span,
+.review-total small{
+  color:#65716e!important;
+  font:650 9px/1.2 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
   letter-spacing:0!important;
   text-transform:uppercase!important;
 }
-.review-footer-metric strong{
-  display:block!important;
-  min-width:0!important;
+.review-total strong{
+  color:#17211f!important;
+  font:700 11px/1.2 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  white-space:nowrap!important;
+}
+#reviewUnitTotal .review-footer-area strong{
+  margin-right:12px!important;
   color:var(--bell-green)!important;
-  font:700 11px/1 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+}
+
+/* Partiwalls uses 62/19/19 columns. Match the simulated middle cell exactly. */
+.partiwall-table tbody tr:not(.lower-subheader) th[colspan="2"]{
+  padding-right:23.4567901235%!important;
+}
+.partiwall-table tbody tr:not(.lower-subheader) th[colspan="2"]::after{
+  width:23.4567901235%!important;
 }
 
 @media(max-width:760px){
   .review-column-heading,
-  .review-line.review-line-metrics,
+  .review-line.review-line-metrics{
+    grid-template-columns:minmax(0,1fr) 70px 44px!important;
+  }
   .review-total{
-    grid-template-columns:minmax(0,1fr) 128px 78px!important;
+    grid-template-columns:1fr!important;
   }
-  .review-column-heading>small:nth-of-type(1),
-  .review-line.review-line-metrics>em{
-    padding-right:10px!important;
-  }
-  .review-column-heading>small:nth-of-type(2),
-  .review-line.review-line-metrics>b{
-    padding-right:12px!important;
-  }
-  #reviewLineTotal{
-    padding:0 8px!important;
-    font-size:8px!important;
-  }
-  .review-footer-metric{
-    flex-direction:column!important;
-    align-items:flex-end!important;
-    justify-content:center!important;
-    gap:2px!important;
-    padding:6px 8px!important;
-  }
-  .review-footer-metric small{
-    font-size:8px!important;
-  }
-  .review-footer-metric strong{
-    font-size:10px!important;
+  #reviewUnitTotal{
+    justify-content:flex-start!important;
+    border-top:1px solid var(--line)!important;
+    border-left:0!important;
   }
 }
