@@ -10,9 +10,6 @@
     const length = Math.max(first, second);
     const quantity = Number(line?.quantity || 0);
 
-    // Sheet-board dimensions: normal board widths and lengths. This includes
-    // Villaboard, Flexiboard, plasterboard and other fibre-cement sheet products,
-    // while excluding tracks, cornice, trims, fasteners and insulation sizes.
     if (width < 900 || width > 1500 || length < 1800 || length > 6000 || quantity <= 0) return null;
     return (width * length * quantity) / 1_000_000;
   }
@@ -29,6 +26,7 @@
       ['Extras', payload.extras.join(', ') || 'None'],
       ['Instructions', payload.deliveryInstructions || '—'],
     ];
+
     const detailsRoot = document.getElementById('reviewDetails');
     detailsRoot.replaceChildren();
     details.forEach(([label, content]) => {
@@ -51,17 +49,30 @@
       const areaId = areaDefinition.id;
       const lines = getFloorLines(areaId);
       if (!lines.length) return;
+
       const group = document.createElement('section');
       group.className = 'review-floor-group';
-      const heading = document.createElement('h3');
+
+      const areaHeading = document.createElement('h3');
+      areaHeading.className = 'review-area-heading';
+      areaHeading.textContent = areaDefinition.label || floorLabels[areaId] || areaId;
+      group.append(areaHeading);
+
+      const heading = document.createElement('div');
       heading.className = 'review-column-heading';
-      heading.innerHTML = `<span>${escapeHtml(areaDefinition.label || floorLabels[areaId] || areaId)}</span><small>m²</small><small>Qty</small>`;
+      heading.innerHTML = '<span>SKU</span><span>Product</span><small>m²</small><small>Qty</small>';
       group.append(heading);
+
       lines.forEach((line) => {
         const area = boardArea(line);
         const row = document.createElement('div');
         row.className = 'review-line review-line-metrics';
-        row.innerHTML = `<div><strong>${escapeHtml(line.label)}</strong><span>${escapeHtml(line.sku || '')}</span></div><em>${area === null ? '' : `${area.toFixed(2)} m²`}</em><b>${line.quantity}</b>`;
+        row.innerHTML = `
+          <span class="review-line-sku">${escapeHtml(line.sku || '—')}</span>
+          <strong class="review-line-product">${escapeHtml(line.label)}</strong>
+          <em>${area === null ? '' : `${area.toFixed(2)} m²`}</em>
+          <b>${line.quantity}</b>
+        `;
         group.append(row);
         lineCount += 1;
         unitCount += Number(line.quantity || 0);
@@ -124,6 +135,15 @@
         document.head.append(link);
       }
       link.href = '/final-control-state.css?v=20260728-1';
+
+      let reviewLink = document.querySelector('link[data-review-table-final="true"]');
+      if (!reviewLink) {
+        reviewLink = document.createElement('link');
+        reviewLink.rel = 'stylesheet';
+        reviewLink.dataset.reviewTableFinal = 'true';
+        document.head.append(reviewLink);
+      }
+      reviewLink.href = '/review-table-final.css?v=20260728-1';
     };
 
     const loadLateHotfixStyles = () => {
