@@ -30,7 +30,6 @@ const deliveryTypes = new Set([
 ]);
 
 window.addEventListener("DOMContentLoaded", initialise);
-window.addEventListener("DOMContentLoaded", enforceUppercaseGoogleAddress);
 window.addEventListener("DOMContentLoaded", loadDeliveryRefinement);
 
 async function initialise() {
@@ -38,7 +37,6 @@ async function initialise() {
   setToday();
   try {
     await Promise.all([loadAccount(), loadCatalog()]);
-    await initialiseGoogleAddress();
     restoreDraft();
     updateGeneratedDeliverySummary();
     await loadOrderHistory();
