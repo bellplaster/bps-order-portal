@@ -6,6 +6,7 @@ export async function onRequestGet(context) {
   const placeId = String(url.searchParams.get("placeId") || "").trim();
   const query = String(url.searchParams.get("q") || "").trim();
   const mode = url.searchParams.get("mode") === "suburb" ? "suburb" : "street";
+  const referrer = String(context.request.headers.get("Referer") || `${url.origin}/`);
   const apiKey = String(
     context.env.GOOGLE_PLACES_API_KEY ||
     context.env.GOOGLE_MAPS_API_KEY ||
@@ -16,35 +17,39 @@ export async function onRequestGet(context) {
   if (!apiKey) return json({ ok: false, error: "Address search is not configured." }, 503);
 
   try {
-    if (placeId) return await resolvePlace(apiKey, placeId);
+    if (placeId) return await resolvePlace(apiKey, placeId, referrer);
     if (query.length < 2) return json({ ok: true, suggestions: [] });
-    return await autocomplete(apiKey, query, mode);
+    return await autocomplete(apiKey, query, mode, referrer);
   } catch (error) {
     console.error("Address search failed", error);
     return json({ ok: false, error: "Address suggestions are temporarily unavailable." }, 502);
   }
 }
 
-async function autocomplete(apiKey, input, mode) {
+async function autocomplete(apiKey, input, mode, referrer) {
+  const requestBody = {
+    input,
+    includedRegionCodes: ["au"],
+    locationRestriction: {
+      rectangle: {
+        low: { latitude: -39.25, longitude: 140.9 },
+        high: { latitude: -33.8, longitude: 150.1 },
+      },
+    },
+    languageCode: "en-AU",
+    regionCode: "AU",
+  };
+  if (mode === "suburb") requestBody.includedPrimaryTypes = ["(cities)"];
+
   const response = await fetch(PLACES_AUTOCOMPLETE_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json; charset=utf-8",
       "X-Goog-Api-Key": apiKey,
-      "X-Goog-FieldMask": "suggestions.placePrediction.placeId,suggestions.placePrediction.text,suggestions.placePrediction.structuredFormat,suggestions.placePrediction.types",
+      "X-Goog-FieldMask": "suggestions.placePrediction.placeId,suggestions.placePrediction.text.text,suggestions.placePrediction.structuredFormat.mainText.text,suggestions.placePrediction.structuredFormat.secondaryText.text,suggestions.placePrediction.types",
+      Referer: referrer,
     },
-    body: JSON.stringify({
-      input,
-      includedRegionCodes: ["au"],
-      locationRestriction: {
-        rectangle: {
-          low: { latitude: -39.25, longitude: 140.9 },
-          high: { latitude: -33.8, longitude: 150.1 },
-        },
-      },
-      languageCode: "en-AU",
-      regionCode: "AU",
-    }),
+    body: JSON.stringify(requestBody),
   });
 
   const payload = await response.json().catch(() => ({}));
@@ -72,11 +77,12 @@ async function autocomplete(apiKey, input, mode) {
   return json({ ok: true, suggestions: suggestions.slice(0, 7) });
 }
 
-async function resolvePlace(apiKey, placeId) {
+async function resolvePlace(apiKey, placeId, referrer) {
   const response = await fetch(`${PLACES_DETAILS_URL}/${encodeURIComponent(placeId)}`, {
     headers: {
       "X-Goog-Api-Key": apiKey,
       "X-Goog-FieldMask": "id,formattedAddress,addressComponents,types",
+      Referer: referrer,
     },
   });
   const payload = await response.json().catch(() => ({}));
