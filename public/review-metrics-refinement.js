@@ -79,13 +79,28 @@
   try { renderReview = refinedRenderReview; } catch (_error) { }
 
   if (!document.querySelector('script[data-manager-refinement="true"]')) {
+    const loadFinalControlStyles = () => {
+      let link = document.querySelector('link[data-final-control-state="true"]');
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.dataset.finalControlState = 'true';
+        document.head.append(link);
+      }
+      link.href = '/final-control-state.css?v=20260727-1';
+    };
+
     const loadLateHotfixStyles = () => {
-      if (document.querySelector('link[data-manager-hotfix-late="true"]')) return;
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = '/manager-hotfix.css?v=20260727-1';
-      link.dataset.managerHotfixLate = 'true';
-      document.head.append(link);
+      let link = document.querySelector('link[data-manager-hotfix-late="true"]');
+      if (!link) {
+        link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.dataset.managerHotfixLate = 'true';
+        document.head.append(link);
+      }
+      link.href = '/manager-hotfix.css?v=20260727-2';
+      link.addEventListener('load', loadFinalControlStyles, { once: true });
+      link.addEventListener('error', loadFinalControlStyles, { once: true });
     };
 
     const loadManagerRefinement = () => {
@@ -94,6 +109,7 @@
       script.async = false;
       script.dataset.managerRefinement = 'true';
       script.addEventListener('load', loadLateHotfixStyles, { once: true });
+      script.addEventListener('error', loadLateHotfixStyles, { once: true });
       document.body.append(script);
     };
 
@@ -116,7 +132,7 @@
       loadManagerHotfix();
     } else {
       const tabController = document.createElement('script');
-      tabController.src = '/tab-controls.js?v=20260727-1';
+      tabController.src = '/tab-controls.js?v=20260727-2';
       tabController.async = false;
       tabController.dataset.tabControls = 'true';
       tabController.addEventListener('load', loadManagerHotfix, { once: true });
