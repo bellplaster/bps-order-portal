@@ -2,7 +2,17 @@
   let attempts = 0;
   let restored = false;
 
+  function ensureEditBannerMarkup() {
+    const banner = document.getElementById('editModeBanner');
+    if (!banner || banner.childElementCount) return;
+    banner.innerHTML = '<div><span>Editing</span> <strong id="editOrderNumber"></strong> <small id="editRevisionText"></small></div><button id="cancelEditButton" class="text-button" type="button">Cancel edit</button>';
+    document.getElementById('cancelEditButton')?.addEventListener('click', () => {
+      if (typeof resetOrder === 'function') resetOrder();
+    });
+  }
+
   function restoreCurrentDraftAfterDeliverySetup() {
+    ensureEditBannerMarkup();
     if (restored) return true;
 
     const deliverySelect = document.querySelector('.delivery-select-deliveryType .delivery-select');
