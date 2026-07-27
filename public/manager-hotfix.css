@@ -8,13 +8,20 @@
 .structured-address-cell .address-control>input{
   border-bottom:0!important;
   box-shadow:none!important;
+  background-image:none!important;
 }
+.structured-address-cell::before,
+.structured-address-cell::after,
+.structured-address-cell input::before,
+.structured-address-cell input::after,
 .structured-address-cell .address-control::before,
 .structured-address-cell .address-control::after,
 .structured-address-suburb::before,
 .structured-address-suburb::after{
   display:none!important;
   content:none!important;
+  border:0!important;
+  box-shadow:none!important;
 }
 .structured-address-cell:focus-within{
   outline:1px solid var(--bell-green)!important;
@@ -23,6 +30,10 @@
 }
 .structured-address-cell.has-manager-results{
   z-index:40!important;
+}
+.pac-container,
+.pac-logo::after{
+  display:none!important;
 }
 .manager-address-results{
   position:absolute;
@@ -110,6 +121,45 @@
   padding-top:0!important;
   padding-bottom:0!important;
 }
+
+/* Search header, search rows and selected rows must share one column definition. */
+.additional-search-results .additional-result-header,
+.additional-search-results .additional-result-row,
+.additional-results .additional-result-header,
+.additional-results .additional-result-row,
+.additional-products-panel .additional-result-header,
+.additional-products-panel .additional-result-row,
+.additional-products-panel .selected-additional-header,
+.additional-products-panel .selected-additional-row{
+  display:grid!important;
+  grid-template-columns:minmax(205px,205px) minmax(0,1fr) 68px!important;
+  width:100%!important;
+  box-sizing:border-box!important;
+}
+.additional-search-results .additional-result-header>*,
+.additional-search-results .additional-result-row>*,
+.additional-results .additional-result-header>*,
+.additional-results .additional-result-row>*,
+.additional-products-panel .additional-result-header>*,
+.additional-products-panel .additional-result-row>*,
+.additional-products-panel .selected-additional-header>*,
+.additional-products-panel .selected-additional-row>*{
+  min-width:0!important;
+  box-sizing:border-box!important;
+}
+.additional-search-results .additional-result-header>:first-child,
+.additional-search-results .additional-result-row>:first-child,
+.additional-results .additional-result-header>:first-child,
+.additional-results .additional-result-row>:first-child,
+.additional-products-panel .additional-result-header>:first-child,
+.additional-products-panel .additional-result-row>:first-child,
+.additional-products-panel .selected-additional-header>:first-child,
+.additional-products-panel .selected-additional-row>:first-child{
+  width:205px!important;
+  min-width:205px!important;
+  max-width:205px!important;
+}
+
 @media(max-width:1100px){
   .structured-address-grid{
     grid-template-columns:calc(50% - 56px) minmax(190px,1fr) 70px 94px!important;
@@ -118,4 +168,14 @@
 @media(max-width:760px){
   .structured-address-grid{grid-template-columns:1fr 1fr!important}
   .area-tab-summary{height:30px!important;min-height:30px!important}
+  .additional-search-results .additional-result-header,
+  .additional-search-results .additional-result-row,
+  .additional-results .additional-result-header,
+  .additional-results .additional-result-row,
+  .additional-products-panel .additional-result-header,
+  .additional-products-panel .additional-result-row,
+  .additional-products-panel .selected-additional-header,
+  .additional-products-panel .selected-additional-row{
+    grid-template-columns:minmax(175px,175px) minmax(0,1fr) 58px!important;
+  }
 }
