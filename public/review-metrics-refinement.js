@@ -26,7 +26,6 @@
       ['Extras', payload.extras.join(', ') || 'None'],
       ['Instructions', payload.deliveryInstructions || '—'],
     ];
-
     const detailsRoot = document.getElementById('reviewDetails');
     detailsRoot.replaceChildren();
     details.forEach(([label, content]) => {
@@ -134,7 +133,7 @@
         link.dataset.finalControlState = 'true';
         document.head.append(link);
       }
-      link.href = '/final-control-state.css?v=20260728-1';
+      link.href = '/final-control-state.css?v=20260728-2';
 
       let reviewLink = document.querySelector('link[data-review-table-final="true"]');
       if (!reviewLink) {
@@ -143,7 +142,7 @@
         reviewLink.dataset.reviewTableFinal = 'true';
         document.head.append(reviewLink);
       }
-      reviewLink.href = '/review-table-final.css?v=20260728-1';
+      reviewLink.href = '/review-table-final.css?v=20260728-2';
     };
 
     const loadLateHotfixStyles = () => {
