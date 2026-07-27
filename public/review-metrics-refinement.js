@@ -120,7 +120,7 @@
         link.dataset.finalControlState = 'true';
         document.head.append(link);
       }
-      link.href = '/final-control-state.css?v=20260727-2';
+      link.href = '/final-control-state.css?v=20260727-3';
     };
 
     const loadLateHotfixStyles = () => {
