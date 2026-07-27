@@ -28,7 +28,7 @@ export async function onRequestGet(context) {
 
 async function autocomplete(apiKey, input, mode, referrer) {
   const requestBody = {
-    input,
+    input: /\b(?:vic|victoria)\b/i.test(input) ? input : `${input}, Victoria`,
     includedRegionCodes: ["au"],
     locationRestriction: {
       rectangle: {
@@ -67,7 +67,11 @@ async function autocomplete(apiKey, input, mode, referrer) {
       mainText: prediction.structuredFormat?.mainText?.text || prediction.text?.text || "",
       secondaryText: prediction.structuredFormat?.secondaryText?.text || "",
       types: Array.isArray(prediction.types) ? prediction.types : [],
-    }));
+    }))
+    .filter((suggestion) => {
+      const text = `${suggestion.text} ${suggestion.secondaryText}`;
+      return /\b(?:VIC|Victoria)\b/i.test(text) && !/\b(?:NSW|New South Wales)\b/i.test(text);
+    });
 
   if (mode === "suburb") {
     const suburbTypes = new Set(["locality", "postal_town", "sublocality", "sublocality_level_1", "administrative_area_level_2"]);
