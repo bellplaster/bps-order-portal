@@ -28,10 +28,6 @@
     }
   }, true);
 
-  document.addEventListener("input", (event) => {
-    if (event.target.matches(".quantity-input, .selected-additional-row input")) queueSync();
-  });
-
   document.addEventListener("submit", (event) => {
     if (!event.target.matches(".area-name-editor")) return;
     renameAreaId = "";
@@ -70,56 +66,7 @@
         background:#eef8f5!important;
         box-shadow:none!important;
       }
-      .area-tab-summary{
-        display:flex!important;
-        align-items:stretch!important;
-        justify-content:flex-end!important;
-        gap:5px!important;
-        height:32px!important;
-        min-height:32px!important;
-        margin-left:auto!important;
-        padding:0!important;
-        color:#26332f!important;
-        font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
-        line-height:1!important;
-      }
-      .area-tab-summary .area-summary-separator{display:none!important}
-      .area-tab-summary .area-summary-metric{
-        display:grid!important;
-        grid-template-columns:auto auto!important;
-        align-items:center!important;
-        gap:6px!important;
-        height:32px!important;
-        min-width:82px!important;
-        padding:0 9px!important;
-        border:1px solid #c7d0cd!important;
-        background:#fff!important;
-        box-sizing:border-box!important;
-        white-space:nowrap!important;
-      }
-      .area-tab-summary .area-summary-label{
-        color:#687570!important;
-        font-size:9px!important;
-        font-weight:600!important;
-        letter-spacing:.03em!important;
-        line-height:1!important;
-        text-transform:uppercase!important;
-      }
-      .area-tab-summary .area-summary-value{
-        color:var(--bell-maroon)!important;
-        font-size:13px!important;
-        font-weight:750!important;
-        line-height:1!important;
-        text-align:right!important;
-      }
-      @media(max-width:760px){
-        .area-tab-summary{
-          width:100%!important;
-          margin-left:0!important;
-          justify-content:flex-end!important;
-        }
-        .area-tab-summary .area-summary-metric{min-width:76px!important}
-      }
+      .area-tab-summary{display:none!important}
     `;
     document.head.append(style);
   }
@@ -166,9 +113,9 @@
     observer?.disconnect();
 
     try {
+      tabs.querySelectorAll(":scope > .area-tab-summary").forEach((summary) => summary.remove());
       normaliseAddButton();
       placeRenameEditor();
-      normaliseSummary();
     } finally {
       observeTabs();
       syncing = false;
@@ -241,45 +188,5 @@
     editor.style.removeProperty("top");
     editor.style.removeProperty("right");
     editor.style.removeProperty("bottom");
-  }
-
-  function normaliseSummary() {
-    const summary = tabs.querySelector(":scope > .area-tab-summary");
-    if (!summary) return;
-
-    const lines = typeof getFloorLines === "function" && typeof state !== "undefined"
-      ? getFloorLines(state.activeFloor)
-      : [];
-    const itemCount = Array.isArray(lines) ? lines.length : 0;
-    const unitCount = Array.isArray(lines)
-      ? lines.reduce((total, line) => total + Number(line.quantity || 0), 0)
-      : 0;
-
-    if (summary.dataset.metricUi !== "true") {
-      summary.dataset.metricUi = "true";
-      summary.replaceChildren(
-        createMetric("Items", "tab-products"),
-        createMetric("Units", "tab-units")
-      );
-    }
-
-    const items = summary.querySelector("[data-tab-products]");
-    const units = summary.querySelector("[data-tab-units]");
-    if (items) items.textContent = String(itemCount);
-    if (units) units.textContent = String(unitCount);
-  }
-
-  function createMetric(label, key) {
-    const metric = document.createElement("span");
-    metric.className = "area-summary-metric";
-    const caption = document.createElement("span");
-    caption.className = "area-summary-label";
-    caption.textContent = label;
-    const value = document.createElement("strong");
-    value.className = "area-summary-value";
-    value.dataset[key] = "";
-    value.textContent = "0";
-    metric.append(caption, value);
-    return metric;
   }
 })();
