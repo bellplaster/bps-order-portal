@@ -74,6 +74,40 @@
     document.getElementById('reviewUnitTotal').innerHTML = `<span>Board area</span><strong>${totalBoardArea.toFixed(2)} m²</strong><span>Total units</span><strong>${unitCount}</strong>`;
   }
 
+  function enableEditablePostcode() {
+    const postcode = document.getElementById('deliveryPostcode');
+    if (!postcode) return false;
+
+    postcode.readOnly = false;
+    postcode.disabled = false;
+    postcode.tabIndex = 0;
+    postcode.inputMode = 'numeric';
+    postcode.maxLength = 4;
+    postcode.pattern = '[0-9]{4}';
+    postcode.autocomplete = 'postal-code';
+
+    if (postcode.dataset.editablePostcode !== 'true') {
+      postcode.dataset.editablePostcode = 'true';
+      postcode.addEventListener('input', () => {
+        postcode.value = postcode.value.replace(/\D/g, '').slice(0, 4);
+        postcode.setCustomValidity('');
+        if (typeof syncStructuredAddress === 'function') syncStructuredAddress();
+        else if (typeof parseAndStoreManualAddress === 'function') parseAndStoreManualAddress();
+        if (typeof scheduleDraft === 'function') scheduleDraft();
+      });
+    }
+    return true;
+  }
+
+  function ensureEditablePostcode() {
+    if (enableEditablePostcode()) return;
+    let attempts = 0;
+    const timer = window.setInterval(() => {
+      attempts += 1;
+      if (enableEditablePostcode() || attempts >= 50) window.clearInterval(timer);
+    }, 100);
+  }
+
   window.renderReview = refinedRenderReview;
   try { renderReview = refinedRenderReview; } catch (_error) { }
 
@@ -107,7 +141,10 @@
       script.src = '/manager-refinement.js?v=20260727-3';
       script.async = false;
       script.dataset.managerRefinement = 'true';
-      script.addEventListener('load', loadLateHotfixStyles, { once: true });
+      script.addEventListener('load', () => {
+        ensureEditablePostcode();
+        loadLateHotfixStyles();
+      }, { once: true });
       script.addEventListener('error', loadLateHotfixStyles, { once: true });
       document.body.append(script);
     };
@@ -138,5 +175,7 @@
       tabController.addEventListener('error', loadManagerHotfix, { once: true });
       document.body.append(tabController);
     }
+  } else {
+    ensureEditablePostcode();
   }
 })();
