@@ -1,24 +1,30 @@
-/* Manager-requested delivery, address and tab-summary refinements. */
+/* Manager-requested delivery, address and tab refinements. */
 .structured-address-field{
   display:grid!important;
-  grid-template-columns:96px minmax(0,1fr)!important;
+  grid-template-columns:112px minmax(0,1fr)!important;
   min-height:48px!important;
   border-bottom:1px solid var(--line)!important;
+  background:#fff!important;
 }
 .structured-address-field>label{
   display:flex!important;
   align-items:center!important;
   min-height:48px!important;
+  margin:0!important;
   padding:0 8px!important;
   border-right:1px solid var(--line)!important;
+  background:#fff!important;
+  color:#111917!important;
   font-size:11px!important;
-  font-weight:600!important;
+  font-weight:500!important;
+  line-height:1.2!important;
 }
 .structured-address-grid{
   display:grid!important;
-  grid-template-columns:minmax(260px,2fr) minmax(190px,1.25fr) 78px 104px!important;
+  grid-template-columns:minmax(360px,46%) minmax(250px,1fr) 78px 108px!important;
   min-width:0!important;
   min-height:48px!important;
+  background:#fff!important;
 }
 .structured-address-cell{
   position:relative!important;
@@ -26,19 +32,23 @@
   grid-template-rows:15px 1fr!important;
   min-width:0!important;
   min-height:48px!important;
+  margin:0!important;
   padding:2px 8px 0!important;
   border-right:1px solid var(--line)!important;
   background:#fff!important;
+  box-shadow:none!important;
 }
 .structured-address-cell:last-child{border-right:0!important}
 .structured-address-label{
   display:block!important;
   align-self:end!important;
-  color:#6d7875!important;
+  margin:0!important;
+  color:#687370!important;
   font-size:8px!important;
-  font-weight:650!important;
+  font-weight:600!important;
   line-height:1!important;
   letter-spacing:.01em!important;
+  white-space:nowrap!important;
 }
 .structured-address-cell input,
 .structured-address-cell .address-control,
@@ -49,6 +59,8 @@
 }
 .structured-address-cell>input,
 .structured-address-cell .address-control>input{
+  position:relative!important;
+  z-index:1!important;
   height:29px!important;
   min-height:29px!important;
   margin:0!important;
@@ -62,68 +74,96 @@
   box-shadow:none!important;
 }
 .structured-address-cell>input:focus,
-.structured-address-cell .address-control>input:focus{
+.structured-address-cell .address-control>input:focus,
+.order-details-section .structured-address-cell>input:focus,
+.order-details-section .structured-address-cell .address-control>input:focus{
+  border:0!important;
+  outline:0!important;
   box-shadow:none!important;
 }
 .structured-address-cell:focus-within{
-  box-shadow:inset 0 0 0 1px #006557!important;
-  z-index:2!important;
+  z-index:3!important;
+  outline:1px solid var(--bell-green)!important;
+  outline-offset:-1px!important;
+  box-shadow:none!important;
+}
+.structured-address-state,
+.structured-address-postcode{
+  cursor:default!important;
+}
+.structured-address-state input,
+.structured-address-postcode input{
+  pointer-events:none!important;
+  user-select:none!important;
 }
 .structured-address-state input{
   color:#52605d!important;
   font-weight:600!important;
 }
-.structured-address-postcode input[readonly]{
-  color:var(--ink)!important;
-}
+.structured-address-postcode input[readonly]{color:var(--ink)!important}
 .structured-address-cell .address-control{
   position:relative!important;
   display:block!important;
   height:29px!important;
   min-height:29px!important;
+  margin:0!important;
+  padding:0!important;
 }
 .structured-address-cell .clear-input{
+  z-index:4!important;
   top:50%!important;
   right:0!important;
   transform:translateY(-50%)!important;
 }
-.area-tab-summary{
+.pac-container{z-index:100000!important;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important}
+.pac-item,.pac-item-query{text-transform:none!important}
+
+.floor-tabs{
   display:flex!important;
-  min-height:30px!important;
-  align-items:center!important;
-  gap:7px!important;
-  margin-left:auto!important;
-  padding-left:10px!important;
-  color:#53615e!important;
-  font-size:10px!important;
-  white-space:nowrap!important;
+  width:100%!important;
+  align-items:stretch!important;
+  gap:4px!important;
 }
-.area-summary-metric{font-weight:650!important}
-.area-summary-separator{color:#a3adaa!important}
-.area-tab-reset{
+.floor-tabs>.area-tab-shell{order:1!important}
+.floor-tabs>[data-add-area]{order:2!important}
+.floor-tabs>.area-tabs-reset{order:3!important}
+.floor-tabs>.area-tab-summary{order:4!important;margin-left:auto!important}
+.area-tabs-reset{
   height:30px!important;
   min-height:30px!important;
-  margin-left:5px!important;
+  margin:0 0 0 2px!important;
   padding:0 10px!important;
   border:1px solid var(--line)!important;
   border-radius:0!important;
   background:#fff!important;
   color:var(--bell-maroon)!important;
   font:650 10px/28px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  white-space:nowrap!important;
   cursor:pointer!important;
 }
-.area-tab-reset:hover:not(:disabled){background:#f8f4f5!important}
-.area-tab-reset:disabled{color:#9ca5a2!important;cursor:default!important;opacity:.7!important}
-.floor-tabs{display:flex!important;align-items:stretch!important;width:100%!important}
-@media(max-width:900px){
-  .structured-address-grid{grid-template-columns:minmax(210px,1.6fr) minmax(170px,1fr) 68px 90px!important}
+.area-tabs-reset:hover{background:#f8f4f5!important}
+.area-tab-summary{
+  display:flex!important;
+  min-height:30px!important;
+  align-items:center!important;
+  gap:7px!important;
+  padding-left:12px!important;
+  color:#53615e!important;
+  font-size:10px!important;
+  white-space:nowrap!important;
 }
-@media(max-width:700px){
+.area-summary-metric{font-weight:650!important}
+.area-summary-separator{color:#a3adaa!important}
+
+@media(max-width:1100px){
+  .structured-address-grid{grid-template-columns:minmax(300px,44%) minmax(210px,1fr) 70px 94px!important}
+}
+@media(max-width:760px){
   .structured-address-field{grid-template-columns:1fr!important}
   .structured-address-field>label{min-height:30px!important;border-right:0!important;border-bottom:1px solid var(--line)!important}
   .structured-address-grid{grid-template-columns:1fr 1fr!important}
   .structured-address-cell:nth-child(2){border-right:0!important}
   .structured-address-cell:nth-child(-n+2){border-bottom:1px solid var(--line)!important}
-  .area-tab-summary{width:100%!important;margin-left:0!important;justify-content:flex-end!important;border-top:1px solid var(--line)!important}
   .floor-tabs{flex-wrap:wrap!important}
+  .area-tab-summary{width:100%!important;margin-left:0!important;justify-content:flex-end!important;border-top:1px solid var(--line)!important}
 }
