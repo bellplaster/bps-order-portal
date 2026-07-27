@@ -82,8 +82,18 @@
       }
       .delivery-select-timeSlot:focus-within,
       .delivery-select-deliveryType:focus-within,
-      .extras-dropdown:focus-within{
+      .extras-dropdown:focus-within,
+      .extras-dropdown[open]{
         outline:0!important;
+        border-color:transparent!important;
+        box-shadow:none!important;
+      }
+      .extras-dropdown[open]>.stacked-options,
+      .extras-dropdown[open]>.extras-options,
+      .extras-dropdown[open]>div{
+        border:1px solid var(--line)!important;
+        border-top:0!important;
+        border-bottom-color:var(--line)!important;
         box-shadow:none!important;
       }
     `;
