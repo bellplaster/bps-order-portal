@@ -1,0 +1,129 @@
+/* Manager-requested delivery, address and tab-summary refinements. */
+.structured-address-field{
+  display:grid!important;
+  grid-template-columns:96px minmax(0,1fr)!important;
+  min-height:48px!important;
+  border-bottom:1px solid var(--line)!important;
+}
+.structured-address-field>label{
+  display:flex!important;
+  align-items:center!important;
+  min-height:48px!important;
+  padding:0 8px!important;
+  border-right:1px solid var(--line)!important;
+  font-size:11px!important;
+  font-weight:600!important;
+}
+.structured-address-grid{
+  display:grid!important;
+  grid-template-columns:minmax(260px,2fr) minmax(190px,1.25fr) 78px 104px!important;
+  min-width:0!important;
+  min-height:48px!important;
+}
+.structured-address-cell{
+  position:relative!important;
+  display:grid!important;
+  grid-template-rows:15px 1fr!important;
+  min-width:0!important;
+  min-height:48px!important;
+  padding:2px 8px 0!important;
+  border-right:1px solid var(--line)!important;
+  background:#fff!important;
+}
+.structured-address-cell:last-child{border-right:0!important}
+.structured-address-label{
+  display:block!important;
+  align-self:end!important;
+  color:#6d7875!important;
+  font-size:8px!important;
+  font-weight:650!important;
+  line-height:1!important;
+  letter-spacing:.01em!important;
+}
+.structured-address-cell input,
+.structured-address-cell .address-control,
+.structured-address-cell .address-control>input{
+  box-sizing:border-box!important;
+  width:100%!important;
+  min-width:0!important;
+}
+.structured-address-cell>input,
+.structured-address-cell .address-control>input{
+  height:29px!important;
+  min-height:29px!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  outline:0!important;
+  background:#fff!important;
+  color:var(--ink)!important;
+  font:400 11px/29px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  box-shadow:none!important;
+}
+.structured-address-cell>input:focus,
+.structured-address-cell .address-control>input:focus{
+  box-shadow:none!important;
+}
+.structured-address-cell:focus-within{
+  box-shadow:inset 0 0 0 1px #006557!important;
+  z-index:2!important;
+}
+.structured-address-state input{
+  color:#52605d!important;
+  font-weight:600!important;
+}
+.structured-address-postcode input[readonly]{
+  color:var(--ink)!important;
+}
+.structured-address-cell .address-control{
+  position:relative!important;
+  display:block!important;
+  height:29px!important;
+  min-height:29px!important;
+}
+.structured-address-cell .clear-input{
+  top:50%!important;
+  right:0!important;
+  transform:translateY(-50%)!important;
+}
+.area-tab-summary{
+  display:flex!important;
+  min-height:30px!important;
+  align-items:center!important;
+  gap:7px!important;
+  margin-left:auto!important;
+  padding-left:10px!important;
+  color:#53615e!important;
+  font-size:10px!important;
+  white-space:nowrap!important;
+}
+.area-summary-metric{font-weight:650!important}
+.area-summary-separator{color:#a3adaa!important}
+.area-tab-reset{
+  height:30px!important;
+  min-height:30px!important;
+  margin-left:5px!important;
+  padding:0 10px!important;
+  border:1px solid var(--line)!important;
+  border-radius:0!important;
+  background:#fff!important;
+  color:var(--bell-maroon)!important;
+  font:650 10px/28px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  cursor:pointer!important;
+}
+.area-tab-reset:hover:not(:disabled){background:#f8f4f5!important}
+.area-tab-reset:disabled{color:#9ca5a2!important;cursor:default!important;opacity:.7!important}
+.floor-tabs{display:flex!important;align-items:stretch!important;width:100%!important}
+@media(max-width:900px){
+  .structured-address-grid{grid-template-columns:minmax(210px,1.6fr) minmax(170px,1fr) 68px 90px!important}
+}
+@media(max-width:700px){
+  .structured-address-field{grid-template-columns:1fr!important}
+  .structured-address-field>label{min-height:30px!important;border-right:0!important;border-bottom:1px solid var(--line)!important}
+  .structured-address-grid{grid-template-columns:1fr 1fr!important}
+  .structured-address-cell:nth-child(2){border-right:0!important}
+  .structured-address-cell:nth-child(-n+2){border-bottom:1px solid var(--line)!important}
+  .area-tab-summary{width:100%!important;margin-left:0!important;justify-content:flex-end!important;border-top:1px solid var(--line)!important}
+  .floor-tabs{flex-wrap:wrap!important}
+}
