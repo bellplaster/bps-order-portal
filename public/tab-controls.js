@@ -67,6 +67,25 @@
         box-shadow:none!important;
       }
       .area-tab-summary{display:none!important}
+
+      .delivery-select-timeSlot .delivery-select:focus,
+      .delivery-select-timeSlot .delivery-select:focus-visible,
+      .delivery-select-deliveryType .delivery-select:focus,
+      .delivery-select-deliveryType .delivery-select:focus-visible,
+      .extras-dropdown>summary:focus,
+      .extras-dropdown>summary:focus-visible,
+      .extras-dropdown[open]>summary{
+        outline:1px solid var(--bell-green)!important;
+        outline-offset:-1px!important;
+        border-color:transparent!important;
+        box-shadow:none!important;
+      }
+      .delivery-select-timeSlot:focus-within,
+      .delivery-select-deliveryType:focus-within,
+      .extras-dropdown:focus-within{
+        outline:0!important;
+        box-shadow:none!important;
+      }
     `;
     document.head.append(style);
   }
