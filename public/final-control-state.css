@@ -7,6 +7,18 @@
 }
 .area-tab-summary{display:none!important}
 
+/* The structured suburb field is edited directly; a separate clear button is unnecessary. */
+#clearAddressButton,
+.structured-address-suburb .clear-input,
+.structured-address-cell .clear-input{
+  display:none!important;
+}
+.structured-address-suburb .address-control,
+.structured-address-suburb input,
+#deliveryAddressSearch{
+  padding-right:8px!important;
+}
+
 .delivery-select-timeSlot,
 .delivery-select-deliveryType,
 details.extras-dropdown,
@@ -70,5 +82,17 @@ details.extras-dropdown[open]>div{
   padding-top:0!important;
   padding-bottom:0!important;
   background:#eef8f5!important;
+  border:0!important;
+  outline:0!important;
   box-shadow:none!important;
+  box-sizing:border-box!important;
+}
+.additional-products-panel .selected-additional-row .quantity-input:focus,
+.additional-products-panel .selected-additional-row .quantity-input:focus-visible,
+.additional-products-panel .selected-additional-row>:nth-child(3):focus-within{
+  outline:0!important;
+  border:0!important;
+  box-shadow:inset 0 0 0 1px var(--bell-green)!important;
+  position:relative!important;
+  z-index:1!important;
 }
