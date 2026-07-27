@@ -44,15 +44,19 @@
     let lineCount = 0;
     let unitCount = 0;
     let totalBoardArea = 0;
+    const areas = Array.isArray(state.deliveryAreas) && state.deliveryAreas.length
+      ? state.deliveryAreas
+      : [{ id: 'ground', label: floorLabels.ground }, { id: 'first', label: floorLabels.first }];
 
-    for (const floor of ['ground', 'first']) {
-      const lines = getFloorLines(floor);
-      if (!lines.length) continue;
+    areas.forEach((areaDefinition) => {
+      const areaId = areaDefinition.id;
+      const lines = getFloorLines(areaId);
+      if (!lines.length) return;
       const group = document.createElement('section');
       group.className = 'review-floor-group';
       const heading = document.createElement('h3');
       heading.className = 'review-column-heading';
-      heading.innerHTML = `<span>${escapeHtml(floorLabels[floor])}</span><small>m²</small><small>Qty</small>`;
+      heading.innerHTML = `<span>${escapeHtml(areaDefinition.label || floorLabels[areaId] || areaId)}</span><small>m²</small><small>Qty</small>`;
       group.append(heading);
       lines.forEach((line) => {
         const area = boardArea(line, keys);
@@ -65,7 +69,7 @@
         if (area !== null) totalBoardArea += area;
       });
       linesRoot.append(group);
-    }
+    });
 
     document.getElementById('reviewLineTotal').innerHTML = `<span>Product lines</span><strong>${lineCount}</strong>`;
     document.getElementById('reviewUnitTotal').innerHTML = `<span>Board area</span><strong>${totalBoardArea.toFixed(2)} m²</strong><span>Total units</span><strong>${unitCount}</strong>`;
@@ -73,4 +77,11 @@
 
   window.renderReview = refinedRenderReview;
   try { renderReview = refinedRenderReview; } catch (_error) { }
+
+  if (!document.querySelector('script[data-manager-refinement="true"]')) {
+    const script = document.createElement('script');
+    script.src = '/manager-refinement.js?v=20260727-1';
+    script.dataset.managerRefinement = 'true';
+    document.body.append(script);
+  }
 })();
