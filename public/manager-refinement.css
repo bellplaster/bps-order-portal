@@ -98,16 +98,18 @@
   outline-offset:-1px!important;
   box-shadow:none!important;
 }
-.structured-address-state,
-.structured-address-postcode{cursor:default!important}
-.structured-address-state input,
-.structured-address-postcode input{
+.structured-address-state{cursor:default!important}
+.structured-address-state input{
   pointer-events:none!important;
   user-select:none!important;
-}
-.structured-address-state input{
   color:#52605d!important;
   font-weight:600!important;
+}
+.structured-address-postcode{cursor:text!important}
+.structured-address-postcode input{
+  pointer-events:auto!important;
+  user-select:text!important;
+  cursor:text!important;
 }
 .structured-address-postcode input[readonly]{color:var(--ink)!important}
 .structured-address-cell .address-control{
