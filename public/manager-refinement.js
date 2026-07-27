@@ -21,6 +21,7 @@
   let retryCount = 0;
   let tabArrangeTimer = 0;
   let tabObserver = null;
+  let arrangingTabs = false;
 
   removeUppercaseAddressListener();
   loadStyles();
@@ -422,7 +423,8 @@
     if (!window.google?.maps?.Geocoder || !placeId) return fallback;
     try {
       const response = await new google.maps.Geocoder().geocode({ placeId });
-      return parseGoogleComponents(response.results?.[0]?.address_components || []) || fallback;
+      const parsed = parseGoogleComponents(response.results?.[0]?.address_components || []);
+      return parsed.suburb || parsed.postcode || parsed.line1 ? parsed : fallback;
     } catch (_error) {
       return fallback;
     }
@@ -659,18 +661,21 @@
     if (!tabs || tabs.dataset.managerObserved === "true") return;
     tabs.dataset.managerObserved = "true";
     tabObserver?.disconnect();
-    tabObserver = new MutationObserver(scheduleTabArrangement);
+    tabObserver = new MutationObserver(() => {
+      if (!arrangingTabs) scheduleTabArrangement();
+    });
     tabObserver.observe(tabs, { childList: true });
   }
 
   function scheduleTabArrangement() {
+    if (arrangingTabs) return;
     window.clearTimeout(tabArrangeTimer);
     tabArrangeTimer = window.setTimeout(arrangeTabControls, 0);
   }
 
   function arrangeTabControls() {
     const tabs = document.getElementById("deliveryAreaTabs") || document.querySelector(".floor-tabs");
-    if (!tabs) return;
+    if (!tabs || arrangingTabs) return;
     tabs.querySelectorAll(".area-tab-reset").forEach((node) => node.remove());
     let reset = tabs.querySelector(".area-tabs-reset");
     if (!reset) {
@@ -690,10 +695,16 @@
     const shells = [...tabs.querySelectorAll(":scope > .area-tab-shell")];
     const add = tabs.querySelector(":scope > [data-add-area]");
     const editor = tabs.querySelector(":scope > .area-name-editor");
-    shells.forEach((shell) => tabs.append(shell));
-    if (add) tabs.append(add);
-    tabs.append(reset, summary);
-    if (editor) tabs.append(editor);
+    const desired = [...shells, add, reset, summary, editor].filter(Boolean);
+    const current = [...tabs.children];
+    const alreadyOrdered = current.length === desired.length && current.every((node, index) => node === desired[index]);
+    if (!alreadyOrdered) {
+      arrangingTabs = true;
+      tabObserver?.disconnect();
+      tabs.append(...desired);
+      tabObserver?.observe(tabs, { childList: true });
+      arrangingTabs = false;
+    }
     updateTabSummary();
   }
 
