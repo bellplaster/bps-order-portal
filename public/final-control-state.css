@@ -19,6 +19,19 @@
   padding-right:8px!important;
 }
 
+/* Postcode remains auto-filled, but must always be directly editable. */
+.structured-address-postcode,
+.structured-address-postcode input,
+#deliveryPostcode{
+  pointer-events:auto!important;
+  user-select:text!important;
+  cursor:text!important;
+}
+#deliveryPostcode{
+  position:relative!important;
+  z-index:5!important;
+}
+
 .delivery-select-timeSlot,
 .delivery-select-deliveryType,
 details.extras-dropdown,
