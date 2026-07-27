@@ -79,11 +79,21 @@
   try { renderReview = refinedRenderReview; } catch (_error) { }
 
   if (!document.querySelector('script[data-manager-refinement="true"]')) {
+    const loadLateHotfixStyles = () => {
+      if (document.querySelector('link[data-manager-hotfix-late="true"]')) return;
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = '/manager-hotfix.css?v=20260727-1';
+      link.dataset.managerHotfixLate = 'true';
+      document.head.append(link);
+    };
+
     const loadManagerRefinement = () => {
       const script = document.createElement('script');
       script.src = '/manager-refinement.js?v=20260727-2';
       script.async = false;
       script.dataset.managerRefinement = 'true';
+      script.addEventListener('load', loadLateHotfixStyles, { once: true });
       document.body.append(script);
     };
 
