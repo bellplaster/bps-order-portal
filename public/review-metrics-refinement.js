@@ -90,14 +90,18 @@
 
     const loadManagerRefinement = () => {
       const script = document.createElement('script');
-      script.src = '/manager-refinement.js?v=20260727-2';
+      script.src = '/manager-refinement.js?v=20260727-3';
       script.async = false;
       script.dataset.managerRefinement = 'true';
       script.addEventListener('load', loadLateHotfixStyles, { once: true });
       document.body.append(script);
     };
 
-    if (!document.querySelector('script[data-manager-hotfix="true"]')) {
+    const loadManagerHotfix = () => {
+      if (document.querySelector('script[data-manager-hotfix="true"]')) {
+        loadManagerRefinement();
+        return;
+      }
       const hotfix = document.createElement('script');
       hotfix.src = '/manager-hotfix.js?v=20260727-1';
       hotfix.async = false;
@@ -105,8 +109,19 @@
       hotfix.addEventListener('load', loadManagerRefinement, { once: true });
       hotfix.addEventListener('error', loadManagerRefinement, { once: true });
       document.body.append(hotfix);
+    };
+
+    const existingTabController = document.querySelector('script[data-tab-controls="true"]');
+    if (existingTabController) {
+      loadManagerHotfix();
     } else {
-      loadManagerRefinement();
+      const tabController = document.createElement('script');
+      tabController.src = '/tab-controls.js?v=20260727-1';
+      tabController.async = false;
+      tabController.dataset.tabControls = 'true';
+      tabController.addEventListener('load', loadManagerHotfix, { once: true });
+      tabController.addEventListener('error', loadManagerHotfix, { once: true });
+      document.body.append(tabController);
     }
   }
 })();
