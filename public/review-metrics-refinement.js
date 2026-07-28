@@ -69,7 +69,7 @@
         row.innerHTML = `
           <span class="review-line-sku">${escapeHtml(line.sku || '—')}</span>
           <strong class="review-line-product">${escapeHtml(line.label)}</strong>
-          <em>${area === null ? '' : `${area.toFixed(2)} m²`}</em>
+          <em>${area === null ? '' : area.toFixed(2)}</em>
           <b>${line.quantity}</b>
         `;
         group.append(row);
@@ -82,8 +82,8 @@
 
     document.getElementById('reviewLineTotal').innerHTML = `<span>Product lines</span><strong>${lineCount}</strong>`;
     document.getElementById('reviewUnitTotal').innerHTML = `
-      <span class="review-footer-metric review-footer-area"><small>Board area</small><strong>${totalBoardArea.toFixed(2)} m²</strong></span>
-      <span class="review-footer-metric review-footer-units"><small>Total units</small><strong>${unitCount}</strong></span>
+      <span class="review-footer-metric review-footer-area"><small>Total m²</small><strong>${totalBoardArea.toFixed(2)}</strong></span>
+      <span class="review-footer-metric review-footer-units"><small>Total Units</small><strong>${unitCount}</strong></span>
     `;
   }
 
@@ -142,7 +142,7 @@
         reviewLink.dataset.reviewTableFinal = 'true';
         document.head.append(reviewLink);
       }
-      reviewLink.href = '/review-table-final.css?v=20260728-2';
+      reviewLink.href = '/review-table-final.css?v=20260728-3';
     };
 
     const loadLateHotfixStyles = () => {
