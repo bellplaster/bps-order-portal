@@ -52,9 +52,8 @@
       document.querySelectorAll('input[name="deliveryType"]').forEach((input) => {
         input.checked = Boolean(defaults.deliveryType) && input.value === defaults.deliveryType;
       });
-      const extras = new Set(Array.isArray(defaults.extras) ? defaults.extras : []);
       document.querySelectorAll('input[name="deliveryExtra"]').forEach((input) => {
-        input.checked = extras.has(input.value);
+        input.checked = false;
       });
 
       street.value = defaults.street || "";
