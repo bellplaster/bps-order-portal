@@ -55,7 +55,7 @@
 .review-line.review-line-metrics,
 .review-total{
   display:grid!important;
-  grid-template-columns:130px minmax(0,1fr) 150px 100px!important;
+  grid-template-columns:180px minmax(0,1fr) 150px 100px!important;
   width:100%!important;
   height:26px!important;
   min-height:26px!important;
@@ -166,8 +166,8 @@
   text-align:right!important;
   white-space:nowrap!important;
 }
-.review-footer-labels>small:first-child{right:210px!important}
-.review-footer-labels>small:last-child{right:85px!important}
+.review-footer-labels>small:first-child{right:200px!important}
+.review-footer-labels>small:last-child{right:65px!important}
 .review-footer-area-value{grid-column:3!important}
 .review-footer-units-value{grid-column:4!important}
 .review-footer-area-value,
@@ -195,6 +195,6 @@
   .review-column-heading,
   .review-line.review-line-metrics,
   .review-total{grid-template-columns:90px minmax(0,1fr) 86px 52px!important}
-  .review-footer-labels>small:first-child{right:118px!important}
-  .review-footer-labels>small:last-child{right:49px!important}
+  .review-footer-labels>small:first-child{right:112px!important}
+  .review-footer-labels>small:last-child{right:35px!important}
 }
