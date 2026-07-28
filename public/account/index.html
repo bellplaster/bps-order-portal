@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="/styles.css?v=20260722-1">
   <link rel="stylesheet" href="/refinement.css?v=20260722-2">
   <link rel="stylesheet" href="/account-refinement.css?v=20260724-4">
-  <link rel="stylesheet" href="/account-final-refinement.css?v=20260724-1">
+  <link rel="stylesheet" href="/account-final-refinement.css?v=20260728-2">
 </head>
 <body class="account-page">
   <header class="portal-header">
@@ -26,7 +26,7 @@
     <div class="account-grid">
       <section id="customerAccountCard" class="account-card profile-card">
         <header class="account-card-heading">
-          <div><h2>Account details</h2><p>Used to prefill new orders.</p></div>
+          <div><h2>Account details</h2><p>Used to prefill each new order. Refreshing the order form discards unsaved order data.</p></div>
         </header>
         <form id="accountForm">
           <div class="account-fields">
@@ -35,6 +35,19 @@
             <label class="account-field full"><span>Company name</span><input id="companyName" maxlength="160" autocomplete="organization" required></label>
             <label class="account-field"><span>Default contact</span><input id="defaultContactName" maxlength="100" autocomplete="name"></label>
             <label class="account-field"><span>Phone</span><input id="defaultMobile" type="tel" maxlength="16" inputmode="tel" autocomplete="tel" placeholder="03 0000 0000"></label>
+          </div>
+
+          <div class="account-defaults-heading"><h3>New order defaults</h3><p>Leave any field blank when it should start empty.</p></div>
+          <div class="account-fields order-default-fields">
+            <label class="account-field"><span>Reference</span><input id="defaultReference" maxlength="80" autocomplete="off"></label>
+            <label class="account-field"><span>Required date</span><input id="defaultRequiredDate" type="date"></label>
+            <label class="account-field full"><span>Street</span><input id="defaultStreet" maxlength="240" autocomplete="street-address"></label>
+            <label class="account-field"><span>Suburb</span><input id="defaultSuburb" maxlength="120" autocomplete="address-level2"></label>
+            <label class="account-field"><span>Postcode</span><input id="defaultPostcode" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="postal-code"></label>
+            <label class="account-field"><span>Time slot</span><select id="defaultTimeSlot"><option value="">No default</option><option value="1ST">1st</option><option value="2ND">2nd</option><option value="AM">AM</option><option value="PM">PM</option><option value="ANY">Any</option></select></label>
+            <label class="account-field"><span>Delivery type</span><select id="defaultDeliveryType"><option value="">No default</option><option value="Hand Unload">Hand Unload</option><option value="Forklift Delivery">Forklift Delivery</option><option value="Crane Delivery">Crane Delivery</option><option value="Delivery (No Assistance)">Delivery (No Assistance)</option><option value="Pickup (Customer to collect)">Customer Pickup</option></select></label>
+            <fieldset class="account-field full account-default-extras"><legend>Extras</legend><label><input type="checkbox" name="defaultExtra" value="Downstairs"> Downstairs</label><label><input type="checkbox" name="defaultExtra" value="Upstairs"> Upstairs</label><label><input type="checkbox" name="defaultExtra" value="Wrap"> Wrap</label><label><input type="checkbox" name="defaultExtra" value="Strap"> Strap</label><label><input type="checkbox" name="defaultExtra" value="Extra Labour"> Extra Labour</label></fieldset>
+            <label class="account-field full"><span>Instructions</span><textarea id="defaultInstructions" rows="3" maxlength="1500"></textarea></label>
           </div>
           <div class="account-form-actions"><button class="button button-primary">Save changes</button></div>
         </form>
@@ -89,7 +102,7 @@
       </section>
     </div>
   </main>
-  <script src="/account.js?v=20260724-2" defer></script>
+  <script src="/account.js?v=20260728-3" defer></script>
   <script src="/phone-date-refinement.js?v=20260724-2" defer></script>
 </body>
 </html>
