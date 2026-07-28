@@ -11,6 +11,15 @@ const ORDER_DEFAULT_FIELDS = [
   "defaultInstructions",
 ];
 
+const ADMIN_PAGE_SIZE = 20;
+const adminState = {
+  accountQuery: "",
+  accountPage: 1,
+  userQuery: "",
+  userPage: 1,
+};
+let pendingConfirmation = null;
+
 document.addEventListener("DOMContentLoaded", initialise);
 
 async function initialise() {
@@ -21,12 +30,33 @@ async function initialise() {
   document.getElementById("cancelPasswordChange")?.addEventListener("click", () => togglePasswordPanel(false));
   document.getElementById("createAccountForm")?.addEventListener("submit", createAccount);
   document.getElementById("createUserForm")?.addEventListener("submit", createUser);
+  document.getElementById("editAccountForm")?.addEventListener("submit", saveEditedAccount);
   document.getElementById("newUserRole")?.addEventListener("change", toggleUserAccount);
   document.getElementById("defaultMobile")?.addEventListener("input", formatMobileField);
-  document.getElementById("newDefaultMobile")?.addEventListener("input", formatMobileField);
   document.getElementById("defaultPostcode")?.addEventListener("input", (event) => {
     event.target.value = event.target.value.replace(/\D/g, "").slice(0, 4);
   });
+
+  document.getElementById("adminSection")?.addEventListener("click", handleAdminClick);
+  document.getElementById("accountsList")?.addEventListener("click", handleAccountAction);
+  document.getElementById("usersList")?.addEventListener("click", handleUserAction);
+  document.getElementById("accountSearch")?.addEventListener("input", (event) => {
+    adminState.accountQuery = event.target.value.trim().toLowerCase();
+    adminState.accountPage = 1;
+    renderAccounts();
+  });
+  document.getElementById("userSearch")?.addEventListener("input", (event) => {
+    adminState.userQuery = event.target.value.trim().toLowerCase();
+    adminState.userPage = 1;
+    renderUsers();
+  });
+  document.getElementById("accountsPagination")?.addEventListener("click", handlePagination);
+  document.getElementById("usersPagination")?.addEventListener("click", handlePagination);
+  document.querySelectorAll("[data-close-dialog]").forEach((button) => {
+    button.addEventListener("click", () => closeDialog(button.dataset.closeDialog));
+  });
+  document.getElementById("adminConfirmForm")?.addEventListener("submit", resolveConfirmation);
+
   await loadAccount();
 }
 
@@ -41,8 +71,12 @@ async function loadAccount() {
     document.getElementById("defaultMobile").value = profile.defaultMobile || "";
     fillOrderDefaults(profile.orderDefaults || {});
     if (profile.role === "admin") {
-      document.getElementById("customerAccountCard").hidden = true;
+      document.getElementById("accountForm").hidden = true;
       document.getElementById("adminSection").hidden = false;
+      const heading = document.querySelector(".account-heading h1");
+      const headingCopy = document.querySelector(".account-heading p");
+      if (heading) heading.textContent = "Administration";
+      if (headingCopy) headingCopy.hidden = true;
       renderAdminData();
     }
   } catch (error) {
@@ -93,7 +127,7 @@ async function saveAccount(event) {
         orderDefaults: collectOrderDefaults(),
       }),
     });
-    showMessage("Account details and new order defaults saved.", "success");
+    showMessage("Account details and order defaults saved.", "success");
     await loadAccount();
   } catch (error) {
     showMessage(error.message || String(error), "error");
@@ -103,14 +137,8 @@ async function saveAccount(event) {
 async function changePassword(event) {
   event.preventDefault();
   const newPassword = document.getElementById("newPassword").value;
-  if (newPassword.length < 8) {
-    showMessage("Password must contain at least 8 characters.", "error");
-    return;
-  }
-  if (newPassword !== document.getElementById("confirmPassword").value) {
-    showMessage("New passwords do not match.", "error");
-    return;
-  }
+  if (newPassword.length < 8) return showMessage("Password must contain at least 8 characters.", "error");
+  if (newPassword !== document.getElementById("confirmPassword").value) return showMessage("New passwords do not match.", "error");
   try {
     await fetchJson("/api/account", {
       method: "POST",
@@ -149,11 +177,10 @@ async function createAccount(event) {
         action: "create_account",
         debtorCode: document.getElementById("newDebtorCode").value,
         companyName: document.getElementById("newCompanyName").value,
-        defaultContactName: document.getElementById("newDefaultContact").value,
-        defaultMobile: document.getElementById("newDefaultMobile").value,
       }),
     });
     event.target.reset();
+    event.target.hidden = true;
     showMessage("Customer account created.", "success");
     await loadAccount();
   } catch (error) {
@@ -175,6 +202,7 @@ async function createUser(event) {
       }),
     });
     event.target.reset();
+    event.target.hidden = true;
     document.getElementById("newUserRole").value = "customer";
     showMessage("Portal user created.", "success");
     await loadAccount();
@@ -183,29 +211,270 @@ async function createUser(event) {
   }
 }
 
-function renderAdminData() {
-  const accountsList = document.getElementById("accountsList");
-  accountsList.replaceChildren();
-  (data.accounts || []).forEach((account) => {
-    const row = document.createElement("div");
-    row.className = "admin-list-row";
-    row.innerHTML = `<strong>${escapeHtml(account.company_name)}</strong><span>${escapeHtml(account.debtor_code)} · ${account.active ? "Active" : "Inactive"}</span>`;
-    accountsList.append(row);
-  });
+async function saveEditedAccount(event) {
+  event.preventDefault();
+  const accountId = Number(document.getElementById("editAccountId").value || 0);
+  if (!accountId) return;
+  try {
+    await fetchJson("/api/account", {
+      method: "PUT",
+      body: JSON.stringify({
+        accountId,
+        debtorCode: document.getElementById("editDebtorCode").value,
+        companyName: document.getElementById("editCompanyName").value,
+        active: document.getElementById("editAccountActive").value === "1",
+      }),
+    });
+    closeDialog("editAccountDialog");
+    showMessage("Customer account updated.", "success");
+    await loadAccount();
+  } catch (error) {
+    showMessage(error.message || String(error), "error");
+  }
+}
 
+function handleAdminClick(event) {
+  const tab = event.target.closest("[data-admin-tab]");
+  if (tab) return setAdminTab(tab.dataset.adminTab);
+  if (event.target.closest("#openCreateAccount")) return openCreatePanel("createAccountForm", "newDebtorCode");
+  if (event.target.closest("#cancelCreateAccount")) return closeCreatePanel("createAccountForm");
+  if (event.target.closest("#openCreateUser")) return openCreatePanel("createUserForm", "newUsername");
+  if (event.target.closest("#cancelCreateUser")) return closeCreatePanel("createUserForm");
+}
+
+function setAdminTab(name) {
+  document.querySelectorAll("[data-admin-tab]").forEach((button) => {
+    const active = button.dataset.adminTab === name;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-selected", String(active));
+  });
+  document.querySelectorAll("[data-admin-panel]").forEach((panel) => {
+    const active = panel.dataset.adminPanel === name;
+    panel.hidden = !active;
+    panel.classList.toggle("is-active", active);
+  });
+}
+
+function openCreatePanel(id, focusId) {
+  const panel = document.getElementById(id);
+  if (!panel) return;
+  panel.hidden = false;
+  window.setTimeout(() => document.getElementById(focusId)?.focus(), 0);
+}
+
+function closeCreatePanel(id) {
+  const panel = document.getElementById(id);
+  panel?.reset();
+  if (panel) panel.hidden = true;
+}
+
+function renderAdminData() {
+  renderAccounts();
+  renderUsers();
+  populateAccountSelect();
+  toggleUserAccount();
+}
+
+function renderAccounts() {
+  const all = data?.accounts || [];
+  const query = adminState.accountQuery;
+  const filtered = all.filter((account) => `${account.company_name} ${account.debtor_code}`.toLowerCase().includes(query));
+  const page = clampPage(adminState.accountPage, filtered.length);
+  adminState.accountPage = page;
+  const start = (page - 1) * ADMIN_PAGE_SIZE;
+  const visible = filtered.slice(start, start + ADMIN_PAGE_SIZE);
+
+  document.getElementById("accountsCount").textContent = countText(filtered.length, "customer");
+  const list = document.getElementById("accountsList");
+  list.replaceChildren();
+  if (!visible.length) {
+    list.innerHTML = '<div class="admin-empty">No customer accounts match this search.</div>';
+  } else {
+    visible.forEach((account) => list.append(buildAccountRow(account)));
+  }
+  renderPagination("accountsPagination", "accounts", page, filtered.length);
+}
+
+function buildAccountRow(account) {
+  const row = document.createElement("div");
+  row.className = "admin-table-row admin-account-columns";
+  row.dataset.accountId = account.id;
+  const users = Number(account.user_count || 0);
+  const orders = Number(account.order_count || 0);
+  row.innerHTML = `
+    <div class="admin-primary-cell"><strong>${escapeHtml(account.company_name)}</strong><span>${escapeHtml(account.debtor_code)}</span></div>
+    <div class="admin-usage-cell"><span>${users} ${users === 1 ? "user" : "users"}</span><span>${orders} ${orders === 1 ? "order" : "orders"}</span></div>
+    <div><span class="status-badge ${account.active ? "is-active" : "is-inactive"}">${account.active ? "Active" : "Inactive"}</span></div>
+    <div class="admin-row-actions">
+      <button type="button" data-account-action="edit">Edit</button>
+      <button type="button" data-account-action="toggle">${account.active ? "Deactivate" : "Activate"}</button>
+      <button class="is-danger" type="button" data-account-action="delete">Delete</button>
+    </div>`;
+  return row;
+}
+
+function renderUsers() {
+  const all = data?.users || [];
+  const query = adminState.userQuery;
+  const filtered = all.filter((user) => `${user.username} ${user.company_name || "Bell administrator"} ${user.role}`.toLowerCase().includes(query));
+  const page = clampPage(adminState.userPage, filtered.length);
+  adminState.userPage = page;
+  const start = (page - 1) * ADMIN_PAGE_SIZE;
+  const visible = filtered.slice(start, start + ADMIN_PAGE_SIZE);
+
+  document.getElementById("usersCount").textContent = countText(filtered.length, "user");
+  const list = document.getElementById("usersList");
+  list.replaceChildren();
+  if (!visible.length) {
+    list.innerHTML = '<div class="admin-empty">No portal users match this search.</div>';
+  } else {
+    visible.forEach((user) => list.append(buildUserRow(user)));
+  }
+  renderPagination("usersPagination", "users", page, filtered.length);
+}
+
+function buildUserRow(user) {
+  const row = document.createElement("div");
+  row.className = "admin-table-row admin-user-columns";
+  row.dataset.userId = user.id;
+  row.innerHTML = `
+    <div class="admin-primary-cell"><strong>${escapeHtml(user.username)}</strong><span>${user.role === "admin" ? "Administrator" : "Customer"}</span></div>
+    <div>${escapeHtml(user.company_name || "Bell Plaster")}</div>
+    <div><span class="status-badge ${user.active ? "is-active" : "is-inactive"}">${user.active ? "Active" : "Inactive"}</span></div>
+    <div class="admin-row-actions">
+      <button type="button" data-user-action="toggle">${user.active ? "Deactivate" : "Activate"}</button>
+      <button class="is-danger" type="button" data-user-action="delete">Delete</button>
+    </div>`;
+  return row;
+}
+
+function populateAccountSelect() {
   const select = document.getElementById("newUserAccount");
   select.replaceChildren(new Option("Choose customer account", ""));
-  (data.accounts || []).filter((account) => account.active).forEach((account) => select.append(new Option(`${account.company_name} — ${account.debtor_code}`, account.id)));
-
-  const usersList = document.getElementById("usersList");
-  usersList.replaceChildren();
-  (data.users || []).forEach((user) => {
-    const row = document.createElement("div");
-    row.className = "admin-list-row";
-    row.innerHTML = `<strong>${escapeHtml(user.username)}</strong><span>${escapeHtml(user.role)} · ${escapeHtml(user.company_name || "Bell administrator")} · ${user.active ? "Active" : "Inactive"}</span>`;
-    usersList.append(row);
+  (data?.accounts || []).filter((account) => account.active).forEach((account) => {
+    select.append(new Option(`${account.company_name} — ${account.debtor_code}`, account.id));
   });
-  toggleUserAccount();
+}
+
+async function handleAccountAction(event) {
+  const button = event.target.closest("[data-account-action]");
+  const row = button?.closest("[data-account-id]");
+  if (!button || !row) return;
+  const account = (data?.accounts || []).find((candidate) => Number(candidate.id) === Number(row.dataset.accountId));
+  if (!account) return;
+
+  const action = button.dataset.accountAction;
+  if (action === "edit") return openAccountEditor(account);
+  if (action === "toggle") return setAccountActive(account, !account.active);
+  if (action === "delete") return deleteAccount(account);
+}
+
+function openAccountEditor(account) {
+  document.getElementById("editAccountId").value = account.id;
+  document.getElementById("editDebtorCode").value = account.debtor_code || "";
+  document.getElementById("editCompanyName").value = account.company_name || "";
+  document.getElementById("editAccountActive").value = account.active ? "1" : "0";
+  document.getElementById("editAccountMeta").textContent = `${Number(account.user_count || 0)} users · ${Number(account.order_count || 0)} orders`;
+  openDialog("editAccountDialog");
+}
+
+async function setAccountActive(account, active) {
+  const confirmed = await confirmAdmin({
+    title: active ? "Activate customer" : "Deactivate customer",
+    message: `${active ? "Restore" : "Suspend"} portal access for ${account.company_name}?`,
+    confirmLabel: active ? "Activate" : "Deactivate",
+    danger: !active,
+  });
+  if (!confirmed) return;
+  try {
+    await fetchJson("/api/account", {
+      method: "POST",
+      body: JSON.stringify({ action: "set_account_active", accountId: account.id, active }),
+    });
+    showMessage(`Customer ${active ? "activated" : "deactivated"}.`, "success");
+    await loadAccount();
+  } catch (error) {
+    showMessage(error.message || String(error), "error");
+  }
+}
+
+async function deleteAccount(account) {
+  const users = Number(account.user_count || 0);
+  const orders = Number(account.order_count || 0);
+  if (users || orders) {
+    showMessage(`This customer cannot be deleted while it has ${users} linked ${users === 1 ? "user" : "users"} or ${orders} linked ${orders === 1 ? "order" : "orders"}. Deactivate it instead.`, "error");
+    return;
+  }
+  const confirmed = await confirmAdmin({
+    title: "Delete customer",
+    message: `Permanently delete ${account.company_name}? This cannot be undone.`,
+    confirmLabel: "Delete customer",
+    danger: true,
+    confirmationText: account.debtor_code,
+  });
+  if (!confirmed) return;
+  try {
+    await fetchJson("/api/account", {
+      method: "POST",
+      body: JSON.stringify({ action: "delete_account", accountId: account.id }),
+    });
+    showMessage("Customer account deleted.", "success");
+    await loadAccount();
+  } catch (error) {
+    showMessage(error.message || String(error), "error");
+  }
+}
+
+async function handleUserAction(event) {
+  const button = event.target.closest("[data-user-action]");
+  const row = button?.closest("[data-user-id]");
+  if (!button || !row) return;
+  const user = (data?.users || []).find((candidate) => Number(candidate.id) === Number(row.dataset.userId));
+  if (!user) return;
+
+  if (button.dataset.userAction === "toggle") return setUserActive(user, !user.active);
+  if (button.dataset.userAction === "delete") return deleteUser(user);
+}
+
+async function setUserActive(user, active) {
+  const confirmed = await confirmAdmin({
+    title: active ? "Activate user" : "Deactivate user",
+    message: `${active ? "Restore" : "Suspend"} access for ${user.username}?`,
+    confirmLabel: active ? "Activate" : "Deactivate",
+    danger: !active,
+  });
+  if (!confirmed) return;
+  try {
+    await fetchJson("/api/account", {
+      method: "POST",
+      body: JSON.stringify({ action: "set_user_active", userId: user.id, active }),
+    });
+    showMessage(`User ${active ? "activated" : "deactivated"}.`, "success");
+    await loadAccount();
+  } catch (error) {
+    showMessage(error.message || String(error), "error");
+  }
+}
+
+async function deleteUser(user) {
+  const confirmed = await confirmAdmin({
+    title: "Delete portal user",
+    message: `Permanently delete ${user.username}? This cannot be undone.`,
+    confirmLabel: "Delete user",
+    danger: true,
+    confirmationText: user.username,
+  });
+  if (!confirmed) return;
+  try {
+    await fetchJson("/api/account", {
+      method: "POST",
+      body: JSON.stringify({ action: "delete_user", userId: user.id }),
+    });
+    showMessage("Portal user deleted.", "success");
+    await loadAccount();
+  } catch (error) {
+    showMessage(error.message || String(error), "error");
+  }
 }
 
 function toggleUserAccount() {
@@ -214,7 +483,93 @@ function toggleUserAccount() {
   if (!role || !account) return;
   const admin = role.value === "admin";
   account.disabled = admin;
+  account.required = !admin;
   if (admin) account.value = "";
+}
+
+function handlePagination(event) {
+  const button = event.target.closest("[data-page-kind][data-page]");
+  if (!button) return;
+  const page = Number(button.dataset.page || 1);
+  if (button.dataset.pageKind === "accounts") {
+    adminState.accountPage = page;
+    renderAccounts();
+  } else {
+    adminState.userPage = page;
+    renderUsers();
+  }
+}
+
+function renderPagination(id, kind, page, total) {
+  const container = document.getElementById(id);
+  const pages = Math.max(1, Math.ceil(total / ADMIN_PAGE_SIZE));
+  container.replaceChildren();
+  if (pages <= 1) return;
+  container.innerHTML = `
+    <span>Page ${page} of ${pages}</span>
+    <div><button type="button" data-page-kind="${kind}" data-page="${page - 1}" ${page <= 1 ? "disabled" : ""}>Previous</button><button type="button" data-page-kind="${kind}" data-page="${page + 1}" ${page >= pages ? "disabled" : ""}>Next</button></div>`;
+}
+
+function clampPage(page, total) {
+  return Math.min(Math.max(1, page), Math.max(1, Math.ceil(total / ADMIN_PAGE_SIZE)));
+}
+
+function countText(count, singular) {
+  return `${count} ${count === 1 ? singular : `${singular}s`}`;
+}
+
+function openDialog(id) {
+  const dialog = document.getElementById(id);
+  if (!dialog) return;
+  if (typeof dialog.showModal === "function") dialog.showModal();
+  else dialog.setAttribute("open", "");
+}
+
+function closeDialog(id) {
+  const dialog = document.getElementById(id);
+  if (!dialog) return;
+  if (typeof dialog.close === "function") dialog.close();
+  else dialog.removeAttribute("open");
+  if (id === "adminConfirmDialog" && pendingConfirmation) {
+    pendingConfirmation.resolve(false);
+    pendingConfirmation = null;
+  }
+}
+
+function confirmAdmin({ title, message, confirmLabel, danger = false, confirmationText = "" }) {
+  if (pendingConfirmation) pendingConfirmation.resolve(false);
+  const field = document.getElementById("adminConfirmField");
+  const input = document.getElementById("adminConfirmInput");
+  document.getElementById("adminConfirmTitle").textContent = title;
+  document.getElementById("adminConfirmMessage").textContent = message;
+  document.getElementById("adminConfirmButton").textContent = confirmLabel;
+  document.getElementById("adminConfirmButton").className = `button ${danger ? "button-danger" : "button-primary"}`;
+  field.hidden = !confirmationText;
+  input.value = "";
+  input.dataset.expected = confirmationText;
+  document.getElementById("adminConfirmLabel").textContent = confirmationText ? `Type ${confirmationText} to confirm` : "";
+  openDialog("adminConfirmDialog");
+  window.setTimeout(() => (confirmationText ? input : document.getElementById("adminConfirmButton"))?.focus(), 0);
+  return new Promise((resolve) => { pendingConfirmation = { resolve }; });
+}
+
+function resolveConfirmation(event) {
+  event.preventDefault();
+  if (!pendingConfirmation) return;
+  const input = document.getElementById("adminConfirmInput");
+  const expected = input.dataset.expected || "";
+  if (expected && input.value.trim().toLowerCase() !== expected.trim().toLowerCase()) {
+    input.setCustomValidity("The confirmation text does not match.");
+    input.reportValidity();
+    input.setCustomValidity("");
+    return;
+  }
+  const { resolve } = pendingConfirmation;
+  pendingConfirmation = null;
+  const dialog = document.getElementById("adminConfirmDialog");
+  if (typeof dialog.close === "function") dialog.close();
+  else dialog.removeAttribute("open");
+  resolve(true);
 }
 
 function formatMobileField(event) {
@@ -254,4 +609,7 @@ function showMessage(message, type) {
   box.hidden = false;
   box.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
-function escapeHtml(value) { return String(value ?? "").replace(/[&<>'\"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '\"': "&quot;" })[character]); }
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>'\"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '\"': "&quot;" })[character]);
+}
