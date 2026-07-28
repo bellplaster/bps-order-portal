@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css?v=20260722-1">
   <link rel="stylesheet" href="/refinement.css?v=20260722-2">
-  <link rel="stylesheet" href="/account-final-refinement.css?v=20260728-10">
+  <link rel="stylesheet" href="/account-final-refinement.css?v=20260728-11">
 </head>
 <body class="account-page">
   <header class="portal-header">
@@ -52,6 +52,84 @@
       </section>
     </form>
 
+    <section id="adminSection" class="account-section admin-section" hidden>
+      <header class="account-section-bar"><h2>Administration</h2></header>
+
+      <nav class="admin-tabs" aria-label="Administration sections">
+        <button class="admin-tab is-active" type="button" data-admin-tab="customers" aria-selected="true">Customers</button>
+        <button class="admin-tab" type="button" data-admin-tab="users" aria-selected="false">Portal users</button>
+        <button class="admin-tab" type="button" data-admin-tab="configuration" aria-selected="false">Form &amp; catalogue</button>
+      </nav>
+
+      <div class="admin-panel is-active" data-admin-panel="customers">
+        <div class="admin-panel-toolbar">
+          <div class="admin-panel-title"><h3>Customer accounts</h3><span id="accountsCount"></span></div>
+          <div class="admin-toolbar-actions">
+            <label class="admin-search"><span class="sr-only">Search customer accounts</span><input id="accountSearch" type="search" placeholder="Search company or debtor code" autocomplete="off"></label>
+            <button id="openCreateAccount" class="button button-primary" type="button">New customer</button>
+          </div>
+        </div>
+
+        <form id="createAccountForm" class="admin-create-panel" hidden>
+          <div class="admin-create-heading"><strong>New customer</strong><button id="cancelCreateAccount" class="text-button" type="button">Cancel</button></div>
+          <div class="admin-create-grid">
+            <label class="account-field"><span>Debtor code</span><input id="newDebtorCode" required autocomplete="off"></label>
+            <label class="account-field"><span>Company name</span><input id="newCompanyName" required autocomplete="organization"></label>
+          </div>
+          <div class="admin-action-row"><button class="button button-primary">Create customer</button></div>
+        </form>
+
+        <div class="admin-table" role="table" aria-label="Customer accounts">
+          <div class="admin-table-header admin-account-columns" role="row"><span>Customer</span><span>Usage</span><span>Status</span><span>Actions</span></div>
+          <div id="accountsList" class="admin-table-body"></div>
+        </div>
+        <div id="accountsPagination" class="admin-pagination"></div>
+      </div>
+
+      <div class="admin-panel" data-admin-panel="users" hidden>
+        <div class="admin-panel-toolbar">
+          <div class="admin-panel-title"><h3>Portal users</h3><span id="usersCount"></span></div>
+          <div class="admin-toolbar-actions">
+            <label class="admin-search"><span class="sr-only">Search portal users</span><input id="userSearch" type="search" placeholder="Search username or company" autocomplete="off"></label>
+            <button id="openCreateUser" class="button button-primary" type="button">New user</button>
+          </div>
+        </div>
+
+        <form id="createUserForm" class="admin-create-panel" hidden>
+          <div class="admin-create-heading"><strong>New portal user</strong><button id="cancelCreateUser" class="text-button" type="button">Cancel</button></div>
+          <div class="admin-create-grid admin-user-create-grid">
+            <label class="account-field"><span>Username</span><input id="newUsername" required autocomplete="username"></label>
+            <label class="account-field"><span>Role</span><select id="newUserRole"><option value="customer">Customer</option><option value="admin">Administrator</option></select></label>
+            <label class="account-field"><span>Customer account</span><select id="newUserAccount"></select></label>
+            <label class="account-field"><span>Initial password</span><input id="newUserPassword" type="password" minlength="8" required autocomplete="new-password"></label>
+          </div>
+          <div class="admin-action-row"><button class="button button-primary">Create user</button></div>
+        </form>
+
+        <div class="admin-table" role="table" aria-label="Portal users">
+          <div class="admin-table-header admin-user-columns" role="row"><span>User</span><span>Account</span><span>Status</span><span>Actions</span></div>
+          <div id="usersList" class="admin-table-body"></div>
+        </div>
+        <div id="usersPagination" class="admin-pagination"></div>
+      </div>
+
+      <div class="admin-panel" data-admin-panel="configuration" hidden>
+        <div class="admin-panel-toolbar admin-panel-toolbar-simple">
+          <div class="admin-panel-title"><h3>Form &amp; catalogue</h3></div>
+        </div>
+        <div class="admin-management-list">
+          <article class="admin-management-row">
+            <div><strong>Customer order form</strong><span>Open the current form exactly as customers see it.</span></div>
+            <a class="button button-secondary" href="/" target="_blank" rel="noopener">Open form</a>
+          </article>
+          <article class="admin-management-row">
+            <div><strong>Accrivia catalogue</strong><span>Import and maintain the product catalogue used by Additional Products.</span></div>
+            <a class="button button-secondary" href="/catalog-admin/">Manage catalogue</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
     <section class="account-section security-card">
       <header class="account-section-bar"><h2>Security</h2></header>
       <button id="togglePasswordPanel" class="security-toggle" type="button" aria-expanded="false" aria-controls="passwordPanel">
@@ -69,39 +147,30 @@
         </form>
       </div>
     </section>
-
-    <section id="adminSection" class="account-section admin-section" hidden>
-      <header class="account-section-bar account-section-bar-with-copy"><div><h2>Administration</h2><p>Manage customer accounts, users and the Accrivia catalogue.</p></div></header>
-      <div class="admin-card-body">
-        <div class="admin-toolbar"><a class="button button-secondary" href="/catalog-admin/">Manage Accrivia catalogue</a></div>
-        <div class="admin-layout">
-          <div>
-            <h3>Create customer account</h3>
-            <form id="createAccountForm" class="account-fields">
-              <label class="account-field"><span>Debtor code</span><input id="newDebtorCode" required></label>
-              <label class="account-field"><span>Company name</span><input id="newCompanyName" required></label>
-              <label class="account-field"><span>Default contact</span><input id="newDefaultContact"></label>
-              <label class="account-field"><span>Phone</span><input id="newDefaultMobile" type="tel" maxlength="16" inputmode="tel" placeholder="03 0000 0000"></label>
-              <div class="account-form-actions account-field-wide"><button class="button button-primary">Create customer</button></div>
-            </form>
-            <h3>Customer accounts</h3><div id="accountsList" class="admin-list"></div>
-          </div>
-          <div>
-            <h3>Create portal user</h3>
-            <form id="createUserForm" class="account-fields">
-              <label class="account-field"><span>Username</span><input id="newUsername" required></label>
-              <label class="account-field"><span>Role</span><select id="newUserRole"><option value="customer">Customer</option><option value="admin">Administrator</option></select></label>
-              <label class="account-field account-field-wide"><span>Customer account</span><select id="newUserAccount"></select></label>
-              <label class="account-field account-field-wide"><span>Initial password</span><input id="newUserPassword" type="password" minlength="8" required></label>
-              <div class="account-form-actions account-field-wide"><button class="button button-primary">Create user</button></div>
-            </form>
-            <h3>Portal users</h3><div id="usersList" class="admin-list"></div>
-          </div>
-        </div>
-      </div>
-    </section>
   </main>
-  <script src="/account.js?v=20260728-4" defer></script>
+
+  <dialog id="editAccountDialog" class="admin-dialog">
+    <form id="editAccountForm" class="admin-dialog-card">
+      <header><div><h2>Edit customer</h2><p id="editAccountMeta"></p></div><button class="admin-dialog-close" type="button" data-close-dialog="editAccountDialog" aria-label="Close">×</button></header>
+      <input id="editAccountId" type="hidden">
+      <div class="admin-dialog-fields">
+        <label class="account-field"><span>Debtor code</span><input id="editDebtorCode" required></label>
+        <label class="account-field"><span>Company name</span><input id="editCompanyName" required></label>
+        <label class="account-field account-field-wide"><span>Status</span><select id="editAccountActive"><option value="1">Active</option><option value="0">Inactive</option></select></label>
+      </div>
+      <footer><button class="button button-secondary" type="button" data-close-dialog="editAccountDialog">Cancel</button><button class="button button-primary">Save customer</button></footer>
+    </form>
+  </dialog>
+
+  <dialog id="adminConfirmDialog" class="admin-dialog admin-confirm-dialog">
+    <form id="adminConfirmForm" class="admin-dialog-card">
+      <header><div><h2 id="adminConfirmTitle">Confirm action</h2><p id="adminConfirmMessage"></p></div><button class="admin-dialog-close" type="button" data-close-dialog="adminConfirmDialog" aria-label="Close">×</button></header>
+      <label id="adminConfirmField" class="admin-confirm-field" hidden><span id="adminConfirmLabel"></span><input id="adminConfirmInput" autocomplete="off"></label>
+      <footer><button class="button button-secondary" type="button" data-close-dialog="adminConfirmDialog">Cancel</button><button id="adminConfirmButton" class="button button-danger" type="submit">Delete</button></footer>
+    </form>
+  </dialog>
+
+  <script src="/account.js?v=20260728-5" defer></script>
   <script src="/phone-date-refinement.js?v=20260724-2" defer></script>
 </body>
 </html>
