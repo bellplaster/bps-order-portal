@@ -5,9 +5,38 @@
   padding:0!important;
   border:0!important;
   background:#fff!important;
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  font-size:11px!important;
 }
 
-/* Delivery-area heading: full-width fill, no inset border. */
+/* Products title: edge-to-edge, 26px, 11px. */
+.review-section:has(#reviewOrderLines),
+.review-section:has(#reviewOrderLines) .review-section-header{
+  border-left:0!important;
+  border-right:0!important;
+}
+.review-section:has(#reviewOrderLines) .review-section-header{
+  display:flex!important;
+  width:100%!important;
+  height:26px!important;
+  min-height:26px!important;
+  align-items:center!important;
+  margin:0!important;
+  padding:0 10px!important;
+  box-sizing:border-box!important;
+  font:700 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+}
+.review-section:has(#reviewOrderLines) .review-section-header h2,
+.review-section:has(#reviewOrderLines) .review-section-header .text-button{
+  margin:0!important;
+  padding:0!important;
+  font:700 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+}
+.review-section:has(#reviewOrderLines) .review-section-header .text-button{
+  margin-left:auto!important;
+}
+
+/* Area row and column header use clearly different greys. */
 .review-area-heading{
   display:flex!important;
   width:100%!important;
@@ -18,7 +47,7 @@
   padding:0 10px!important;
   border:0!important;
   box-sizing:border-box!important;
-  background:#b8bcbb!important;
+  background:#c3c9c7!important;
   color:#17211f!important;
   font:700 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
 }
@@ -36,12 +65,13 @@
   padding:0!important;
   gap:0!important;
   box-sizing:border-box!important;
+  font-size:11px!important;
 }
 .review-column-heading{
   align-items:stretch!important;
   border:0!important;
   border-bottom:1px solid var(--line)!important;
-  background:#d2d5d4!important;
+  background:#e0e3e2!important;
 }
 .review-column-heading>span,
 .review-column-heading>small{
@@ -81,14 +111,16 @@
   overflow:hidden!important;
   text-overflow:ellipsis!important;
   white-space:nowrap!important;
+  font-size:11px!important;
+  line-height:26px!important;
 }
 .review-line-sku{
   color:#53615d!important;
-  font:500 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  font-weight:500!important;
 }
 .review-line-product{
   color:#17211f!important;
-  font:600 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  font-weight:600!important;
 }
 .review-line.review-line-metrics>em,
 .review-line.review-line-metrics>b{
@@ -98,16 +130,17 @@
 }
 .review-line.review-line-metrics>em{
   color:#17211f!important;
-  font:500 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
   font-style:normal!important;
+  font-weight:500!important;
 }
 .review-line.review-line-metrics>b{
   color:#17211f!important;
-  font:600 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  font-weight:600!important;
 }
 
-/* Footer uses the same four tracks as every product row. */
+/* Footer uses the same four tracks. Labels are pinned immediately before their values. */
 .review-total{
+  position:relative!important;
   align-items:stretch!important;
   border:0!important;
   border-top:1px solid var(--line)!important;
@@ -127,35 +160,32 @@
   box-sizing:border-box!important;
   white-space:nowrap!important;
 }
-#reviewUnitTotal{
-  display:contents!important;
-}
+#reviewUnitTotal{display:contents!important}
 .review-footer-labels{
-  grid-column:2!important;
-  display:grid!important;
-  grid-template-columns:1fr 1fr!important;
-  min-width:0!important;
+  position:absolute!important;
+  inset:0!important;
+  pointer-events:none!important;
+}
+.review-footer-labels>small{
+  position:absolute!important;
+  top:0!important;
+  display:flex!important;
   height:26px!important;
   align-items:center!important;
   margin:0!important;
-  padding:0 10px!important;
-  column-gap:20px!important;
-  box-sizing:border-box!important;
-}
-.review-footer-labels>small{
-  display:block!important;
-  min-width:0!important;
-  margin:0!important;
   padding:0!important;
-  text-align:right!important;
+  color:#17211f!important;
+  font:500 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
   white-space:nowrap!important;
 }
-.review-footer-area-value{
-  grid-column:3!important;
+.review-footer-labels>small:first-child{
+  right:258px!important;
 }
-.review-footer-units-value{
-  grid-column:4!important;
+.review-footer-labels>small:last-child{
+  right:108px!important;
 }
+.review-footer-area-value{grid-column:3!important}
+.review-footer-units-value{grid-column:4!important}
 .review-footer-area-value,
 .review-footer-units-value{
   display:flex!important;
@@ -165,30 +195,17 @@
   margin:0!important;
   padding:0 3px!important;
   box-sizing:border-box!important;
+  color:#17211f!important;
+  font:700 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
   white-space:nowrap!important;
 }
 .review-total span,
 .review-total small,
 .review-total strong{
-  color:#17211f!important;
-  font:500 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  font-size:11px!important;
+  line-height:26px!important;
   letter-spacing:0!important;
   text-transform:none!important;
-}
-.review-total strong{
-  font-weight:700!important;
-}
-
-/* Products section title should fill edge to edge without an inset outline. */
-.review-section:has(#reviewOrderLines),
-.review-section:has(#reviewOrderLines) .review-section-header{
-  border-left:0!important;
-  border-right:0!important;
-}
-.review-section:has(#reviewOrderLines) .review-section-header{
-  margin:0!important;
-  width:100%!important;
-  box-sizing:border-box!important;
 }
 
 @media(max-width:760px){
@@ -197,17 +214,6 @@
   .review-total{
     grid-template-columns:90px minmax(0,1fr) 86px 52px!important;
   }
-  .review-footer-labels{
-    grid-template-columns:1fr!important;
-    justify-items:end!important;
-    column-gap:0!important;
-    padding-inline:6px!important;
-  }
-  .review-footer-labels>small:last-child{
-    display:none!important;
-  }
-  .review-footer-area-value,
-  .review-footer-units-value{
-    padding-inline:2px!important;
-  }
+  .review-footer-labels>small:first-child{right:146px!important}
+  .review-footer-labels>small:last-child{right:58px!important}
 }
