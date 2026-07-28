@@ -167,7 +167,7 @@
   white-space:nowrap!important;
 }
 .review-footer-labels>small:first-child{right:210px!important}
-.review-footer-labels>small:last-child{right:60px!important}
+.review-footer-labels>small:last-child{right:85px!important}
 .review-footer-area-value{grid-column:3!important}
 .review-footer-units-value{grid-column:4!important}
 .review-footer-area-value,
@@ -196,5 +196,5 @@
   .review-line.review-line-metrics,
   .review-total{grid-template-columns:90px minmax(0,1fr) 86px 52px!important}
   .review-footer-labels>small:first-child{right:118px!important}
-  .review-footer-labels>small:last-child{right:30px!important}
+  .review-footer-labels>small:last-child{right:49px!important}
 }
