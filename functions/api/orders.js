@@ -63,7 +63,6 @@ export async function onRequestGet(context) {
         status: order.status,
         created_at: order.created_at,
         updated_at: order.updated_at,
-        can_edit: !["cancelled", "archived"].includes(order.status),
         can_archive: order.status !== "archived",
         can_restore: order.status === "archived",
         can_delete: true,
@@ -82,7 +81,6 @@ export async function onRequestGet(context) {
           extras: Array.isArray(payload.extras) ? payload.extras : [],
         },
         pending_mapping: pendingMapping,
-        latest_revision: Math.max(1, ...files.map((file) => file.revision)),
         files,
       });
     }
