@@ -10,8 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css?v=20260722-1">
   <link rel="stylesheet" href="/refinement.css?v=20260722-2">
-  <link rel="stylesheet" href="/account-refinement.css?v=20260724-4">
-  <link rel="stylesheet" href="/account-final-refinement.css?v=20260728-2">
+  <link rel="stylesheet" href="/account-final-refinement.css?v=20260728-3">
 </head>
 <body class="account-page">
   <header class="portal-header">
@@ -20,87 +19,88 @@
   </header>
 
   <main class="account-shell">
-    <header class="account-heading"><h1>Account</h1></header>
+    <header class="account-heading">
+      <div><h1>Account</h1><p>Manage company details, new-order defaults and sign-in security.</p></div>
+    </header>
     <div id="accountMessage" class="portal-message" hidden role="alert"></div>
 
-    <div class="account-grid">
-      <section id="customerAccountCard" class="account-card profile-card">
-        <header class="account-card-heading">
-          <div><h2>Account details</h2><p>Used to prefill each new order. Refreshing the order form discards unsaved order data.</p></div>
-        </header>
-        <form id="accountForm">
-          <div class="account-fields">
-            <label class="account-field account-field-meta"><span>Debtor code</span><div id="debtorCodeDisplay" class="readonly-field"></div></label>
-            <label class="account-field account-field-meta"><span>Username</span><div id="usernameDisplay" class="readonly-field"></div></label>
-            <label class="account-field full"><span>Company name</span><input id="companyName" maxlength="160" autocomplete="organization" required></label>
-            <label class="account-field"><span>Default contact</span><input id="defaultContactName" maxlength="100" autocomplete="name"></label>
-            <label class="account-field"><span>Phone</span><input id="defaultMobile" type="tel" maxlength="16" inputmode="tel" autocomplete="tel" placeholder="03 0000 0000"></label>
-          </div>
+    <form id="accountForm" class="account-form">
+      <section id="customerAccountCard" class="account-section">
+        <header class="account-section-bar"><h2>Account details</h2></header>
+        <div class="account-section-body account-identity-grid">
+          <label class="account-field"><span>Debtor code</span><div id="debtorCodeDisplay" class="readonly-field"></div></label>
+          <label class="account-field"><span>Username</span><div id="usernameDisplay" class="readonly-field"></div></label>
+          <label class="account-field account-field-wide"><span>Company name</span><input id="companyName" maxlength="160" autocomplete="organization" required></label>
+        </div>
+      </section>
 
-          <div class="account-defaults-heading"><h3>New order defaults</h3><p>Leave any field blank when it should start empty.</p></div>
-          <div class="account-fields order-default-fields">
-            <label class="account-field"><span>Reference</span><input id="defaultReference" maxlength="80" autocomplete="off"></label>
-            <label class="account-field"><span>Required date</span><input id="defaultRequiredDate" type="date"></label>
-            <label class="account-field full"><span>Street</span><input id="defaultStreet" maxlength="240" autocomplete="street-address"></label>
-            <label class="account-field"><span>Suburb</span><input id="defaultSuburb" maxlength="120" autocomplete="address-level2"></label>
-            <label class="account-field"><span>Postcode</span><input id="defaultPostcode" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="postal-code"></label>
-            <label class="account-field"><span>Time slot</span><select id="defaultTimeSlot"><option value="">No default</option><option value="1ST">1st</option><option value="2ND">2nd</option><option value="AM">AM</option><option value="PM">PM</option><option value="ANY">Any</option></select></label>
-            <label class="account-field"><span>Delivery type</span><select id="defaultDeliveryType"><option value="">No default</option><option value="Hand Unload">Hand Unload</option><option value="Forklift Delivery">Forklift Delivery</option><option value="Crane Delivery">Crane Delivery</option><option value="Delivery (No Assistance)">Delivery (No Assistance)</option><option value="Pickup (Customer to collect)">Customer Pickup</option></select></label>
-            <fieldset class="account-field full account-default-extras"><legend>Extras</legend><label><input type="checkbox" name="defaultExtra" value="Downstairs"> Downstairs</label><label><input type="checkbox" name="defaultExtra" value="Upstairs"> Upstairs</label><label><input type="checkbox" name="defaultExtra" value="Wrap"> Wrap</label><label><input type="checkbox" name="defaultExtra" value="Strap"> Strap</label><label><input type="checkbox" name="defaultExtra" value="Extra Labour"> Extra Labour</label></fieldset>
-            <label class="account-field full"><span>Instructions</span><textarea id="defaultInstructions" rows="3" maxlength="1500"></textarea></label>
+      <section class="account-section">
+        <header class="account-section-bar account-section-bar-with-copy"><div><h2>New order defaults</h2><p>Leave a field blank when each new order should start empty.</p></div></header>
+        <div class="account-section-body order-default-grid">
+          <label class="account-field"><span>Reference</span><input id="defaultReference" maxlength="80" autocomplete="off"></label>
+          <label class="account-field"><span>Required date</span><input id="defaultRequiredDate" type="date"></label>
+          <label class="account-field"><span>Contact</span><input id="defaultContactName" maxlength="100" autocomplete="name"></label>
+          <label class="account-field"><span>Phone</span><input id="defaultMobile" type="tel" maxlength="16" inputmode="tel" autocomplete="tel" placeholder="03 0000 0000"></label>
+          <label class="account-field account-field-wide"><span>Street</span><input id="defaultStreet" maxlength="240" autocomplete="street-address"></label>
+          <label class="account-field"><span>Suburb</span><input id="defaultSuburb" maxlength="120" autocomplete="address-level2"></label>
+          <label class="account-field"><span>Postcode</span><input id="defaultPostcode" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="postal-code"></label>
+          <label class="account-field"><span>Time slot</span><select id="defaultTimeSlot"><option value="">No default</option><option value="1ST">1st</option><option value="2ND">2nd</option><option value="AM">AM</option><option value="PM">PM</option><option value="ANY">Any</option></select></label>
+          <label class="account-field"><span>Delivery type</span><select id="defaultDeliveryType"><option value="">No default</option><option value="Hand Unload">Hand Unload</option><option value="Forklift Delivery">Forklift Delivery</option><option value="Crane Delivery">Crane Delivery</option><option value="Delivery (No Assistance)">Delivery (No Assistance)</option><option value="Pickup (Customer to collect)">Customer Pickup</option></select></label>
+          <fieldset class="account-field account-field-wide account-default-extras"><legend>Extras</legend><div class="account-extra-options"><label><input type="checkbox" name="defaultExtra" value="Downstairs"><span>Downstairs</span></label><label><input type="checkbox" name="defaultExtra" value="Upstairs"><span>Upstairs</span></label><label><input type="checkbox" name="defaultExtra" value="Wrap"><span>Wrap</span></label><label><input type="checkbox" name="defaultExtra" value="Strap"><span>Strap</span></label><label><input type="checkbox" name="defaultExtra" value="Extra Labour"><span>Extra Labour</span></label></div></fieldset>
+          <label class="account-field account-field-wide"><span>Instructions</span><textarea id="defaultInstructions" rows="3" maxlength="1500" placeholder="Access, unloading or site notes"></textarea></label>
+        </div>
+        <div class="account-form-actions"><button class="button button-primary">Save changes</button></div>
+      </section>
+    </form>
+
+    <section class="account-section security-card">
+      <header class="account-section-bar"><h2>Security</h2></header>
+      <button id="togglePasswordPanel" class="security-toggle" type="button" aria-expanded="false" aria-controls="passwordPanel">
+        <span><strong>Password</strong><small>Change your sign-in password</small></span>
+        <b>Change password</b>
+      </button>
+      <div id="passwordPanel" class="password-panel" hidden>
+        <form id="passwordForm">
+          <div class="account-section-body password-fields">
+            <label class="account-field current-password-field"><span>Current password</span><input id="currentPassword" type="password" autocomplete="current-password" required></label>
+            <label class="account-field"><span>New password</span><input id="newPassword" type="password" autocomplete="new-password" minlength="8" required></label>
+            <label class="account-field"><span>Confirm password</span><input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" required></label>
           </div>
-          <div class="account-form-actions"><button class="button button-primary">Save changes</button></div>
+          <div class="account-form-actions password-actions"><button id="cancelPasswordChange" class="button button-secondary" type="button">Cancel</button><button class="button button-primary">Update password</button></div>
         </form>
-      </section>
+      </div>
+    </section>
 
-      <section class="account-card security-card">
-        <button id="togglePasswordPanel" class="security-toggle" type="button" aria-expanded="false" aria-controls="passwordPanel">
-          <span><strong>Password</strong><small>Change your sign-in password</small></span>
-          <b>Change</b>
-        </button>
-        <div id="passwordPanel" class="password-panel" hidden>
-          <form id="passwordForm">
-            <div class="account-fields password-fields">
-              <label class="account-field current-password-field"><span>Current password</span><input id="currentPassword" type="password" autocomplete="current-password" required></label>
-              <label class="account-field"><span>New password</span><input id="newPassword" type="password" autocomplete="new-password" minlength="8" required></label>
-              <label class="account-field"><span>Confirm password</span><input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" required></label>
-            </div>
-            <div class="account-form-actions password-actions"><button id="cancelPasswordChange" class="button button-secondary" type="button">Cancel</button><button class="button button-primary">Update password</button></div>
-          </form>
-        </div>
-      </section>
-
-      <section id="adminSection" class="account-card admin-section" hidden>
-        <header class="account-card-heading"><div><h2>Administration</h2><p>Manage customer accounts, users and the Accrivia catalogue.</p></div></header>
-        <div class="admin-card-body">
-          <div class="admin-toolbar"><a class="button button-secondary" href="/catalog-admin/">Manage Accrivia catalogue</a></div>
-          <div class="admin-layout">
-            <div>
-              <h3>Create customer account</h3>
-              <form id="createAccountForm" class="account-fields">
-                <label class="account-field"><span>Debtor code</span><input id="newDebtorCode" required></label>
-                <label class="account-field"><span>Company name</span><input id="newCompanyName" required></label>
-                <label class="account-field"><span>Default contact</span><input id="newDefaultContact"></label>
-                <label class="account-field"><span>Phone</span><input id="newDefaultMobile" type="tel" maxlength="16" inputmode="tel" placeholder="03 0000 0000"></label>
-                <div class="account-form-actions full"><button class="button button-primary">Create customer</button></div>
-              </form>
-              <h3>Customer accounts</h3><div id="accountsList" class="admin-list"></div>
-            </div>
-            <div>
-              <h3>Create portal user</h3>
-              <form id="createUserForm" class="account-fields">
-                <label class="account-field"><span>Username</span><input id="newUsername" required></label>
-                <label class="account-field"><span>Role</span><select id="newUserRole"><option value="customer">Customer</option><option value="admin">Administrator</option></select></label>
-                <label class="account-field full"><span>Customer account</span><select id="newUserAccount"></select></label>
-                <label class="account-field full"><span>Initial password</span><input id="newUserPassword" type="password" minlength="8" required></label>
-                <div class="account-form-actions full"><button class="button button-primary">Create user</button></div>
-              </form>
-              <h3>Portal users</h3><div id="usersList" class="admin-list"></div>
-            </div>
+    <section id="adminSection" class="account-section admin-section" hidden>
+      <header class="account-section-bar account-section-bar-with-copy"><div><h2>Administration</h2><p>Manage customer accounts, users and the Accrivia catalogue.</p></div></header>
+      <div class="admin-card-body">
+        <div class="admin-toolbar"><a class="button button-secondary" href="/catalog-admin/">Manage Accrivia catalogue</a></div>
+        <div class="admin-layout">
+          <div>
+            <h3>Create customer account</h3>
+            <form id="createAccountForm" class="account-fields">
+              <label class="account-field"><span>Debtor code</span><input id="newDebtorCode" required></label>
+              <label class="account-field"><span>Company name</span><input id="newCompanyName" required></label>
+              <label class="account-field"><span>Default contact</span><input id="newDefaultContact"></label>
+              <label class="account-field"><span>Phone</span><input id="newDefaultMobile" type="tel" maxlength="16" inputmode="tel" placeholder="03 0000 0000"></label>
+              <div class="account-form-actions account-field-wide"><button class="button button-primary">Create customer</button></div>
+            </form>
+            <h3>Customer accounts</h3><div id="accountsList" class="admin-list"></div>
+          </div>
+          <div>
+            <h3>Create portal user</h3>
+            <form id="createUserForm" class="account-fields">
+              <label class="account-field"><span>Username</span><input id="newUsername" required></label>
+              <label class="account-field"><span>Role</span><select id="newUserRole"><option value="customer">Customer</option><option value="admin">Administrator</option></select></label>
+              <label class="account-field account-field-wide"><span>Customer account</span><select id="newUserAccount"></select></label>
+              <label class="account-field account-field-wide"><span>Initial password</span><input id="newUserPassword" type="password" minlength="8" required></label>
+              <div class="account-form-actions account-field-wide"><button class="button button-primary">Create user</button></div>
+            </form>
+            <h3>Portal users</h3><div id="usersList" class="admin-list"></div>
           </div>
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
   </main>
   <script src="/account.js?v=20260728-3" defer></script>
   <script src="/phone-date-refinement.js?v=20260724-2" defer></script>
