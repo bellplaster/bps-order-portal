@@ -1,6 +1,7 @@
 (() => {
   let initialised = false;
   let applying = false;
+  let originalResetOrder = null;
 
   function configuredDate(value) {
     const text = String(value || "");
@@ -16,15 +17,23 @@
     return [street, locality].filter(Boolean).join(", ");
   }
 
+  function controlsReady() {
+    return Boolean(
+      state?.account
+      && document.getElementById("deliveryStreet")
+      && document.getElementById("deliveryAddressSearch")
+      && document.getElementById("deliveryPostcode")
+      && document.querySelector(".delivery-select-deliveryType .delivery-select")
+    );
+  }
+
   function applyFreshOrderDefaults() {
-    if (applying || state?.editingOrder) return false;
-    const profile = state?.account;
-    const defaults = profile?.orderDefaults || {};
+    if (applying || state?.editingOrder || !controlsReady()) return false;
+    const profile = state.account;
+    const defaults = profile.orderDefaults || {};
     const street = document.getElementById("deliveryStreet");
     const suburb = document.getElementById("deliveryAddressSearch");
     const postcode = document.getElementById("deliveryPostcode");
-    const deliverySelect = document.querySelector(".delivery-select-deliveryType .delivery-select");
-    if (!profile || !street || !suburb || !postcode || !deliverySelect) return false;
 
     applying = true;
     state.suppressDraft = true;
@@ -72,8 +81,9 @@
   }
 
   function installResetWrapper() {
-    if (typeof resetOrder !== "function" || resetOrder.__accountDefaultsWrapped) return false;
-    const originalResetOrder = resetOrder;
+    if (typeof resetOrder !== "function") return false;
+    if (resetOrder.__accountDefaultsWrapped) return true;
+    originalResetOrder = resetOrder;
     const wrapped = function resetOrderWithAccountDefaults(...args) {
       const result = originalResetOrder.apply(this, args);
       window.setTimeout(applyFreshOrderDefaults, 0);
@@ -86,16 +96,16 @@
   }
 
   function initialiseDefaults() {
-    installResetWrapper();
-    if (!initialised && applyFreshOrderDefaults()) initialised = true;
+    if (initialised || !controlsReady() || !installResetWrapper()) return initialised;
+    if (typeof originalResetOrder === "function") originalResetOrder();
+    initialised = applyFreshOrderDefaults();
     return initialised;
   }
 
   let attempts = 0;
   const timer = window.setInterval(() => {
     attempts += 1;
-    initialiseDefaults();
-    if ((initialised && installResetWrapper()) || attempts >= 150) window.clearInterval(timer);
+    if (initialiseDefaults() || attempts >= 150) window.clearInterval(timer);
   }, 100);
 
   document.addEventListener("DOMContentLoaded", initialiseDefaults, { once: true });
