@@ -11,6 +11,43 @@
   <link rel="stylesheet" href="/styles.css?v=20260722-1">
   <link rel="stylesheet" href="/refinement.css?v=20260722-2">
   <link rel="stylesheet" href="/account-final-refinement.css?v=20260728-11">
+  <style>
+    .admin-dialog,
+    .admin-dialog-card,
+    .admin-dialog-fields,
+    .admin-dialog-fields .account-field,
+    .admin-dialog-fields .account-field select {
+      box-sizing: border-box;
+    }
+    .admin-dialog {
+      overflow-x: hidden;
+    }
+    .admin-dialog-card {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+    .admin-dialog-fields {
+      width: 100%;
+      max-width: 100%;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      overflow: hidden;
+    }
+    .admin-dialog-fields .account-field,
+    .admin-dialog-fields .account-field-wide,
+    .admin-dialog-fields .account-field select {
+      min-width: 0;
+      max-width: 100%;
+    }
+    .admin-dialog-fields .account-field-wide {
+      width: 100%;
+      grid-column: 1 / -1;
+    }
+    .admin-dialog-fields .account-field select {
+      display: block;
+      width: 100%;
+    }
+  </style>
 </head>
 <body class="account-page">
   <header class="portal-header">
