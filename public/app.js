@@ -47,22 +47,22 @@ async function initialise() {
 }
 
 function bindStaticActions() {
-  document.getElementById("logoutButton").addEventListener("click", logout);
-  document.getElementById("clearAddressButton").addEventListener("click", clearAddress);
-  document.getElementById("continueToReviewButton").addEventListener("click", () => {
+  document.getElementById("logoutButton")?.addEventListener("click", logout);
+  document.getElementById("clearAddressButton")?.addEventListener("click", clearAddress);
+  document.getElementById("continueToReviewButton")?.addEventListener("click", () => {
     try { validateForm(); renderReview(); setStep("review"); }
     catch (error) { showGlobal(error.message || String(error), "error"); }
   });
-  document.getElementById("backToFormButton").addEventListener("click", () => setStep("form"));
-  document.getElementById("editFormButton").addEventListener("click", () => setStep("form", { scrollTop: true }));
-  document.getElementById("editProductsButton").addEventListener("click", () => {
+  document.getElementById("backToFormButton")?.addEventListener("click", () => setStep("form"));
+  document.getElementById("editFormButton")?.addEventListener("click", () => setStep("form", { scrollTop: true }));
+  document.getElementById("editProductsButton")?.addEventListener("click", () => {
     setStep("form");
     document.querySelector(".products-area")?.scrollIntoView({ behavior: "smooth", block: "start" });
   });
-  document.getElementById("orderForm").addEventListener("submit", submitOrder);
-  document.getElementById("startNewOrderButton").addEventListener("click", resetOrder);
-  document.getElementById("viewHistoryButton").addEventListener("click", openHistory);
-  document.getElementById("cancelEditButton").addEventListener("click", resetOrder);
+  document.getElementById("orderForm")?.addEventListener("submit", submitOrder);
+  document.getElementById("startNewOrderButton")?.addEventListener("click", resetOrder);
+  document.getElementById("viewHistoryButton")?.addEventListener("click", openHistory);
+  document.getElementById("cancelEditButton")?.addEventListener("click", resetOrder);
 
   document.querySelectorAll("[data-step-target]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -77,14 +77,14 @@ function bindStaticActions() {
     button.addEventListener("click", () => activateFloor(button.dataset.floorTab));
   });
 
-  document.getElementById("openHistoryButton").addEventListener("click", openHistory);
-  document.getElementById("closeHistoryButton").addEventListener("click", closeHistory);
-  document.getElementById("historyBackdrop").addEventListener("click", closeHistory);
-  document.getElementById("refreshHistoryButton").addEventListener("click", loadOrderHistory);
-  document.getElementById("showArchivedOrders").addEventListener("change", loadOrderHistory);
+  document.getElementById("openHistoryButton")?.addEventListener("click", openHistory);
+  document.getElementById("closeHistoryButton")?.addEventListener("click", closeHistory);
+  document.getElementById("historyBackdrop")?.addEventListener("click", closeHistory);
+  document.getElementById("refreshHistoryButton")?.addEventListener("click", loadOrderHistory);
+  document.getElementById("showArchivedOrders")?.addEventListener("change", loadOrderHistory);
 
-  document.getElementById("requiredDate").addEventListener("change", updateFutureDateConfirmation);
-  document.getElementById("contactMobile").addEventListener("input", (event) => {
+  document.getElementById("requiredDate")?.addEventListener("change", updateFutureDateConfirmation);
+  document.getElementById("contactMobile")?.addEventListener("input", (event) => {
     event.target.value = formatMobileTyping(event.target.value);
     scheduleDraft();
   });
