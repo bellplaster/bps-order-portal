@@ -18,6 +18,24 @@
     return [street, locality].filter(Boolean).join(", ");
   }
 
+  function ensureHeaderIdentity() {
+    const profile = typeof state !== "undefined" ? state.account : null;
+    const header = document.querySelector(".order-form-page .portal-header");
+    if (!profile || !header) return false;
+
+    let identity = header.querySelector(".portal-company-identity");
+    if (!identity) {
+      identity = document.createElement("div");
+      identity.className = "portal-company-identity";
+      identity.innerHTML = '<span>Ordering account</span><strong></strong>';
+      header.prepend(identity);
+    }
+
+    identity.querySelector("strong").textContent = profile.companyName || profile.debtorCode || "Customer account";
+    identity.title = [profile.companyName, profile.debtorCode].filter(Boolean).join(" · ");
+    return true;
+  }
+
   function controlsReady() {
     return Boolean(
       state?.account
@@ -39,6 +57,7 @@
     applying = true;
     state.suppressDraft = true;
     try {
+      ensureHeaderIdentity();
       setValue("customerName", profile.companyName || "");
       setValue("reference", defaults.reference || "");
       setValue("requiredDate", configuredDate(defaults.requiredDate));
@@ -104,6 +123,7 @@
   }
 
   function initialiseDefaults() {
+    ensureHeaderIdentity();
     bindCapturedResetButtons();
     if (initialised || !controlsReady() || !installResetWrapper()) return initialised;
 
@@ -117,6 +137,7 @@
   let attempts = 0;
   const timer = window.setInterval(() => {
     attempts += 1;
+    ensureHeaderIdentity();
     if (initialiseDefaults() || attempts >= 150) window.clearInterval(timer);
   }, 100);
 
