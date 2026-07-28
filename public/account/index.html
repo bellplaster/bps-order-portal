@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css?v=20260722-1">
   <link rel="stylesheet" href="/refinement.css?v=20260722-2">
-  <link rel="stylesheet" href="/account-final-refinement.css?v=20260728-4">
+  <link rel="stylesheet" href="/account-final-refinement.css?v=20260728-5">
 </head>
 <body class="account-page">
   <header class="portal-header">
@@ -20,7 +20,7 @@
 
   <main class="account-shell">
     <header class="account-heading">
-      <div><h1>Account</h1><p>Manage company details, new-order defaults and sign-in security.</p></div>
+      <div><h1>Account</h1><p>Manage company details, order defaults and sign-in security.</p></div>
     </header>
     <div id="accountMessage" class="portal-message" hidden role="alert"></div>
 
@@ -35,7 +35,7 @@
       </section>
 
       <section class="account-section">
-        <header class="account-section-bar account-section-bar-with-copy"><div><h2>New order defaults</h2><p>Leave a field blank when each new order should start empty.</p></div></header>
+        <header class="account-section-bar"><h2>Order defaults</h2></header>
         <div class="account-section-body order-default-grid">
           <label class="account-field"><span>Reference</span><input id="defaultReference" maxlength="80" autocomplete="off"></label>
           <label class="account-field"><span>Required date</span><input id="defaultRequiredDate" type="date"></label>
@@ -63,7 +63,7 @@
           <div class="account-section-body password-fields">
             <label class="account-field current-password-field"><span>Current password</span><input id="currentPassword" type="password" autocomplete="current-password" required></label>
             <label class="account-field"><span>New password</span><input id="newPassword" type="password" autocomplete="new-password" minlength="8" required></label>
-            <label class="account-field"><span>Confirm password</span><input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" required></label>
+            <label class="account-field confirm-password-field"><span>Confirm password</span><input id="confirmPassword" type="password" autocomplete="new-password" minlength="8" required></label>
           </div>
           <div class="account-form-actions password-actions"><button id="cancelPasswordChange" class="button button-secondary" type="button">Cancel</button><button class="button button-primary">Update password</button></div>
         </form>
