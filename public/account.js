@@ -1,5 +1,16 @@
 let data = null;
 
+const ORDER_DEFAULT_FIELDS = [
+  "defaultReference",
+  "defaultRequiredDate",
+  "defaultStreet",
+  "defaultSuburb",
+  "defaultPostcode",
+  "defaultTimeSlot",
+  "defaultDeliveryType",
+  "defaultInstructions",
+];
+
 document.addEventListener("DOMContentLoaded", initialise);
 
 async function initialise() {
@@ -13,6 +24,9 @@ async function initialise() {
   document.getElementById("newUserRole")?.addEventListener("change", toggleUserAccount);
   document.getElementById("defaultMobile")?.addEventListener("input", formatMobileField);
   document.getElementById("newDefaultMobile")?.addEventListener("input", formatMobileField);
+  document.getElementById("defaultPostcode")?.addEventListener("input", (event) => {
+    event.target.value = event.target.value.replace(/\D/g, "").slice(0, 4);
+  });
   await loadAccount();
 }
 
@@ -25,6 +39,7 @@ async function loadAccount() {
     document.getElementById("companyName").value = profile.companyName || "";
     document.getElementById("defaultContactName").value = profile.defaultContactName || "";
     document.getElementById("defaultMobile").value = profile.defaultMobile || "";
+    fillOrderDefaults(profile.orderDefaults || {});
     if (profile.role === "admin") {
       document.getElementById("customerAccountCard").hidden = true;
       document.getElementById("adminSection").hidden = false;
@@ -33,6 +48,42 @@ async function loadAccount() {
   } catch (error) {
     showMessage(error.message || String(error), "error");
   }
+}
+
+function fillOrderDefaults(defaults) {
+  const values = {
+    defaultReference: defaults.reference || "",
+    defaultRequiredDate: defaults.requiredDate || "",
+    defaultStreet: defaults.street || "",
+    defaultSuburb: defaults.suburb || "",
+    defaultPostcode: defaults.postcode || "",
+    defaultTimeSlot: defaults.timeSlot || "",
+    defaultDeliveryType: defaults.deliveryType || "",
+    defaultInstructions: defaults.instructions || "",
+  };
+  ORDER_DEFAULT_FIELDS.forEach((id) => {
+    const field = document.getElementById(id);
+    if (field) field.value = values[id] || "";
+  });
+  const extras = new Set(Array.isArray(defaults.extras) ? defaults.extras : []);
+  document.querySelectorAll('input[name="defaultExtra"]').forEach((input) => {
+    input.checked = extras.has(input.value);
+  });
+}
+
+function collectOrderDefaults() {
+  return {
+    reference: document.getElementById("defaultReference").value,
+    requiredDate: document.getElementById("defaultRequiredDate").value,
+    street: document.getElementById("defaultStreet").value,
+    suburb: document.getElementById("defaultSuburb").value,
+    state: "VIC",
+    postcode: document.getElementById("defaultPostcode").value,
+    timeSlot: document.getElementById("defaultTimeSlot").value,
+    deliveryType: document.getElementById("defaultDeliveryType").value,
+    extras: [...document.querySelectorAll('input[name="defaultExtra"]:checked')].map((input) => input.value),
+    instructions: document.getElementById("defaultInstructions").value,
+  };
 }
 
 async function saveAccount(event) {
@@ -44,9 +95,10 @@ async function saveAccount(event) {
         companyName: document.getElementById("companyName").value,
         defaultContactName: document.getElementById("defaultContactName").value,
         defaultMobile: document.getElementById("defaultMobile").value,
+        orderDefaults: collectOrderDefaults(),
       }),
     });
-    showMessage("Account details saved.", "success");
+    showMessage("Account details and new order defaults saved.", "success");
     await loadAccount();
   } catch (error) {
     showMessage(error.message || String(error), "error");
