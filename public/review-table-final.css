@@ -22,7 +22,7 @@
   min-height:26px!important;
   align-items:center!important;
   margin:0!important;
-  padding:0 10px!important;
+  padding:0 8px!important;
   box-sizing:border-box!important;
   font:700 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
 }
@@ -32,9 +32,7 @@
   padding:0!important;
   font:700 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
 }
-.review-section:has(#reviewOrderLines) .review-section-header .text-button{
-  margin-left:auto!important;
-}
+.review-section:has(#reviewOrderLines) .review-section-header .text-button{margin-left:auto!important}
 
 /* Area row and column header use clearly different greys. */
 .review-area-heading{
@@ -44,7 +42,7 @@
   min-height:26px!important;
   align-items:center!important;
   margin:0!important;
-  padding:0 10px!important;
+  padding:0 8px!important;
   border:0!important;
   box-sizing:border-box!important;
   background:#c3c9c7!important;
@@ -111,34 +109,22 @@
   overflow:hidden!important;
   text-overflow:ellipsis!important;
   white-space:nowrap!important;
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
   font-size:11px!important;
   line-height:26px!important;
 }
-.review-line-sku{
-  color:#53615d!important;
-  font-weight:500!important;
-}
-.review-line-product{
-  color:#17211f!important;
-  font-weight:600!important;
-}
+.review-line-sku{color:#53615d!important;font-weight:500!important}
+.review-line-product{color:#17211f!important;font-weight:600!important}
 .review-line.review-line-metrics>em,
 .review-line.review-line-metrics>b{
   justify-content:center!important;
   padding-inline:3px!important;
   text-align:center!important;
 }
-.review-line.review-line-metrics>em{
-  color:#17211f!important;
-  font-style:normal!important;
-  font-weight:500!important;
-}
-.review-line.review-line-metrics>b{
-  color:#17211f!important;
-  font-weight:600!important;
-}
+.review-line.review-line-metrics>em{color:#17211f!important;font-style:normal!important;font-weight:500!important}
+.review-line.review-line-metrics>b{color:#17211f!important;font-weight:600!important}
 
-/* Footer uses the same four tracks. Labels are pinned immediately before their values. */
+/* Footer uses the same numeric tracks as every product row. */
 .review-total{
   position:relative!important;
   align-items:stretch!important;
@@ -155,7 +141,7 @@
   align-items:center!important;
   gap:8px!important;
   margin:0!important;
-  padding:0 10px!important;
+  padding:0 8px!important;
   border:0!important;
   box-sizing:border-box!important;
   white-space:nowrap!important;
@@ -172,18 +158,16 @@
   display:flex!important;
   height:26px!important;
   align-items:center!important;
+  justify-content:flex-end!important;
   margin:0!important;
   padding:0!important;
   color:#17211f!important;
   font:500 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  text-align:right!important;
   white-space:nowrap!important;
 }
-.review-footer-labels>small:first-child{
-  right:258px!important;
-}
-.review-footer-labels>small:last-child{
-  right:108px!important;
-}
+.review-footer-labels>small:first-child{right:210px!important}
+.review-footer-labels>small:last-child{right:60px!important}
 .review-footer-area-value{grid-column:3!important}
 .review-footer-units-value{grid-column:4!important}
 .review-footer-area-value,
@@ -199,9 +183,8 @@
   font:700 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
   white-space:nowrap!important;
 }
-.review-total span,
-.review-total small,
-.review-total strong{
+.review-total,
+.review-total *{
   font-size:11px!important;
   line-height:26px!important;
   letter-spacing:0!important;
@@ -211,9 +194,7 @@
 @media(max-width:760px){
   .review-column-heading,
   .review-line.review-line-metrics,
-  .review-total{
-    grid-template-columns:90px minmax(0,1fr) 86px 52px!important;
-  }
-  .review-footer-labels>small:first-child{right:146px!important}
-  .review-footer-labels>small:last-child{right:58px!important}
+  .review-total{grid-template-columns:90px minmax(0,1fr) 86px 52px!important}
+  .review-footer-labels>small:first-child{right:118px!important}
+  .review-footer-labels>small:last-child{right:30px!important}
 }
