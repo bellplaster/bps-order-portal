@@ -39,14 +39,6 @@ details.extras-dropdown[open]>.stacked-options,details.extras-dropdown[open]>.ex
 .review-footer-area-value,.review-footer-units-value{display:flex!important;height:26px!important;align-items:center!important;justify-content:center!important;margin:0!important;padding:0 3px!important;box-sizing:border-box!important;color:#17211f!important;font:700 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;white-space:nowrap!important}
 .review-total,.review-total *{font-size:11px!important;line-height:26px!important;letter-spacing:0!important;text-transform:none!important}
 
-/* Use the same native right-side date control as the Account page. */
-.order-form-page .date-leading-icon{display:none!important}
-.order-form-page .date-input-shell::after{display:none!important}
-.order-form-page .sheet-field-row .date-input-shell>#requiredDate{height:39px!important;min-height:39px!important;padding:0 12px 0 16px!important;color:#17211f!important;background:#fff!important;font:400 12px/1.35 Inter,system-ui,sans-serif!important;cursor:pointer!important}
-.order-form-page #requiredDate:invalid::-webkit-datetime-edit{color:#9ba5a2!important}
-.order-form-page #requiredDate:valid::-webkit-datetime-edit{color:#17211f!important}
-.order-form-page #requiredDate::-webkit-calendar-picker-indicator{position:static!important;inset:auto!important;width:16px!important;height:16px!important;margin:0!important;padding:0!important;opacity:1!important;cursor:pointer!important}
-
 /* Customer identity | Bell Plaster | actions. Header edges match the 1520px order workspace. */
 .order-form-page .portal-header{display:grid!important;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)!important;align-items:center!important;column-gap:28px!important;min-height:74px!important;padding:10px max(16px,calc((100% - 1520px)/2))!important;background:#fff!important}
 .order-form-page .portal-header .brand-link{grid-column:2!important;justify-self:center!important;display:flex!important;align-items:center!important}
