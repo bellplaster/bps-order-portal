@@ -82,8 +82,9 @@
 
     document.getElementById('reviewLineTotal').innerHTML = `<span>Product lines</span><strong>${lineCount}</strong>`;
     document.getElementById('reviewUnitTotal').innerHTML = `
-      <span class="review-footer-metric review-footer-area"><small>Total m²</small><strong>${totalBoardArea.toFixed(2)}</strong></span>
-      <span class="review-footer-metric review-footer-units"><small>Total Units</small><strong>${unitCount}</strong></span>
+      <span class="review-footer-labels"><small>Total m²</small><small>Total Units</small></span>
+      <strong class="review-footer-area-value">${totalBoardArea.toFixed(2)}</strong>
+      <strong class="review-footer-units-value">${unitCount}</strong>
     `;
   }
 
@@ -142,7 +143,7 @@
         reviewLink.dataset.reviewTableFinal = 'true';
         document.head.append(reviewLink);
       }
-      reviewLink.href = '/review-table-final.css?v=20260728-3';
+      reviewLink.href = '/review-table-final.css?v=20260728-4';
     };
 
     const loadLateHotfixStyles = () => {
