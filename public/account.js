@@ -65,10 +65,6 @@ function fillOrderDefaults(defaults) {
     const field = document.getElementById(id);
     if (field) field.value = values[id] || "";
   });
-  const extras = new Set(Array.isArray(defaults.extras) ? defaults.extras : []);
-  document.querySelectorAll('input[name="defaultExtra"]').forEach((input) => {
-    input.checked = extras.has(input.value);
-  });
 }
 
 function collectOrderDefaults() {
@@ -81,7 +77,6 @@ function collectOrderDefaults() {
     postcode: document.getElementById("defaultPostcode").value,
     timeSlot: document.getElementById("defaultTimeSlot").value,
     deliveryType: document.getElementById("defaultDeliveryType").value,
-    extras: [...document.querySelectorAll('input[name="defaultExtra"]:checked')].map((input) => input.value),
     instructions: document.getElementById("defaultInstructions").value,
   };
 }
