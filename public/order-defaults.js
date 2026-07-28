@@ -107,7 +107,10 @@
   function initialiseDefaults() {
     bindCapturedResetButtons();
     if (initialised || !controlsReady() || !installResetWrapper()) return initialised;
-    if (typeof originalResetOrder === "function") originalResetOrder();
+
+    // The base application has already built a clean product workspace.
+    // Applying account defaults must not call resetOrder again here, because
+    // later tab refinements can remove the freshly rendered product panels.
     initialised = applyFreshOrderDefaults();
     return initialised;
   }
