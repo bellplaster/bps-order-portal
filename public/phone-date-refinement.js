@@ -21,28 +21,43 @@
       return digits;
     },
   };
+
   function addressTitleCase(value) {
     const cleaned = String(value || "").replace(/,?\s*Australia\s*$/i, "").replace(/\bVictoria\b/gi, "VIC").replace(/\s+/g, " ").trim();
     if (!cleaned) return "";
     return cleaned.toLowerCase().replace(/\b([a-z])/g, (match) => match.toUpperCase()).replace(/\bVic\b/g, "VIC").replace(/\bNsw\b/g, "NSW").replace(/\bQld\b/g, "QLD").replace(/\bSa\b/g, "SA").replace(/\bWa\b/g, "WA").replace(/\bAct\b/g, "ACT").replace(/\bNt\b/g, "NT");
   }
+
+  function initialiseRequiredDate() {
+    const input = document.getElementById("requiredDate");
+    if (!input) return;
+    const shell = input.closest(".date-input-shell");
+    shell?.querySelector(".date-leading-icon")?.remove();
+    shell?.classList.add("native-date-control");
+  }
+
   window.BPSPhone = phone;
   window.formatAddressDisplay = addressTitleCase;
   if (typeof normaliseMobile === "function") normaliseMobile = (value, optional = false) => phone.normalise(value, optional);
   if (typeof formatMobileTyping === "function") formatMobileTyping = (value) => phone.formatTyping(value);
   if (typeof formatMobileField === "function") formatMobileField = (event) => { event.target.value = phone.formatTyping(event.target.value); };
+
   document.addEventListener("DOMContentLoaded", () => {
     [document.getElementById("contactMobile"), document.getElementById("defaultMobile"), document.getElementById("newDefaultMobile")].filter(Boolean).forEach((input) => {
       input.maxLength = 16;
       input.placeholder = "Phone";
       input.setAttribute("aria-label", "Phone");
     });
+
+    initialiseRequiredDate();
+
     const address = document.getElementById("deliveryAddressSearch");
     if (address) {
       const refine = () => { if (address.value && address.value !== "Pickup") address.value = addressTitleCase(address.value); };
       address.addEventListener("change", refine);
       address.addEventListener("blur", refine);
     }
+
     const confirmation = document.getElementById("futureDateConfirmation");
     if (confirmation) {
       const text = confirmation.querySelector("span");
@@ -50,7 +65,23 @@
       confirmation.title = "This required date is more than six months away";
     }
   });
+
   const style = document.createElement("style");
-  style.textContent = `.required-date-inline{display:grid!important;grid-template-columns:minmax(180px,1fr) auto!important;align-items:stretch!important;height:39px!important}.required-date-inline>.date-input-shell{min-width:0!important}.future-confirmation:not([hidden]){display:inline-flex!important;align-items:center!important;gap:6px!important;min-width:142px!important;height:39px!important;margin:0!important;padding:0 9px!important;border:0!important;border-left:1px solid #ead9a6!important;background:#fff9ed!important;color:#725300!important;font-size:9px!important;font-weight:650!important;line-height:1!important;white-space:nowrap!important}.future-confirmation input[type="checkbox"]{width:13px!important;height:13px!important;min-height:13px!important;flex:0 0 13px!important;margin:0!important}.selected-additional:has(>.empty-state){height:0!important;min-height:0!important;max-height:0!important;overflow:hidden!important}.selected-additional>.empty-state{display:none!important}@media(max-width:760px){.required-date-inline{grid-template-columns:1fr!important;height:auto!important}.future-confirmation:not([hidden]){min-width:0!important;width:100%!important;height:31px!important;border-left:0!important;border-top:1px solid #ead9a6!important}}`;
+  style.dataset.phoneDateRefinement = "true";
+  style.textContent = `
+    .required-date-inline{display:grid!important;grid-template-columns:minmax(180px,1fr) auto!important;align-items:stretch!important;height:39px!important}
+    .required-date-inline>.date-input-shell{min-width:0!important}
+    .order-form-page .date-input-shell{position:relative!important;height:39px!important;background:#fff!important}
+    .order-form-page .date-input-shell::after,.order-form-page .date-leading-icon{display:none!important;content:none!important}
+    .order-form-page .date-input-shell>#requiredDate{box-sizing:border-box!important;width:100%!important;height:39px!important;min-height:39px!important;margin:0!important;padding:0 42px 0 16px!important;color:#17211f!important;background:#fff!important;border:0!important;border-radius:0!important;outline:0!important;font:400 12px/1.35 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;cursor:pointer!important}
+    .order-form-page #requiredDate:invalid::-webkit-datetime-edit{color:#aab0b2!important}
+    .order-form-page #requiredDate:valid::-webkit-datetime-edit{color:#17211f!important}
+    .order-form-page #requiredDate::-webkit-calendar-picker-indicator{position:absolute!important;inset:auto 14px auto auto!important;top:50%!important;width:16px!important;height:16px!important;margin:0!important;padding:0!important;opacity:.78!important;transform:translateY(-50%)!important;cursor:pointer!important}
+    .future-confirmation:not([hidden]){display:inline-flex!important;align-items:center!important;gap:6px!important;min-width:142px!important;height:39px!important;margin:0!important;padding:0 9px!important;border:0!important;border-left:1px solid #ead9a6!important;background:#fff9ed!important;color:#725300!important;font-size:9px!important;font-weight:650!important;line-height:1!important;white-space:nowrap!important}
+    .future-confirmation input[type="checkbox"]{width:13px!important;height:13px!important;min-height:13px!important;flex:0 0 13px!important;margin:0!important}
+    .selected-additional:has(>.empty-state){height:0!important;min-height:0!important;max-height:0!important;overflow:hidden!important}
+    .selected-additional>.empty-state{display:none!important}
+    @media(max-width:760px){.required-date-inline{grid-template-columns:1fr!important;height:auto!important}.future-confirmation:not([hidden]){min-width:0!important;width:100%!important;height:31px!important;border-left:0!important;border-top:1px solid #ead9a6!important}}
+  `;
   document.head.append(style);
 })();
