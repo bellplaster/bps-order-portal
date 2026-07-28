@@ -1,6 +1,6 @@
 (() => {
   function boardArea(line) {
-    const label = String(line?.label || '');
+    const label = String(line?.label || "");
     const dimensionMatch = label.match(/\b(\d{3,4})\s*[×xX]\s*(\d{3,4})\b/);
     if (!dimensionMatch) return null;
 
@@ -17,59 +17,59 @@
   function refinedRenderReview() {
     const payload = buildPayload();
     const details = [
-      ['Order number', payload.reference],
-      ['Required date', `${formatDate(payload.requiredDate)} · ${timeSlotLabel(payload.timeSlot)}`],
-      ['Contact', payload.contact],
-      ['Phone', payload.mobile],
-      ['Address', formatAddressForDisplay(payload.deliveryAddress)],
-      ['Delivery', deliveryTypeLabel(payload.deliveryType)],
-      ['Extras', payload.extras.join(', ') || 'None'],
-      ['Instructions', payload.deliveryInstructions || '—'],
+      ["Order number", payload.reference],
+      ["Required date", `${formatDate(payload.requiredDate)} · ${timeSlotLabel(payload.timeSlot)}`],
+      ["Contact", payload.contact],
+      ["Phone", payload.mobile],
+      ["Address", formatAddressForDisplay(payload.deliveryAddress)],
+      ["Delivery", deliveryTypeLabel(payload.deliveryType)],
+      ["Extras", payload.extras.join(", ") || "None"],
+      ["Instructions", payload.deliveryInstructions || "—"],
     ];
-    const detailsRoot = document.getElementById('reviewDetails');
+    const detailsRoot = document.getElementById("reviewDetails");
     detailsRoot.replaceChildren();
     details.forEach(([label, content]) => {
-      const item = document.createElement('div');
+      const item = document.createElement("div");
       item.className = reviewFieldClass(label);
-      item.innerHTML = `<span>${escapeHtml(label)}</span><strong>${escapeHtml(content || '—')}</strong>`;
+      item.innerHTML = `<span>${escapeHtml(label)}</span><strong>${escapeHtml(content || "—")}</strong>`;
       detailsRoot.append(item);
     });
 
-    const linesRoot = document.getElementById('reviewOrderLines');
+    const linesRoot = document.getElementById("reviewOrderLines");
     linesRoot.replaceChildren();
     let lineCount = 0;
     let unitCount = 0;
     let totalBoardArea = 0;
     const areas = Array.isArray(state.deliveryAreas) && state.deliveryAreas.length
       ? state.deliveryAreas
-      : [{ id: 'ground', label: floorLabels.ground }, { id: 'first', label: floorLabels.first }];
+      : [{ id: "ground", label: floorLabels.ground }, { id: "first", label: floorLabels.first }];
 
     areas.forEach((areaDefinition) => {
       const areaId = areaDefinition.id;
       const lines = getFloorLines(areaId);
       if (!lines.length) return;
 
-      const group = document.createElement('section');
-      group.className = 'review-floor-group';
+      const group = document.createElement("section");
+      group.className = "review-floor-group";
 
-      const areaHeading = document.createElement('h3');
-      areaHeading.className = 'review-area-heading';
+      const areaHeading = document.createElement("h3");
+      areaHeading.className = "review-area-heading";
       areaHeading.textContent = areaDefinition.label || floorLabels[areaId] || areaId;
       group.append(areaHeading);
 
-      const heading = document.createElement('div');
-      heading.className = 'review-column-heading';
-      heading.innerHTML = '<span>SKU</span><span>Product</span><small>m²</small><small>Qty</small>';
+      const heading = document.createElement("div");
+      heading.className = "review-column-heading";
+      heading.innerHTML = "<span>SKU</span><span>Product</span><small>m²</small><small>Qty</small>";
       group.append(heading);
 
       lines.forEach((line) => {
         const area = boardArea(line);
-        const row = document.createElement('div');
-        row.className = 'review-line review-line-metrics';
+        const row = document.createElement("div");
+        row.className = "review-line review-line-metrics";
         row.innerHTML = `
-          <span class="review-line-sku">${escapeHtml(line.sku || '—')}</span>
+          <span class="review-line-sku">${escapeHtml(line.sku || "—")}</span>
           <strong class="review-line-product">${escapeHtml(line.label)}</strong>
-          <em>${area === null ? '' : area.toFixed(2)}</em>
+          <em>${area === null ? "" : area.toFixed(2)}</em>
           <b>${line.quantity}</b>
         `;
         group.append(row);
@@ -80,8 +80,8 @@
       linesRoot.append(group);
     });
 
-    document.getElementById('reviewLineTotal').innerHTML = `<span>Product lines</span><strong>${lineCount}</strong>`;
-    document.getElementById('reviewUnitTotal').innerHTML = `
+    document.getElementById("reviewLineTotal").innerHTML = `<span>Product lines</span><strong>${lineCount}</strong>`;
+    document.getElementById("reviewUnitTotal").innerHTML = `
       <span class="review-footer-labels"><small>Total m²</small><small>Total Units</small></span>
       <strong class="review-footer-area-value">${totalBoardArea.toFixed(2)}</strong>
       <strong class="review-footer-units-value">${unitCount}</strong>
@@ -89,25 +89,25 @@
   }
 
   function enableEditablePostcode() {
-    const postcode = document.getElementById('deliveryPostcode');
+    const postcode = document.getElementById("deliveryPostcode");
     if (!postcode) return false;
 
     postcode.readOnly = false;
     postcode.disabled = false;
     postcode.tabIndex = 0;
-    postcode.inputMode = 'numeric';
+    postcode.inputMode = "numeric";
     postcode.maxLength = 4;
-    postcode.pattern = '[0-9]{4}';
-    postcode.autocomplete = 'postal-code';
+    postcode.pattern = "[0-9]{4}";
+    postcode.autocomplete = "postal-code";
 
-    if (postcode.dataset.editablePostcode !== 'true') {
-      postcode.dataset.editablePostcode = 'true';
-      postcode.addEventListener('input', () => {
-        postcode.value = postcode.value.replace(/\D/g, '').slice(0, 4);
-        postcode.setCustomValidity('');
-        if (typeof syncStructuredAddress === 'function') syncStructuredAddress();
-        else if (typeof parseAndStoreManualAddress === 'function') parseAndStoreManualAddress();
-        if (typeof scheduleDraft === 'function') scheduleDraft();
+    if (postcode.dataset.editablePostcode !== "true") {
+      postcode.dataset.editablePostcode = "true";
+      postcode.addEventListener("input", () => {
+        postcode.value = postcode.value.replace(/\D/g, "").slice(0, 4);
+        postcode.setCustomValidity("");
+        if (typeof syncStructuredAddress === "function") syncStructuredAddress();
+        else if (typeof parseAndStoreManualAddress === "function") parseAndStoreManualAddress();
+        if (typeof scheduleDraft === "function") scheduleDraft();
       });
     }
     return true;
@@ -122,83 +122,55 @@
     }, 100);
   }
 
+  function loadStyles() {
+    const styles = [
+      ["finalControlState", "/final-control-state.css?v=20260728-2"],
+      ["reviewTableFinal", "/review-table-final.css?v=20260728-6"],
+    ];
+    styles.forEach(([key, href]) => {
+      let link = document.querySelector(`link[data-${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}="true"]`);
+      if (!link) {
+        link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.dataset[key] = "true";
+        document.head.append(link);
+      }
+      link.href = href;
+    });
+  }
+
+  function loadScriptOnce(src, marker) {
+    return new Promise((resolve) => {
+      const existing = document.querySelector(`script[data-${marker}="true"]`);
+      if (existing) {
+        resolve();
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = src;
+      script.async = false;
+      script.dataset[marker.replace(/-([a-z])/g, (_match, letter) => letter.toUpperCase())] = "true";
+      script.addEventListener("load", resolve, { once: true });
+      script.addEventListener("error", resolve, { once: true });
+      document.body.append(script);
+    });
+  }
+
+  async function loadRefinements() {
+    loadStyles();
+    await loadScriptOnce("/tab-controls.js?v=20260727-2", "tab-controls");
+    await loadScriptOnce("/manager-hotfix.js?v=20260727-1", "manager-hotfix");
+    await loadScriptOnce("/manager-refinement.js?v=20260727-3", "manager-refinement");
+    ensureEditablePostcode();
+  }
+
   window.renderReview = refinedRenderReview;
   try { renderReview = refinedRenderReview; } catch (_error) { }
 
-  if (!document.querySelector('script[data-manager-refinement="true"]')) {
-    const loadFinalControlStyles = () => {
-      let link = document.querySelector('link[data-final-control-state="true"]');
-      if (!link) {
-        link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.dataset.finalControlState = 'true';
-        document.head.append(link);
-      }
-      link.href = '/final-control-state.css?v=20260728-2';
-
-      let reviewLink = document.querySelector('link[data-review-table-final="true"]');
-      if (!reviewLink) {
-        reviewLink = document.createElement('link');
-        reviewLink.rel = 'stylesheet';
-        reviewLink.dataset.reviewTableFinal = 'true';
-        document.head.append(reviewLink);
-      }
-      reviewLink.href = '/review-table-final.css?v=20260728-6';
-    };
-
-    const loadLateHotfixStyles = () => {
-      let link = document.querySelector('link[data-manager-hotfix-late="true"]');
-      if (!link) {
-        link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.dataset.managerHotfixLate = 'true';
-        document.head.append(link);
-      }
-      link.href = '/manager-hotfix.css?v=20260727-2';
-      link.addEventListener('load', loadFinalControlStyles, { once: true });
-      link.addEventListener('error', loadFinalControlStyles, { once: true });
-    };
-
-    const loadManagerRefinement = () => {
-      const script = document.createElement('script');
-      script.src = '/manager-refinement.js?v=20260727-3';
-      script.async = false;
-      script.dataset.managerRefinement = 'true';
-      script.addEventListener('load', () => {
-        ensureEditablePostcode();
-        loadLateHotfixStyles();
-      }, { once: true });
-      script.addEventListener('error', loadLateHotfixStyles, { once: true });
-      document.body.append(script);
-    };
-
-    const loadManagerHotfix = () => {
-      if (document.querySelector('script[data-manager-hotfix="true"]')) {
-        loadManagerRefinement();
-        return;
-      }
-      const hotfix = document.createElement('script');
-      hotfix.src = '/manager-hotfix.js?v=20260727-1';
-      hotfix.async = false;
-      hotfix.dataset.managerHotfix = 'true';
-      hotfix.addEventListener('load', loadManagerRefinement, { once: true });
-      hotfix.addEventListener('error', loadManagerRefinement, { once: true });
-      document.body.append(hotfix);
-    };
-
-    const existingTabController = document.querySelector('script[data-tab-controls="true"]');
-    if (existingTabController) {
-      loadManagerHotfix();
-    } else {
-      const tabController = document.createElement('script');
-      tabController.src = '/tab-controls.js?v=20260727-2';
-      tabController.async = false;
-      tabController.dataset.tabControls = 'true';
-      tabController.addEventListener('load', loadManagerHotfix, { once: true });
-      tabController.addEventListener('error', loadManagerHotfix, { once: true });
-      document.body.append(tabController);
-    }
-  } else {
+  if (document.querySelector('script[data-manager-refinement="true"]')) {
+    loadStyles();
     ensureEditablePostcode();
+  } else {
+    void loadRefinements();
   }
 })();
