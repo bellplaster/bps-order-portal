@@ -3,13 +3,11 @@
     const label = String(line?.label || "");
     const dimensionMatch = label.match(/\b(\d{3,4})\s*[×xX]\s*(\d{3,4})\b/);
     if (!dimensionMatch) return null;
-
     const first = Number(dimensionMatch[1]);
     const second = Number(dimensionMatch[2]);
     const width = Math.min(first, second);
     const length = Math.max(first, second);
     const quantity = Number(line?.quantity || 0);
-
     if (width < 900 || width > 1500 || length < 1800 || length > 6000 || quantity <= 0) return null;
     return (width * length * quantity) / 1_000_000;
   }
@@ -48,20 +46,16 @@
       const areaId = areaDefinition.id;
       const lines = getFloorLines(areaId);
       if (!lines.length) return;
-
       const group = document.createElement("section");
       group.className = "review-floor-group";
-
       const areaHeading = document.createElement("h3");
       areaHeading.className = "review-area-heading";
       areaHeading.textContent = areaDefinition.label || floorLabels[areaId] || areaId;
       group.append(areaHeading);
-
       const heading = document.createElement("div");
       heading.className = "review-column-heading";
       heading.innerHTML = "<span>SKU</span><span>Product</span><small>m²</small><small>Qty</small>";
       group.append(heading);
-
       lines.forEach((line) => {
         const area = boardArea(line);
         const row = document.createElement("div");
@@ -91,7 +85,6 @@
   function enableEditablePostcode() {
     const postcode = document.getElementById("deliveryPostcode");
     if (!postcode) return false;
-
     postcode.readOnly = false;
     postcode.disabled = false;
     postcode.tabIndex = 0;
@@ -99,7 +92,6 @@
     postcode.maxLength = 4;
     postcode.pattern = "[0-9]{4}";
     postcode.autocomplete = "postal-code";
-
     if (postcode.dataset.editablePostcode !== "true") {
       postcode.dataset.editablePostcode = "true";
       postcode.addEventListener("input", () => {
@@ -123,29 +115,20 @@
   }
 
   function loadStyles() {
-    const styles = [
-      ["finalControlState", "/final-control-state.css?v=20260728-2"],
-      ["reviewTableFinal", "/review-table-final.css?v=20260728-6"],
-    ];
-    styles.forEach(([key, href]) => {
-      let link = document.querySelector(`link[data-${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}="true"]`);
-      if (!link) {
-        link = document.createElement("link");
-        link.rel = "stylesheet";
-        link.dataset[key] = "true";
-        document.head.append(link);
-      }
-      link.href = href;
-    });
+    let link = document.querySelector('link[data-order-final="true"]');
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.dataset.orderFinal = "true";
+      document.head.append(link);
+    }
+    link.href = "/order-final.css?v=20260728-1";
   }
 
   function loadScriptOnce(src, marker) {
     return new Promise((resolve) => {
       const existing = document.querySelector(`script[data-${marker}="true"]`);
-      if (existing) {
-        resolve();
-        return;
-      }
+      if (existing) return resolve();
       const script = document.createElement("script");
       script.src = src;
       script.async = false;
