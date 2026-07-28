@@ -143,7 +143,7 @@
         reviewLink.dataset.reviewTableFinal = 'true';
         document.head.append(reviewLink);
       }
-      reviewLink.href = '/review-table-final.css?v=20260728-5';
+      reviewLink.href = '/review-table-final.css?v=20260728-6';
     };
 
     const loadLateHotfixStyles = () => {
