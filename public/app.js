@@ -36,8 +36,8 @@ async function initialise() {
   bindStaticActions();
   setToday();
   try {
+    clearDraft();
     await Promise.all([loadAccount(), loadCatalog()]);
-    restoreDraft();
     updateGeneratedDeliverySummary();
     await loadOrderHistory();
     renderCounts();
