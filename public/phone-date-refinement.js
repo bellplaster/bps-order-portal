@@ -1,5 +1,6 @@
 (() => {
   const MAX_QUANTITY = 10000;
+  const EXTRAS_PLACEHOLDER = "Select extras (optional)";
 
   const phone = {
     normalise(value, optional = false) {
@@ -25,20 +26,45 @@
   };
 
   function addressTitleCase(value) {
-    const cleaned = String(value || "").replace(/,?\s*Australia\s*$/i, "").replace(/\bVictoria\b/gi, "VIC").replace(/\s+/g, " ").trim();
+    const cleaned = String(value || "")
+      .replace(/,?\s*Australia\s*$/i, "")
+      .replace(/\bVictoria\b/gi, "VIC")
+      .replace(/\s+/g, " ")
+      .trim();
     if (!cleaned) return "";
-    return cleaned.toLowerCase().replace(/\b([a-z])/g, (match) => match.toUpperCase()).replace(/\bVic\b/g, "VIC").replace(/\bNsw\b/g, "NSW").replace(/\bQld\b/g, "QLD").replace(/\bSa\b/g, "SA").replace(/\bWa\b/g, "WA").replace(/\bAct\b/g, "ACT").replace(/\bNt\b/g, "NT");
+    return cleaned
+      .toLowerCase()
+      .replace(/\b([a-z])/g, (match) => match.toUpperCase())
+      .replace(/\bVic\b/g, "VIC")
+      .replace(/\bNsw\b/g, "NSW")
+      .replace(/\bQld\b/g, "QLD")
+      .replace(/\bSa\b/g, "SA")
+      .replace(/\bWa\b/g, "WA")
+      .replace(/\bAct\b/g, "ACT")
+      .replace(/\bNt\b/g, "NT");
   }
 
-  function initialiseRequiredDate() {
+  function restoreNativeRequiredDate() {
     const input = document.getElementById("requiredDate");
-    const shell = input?.closest(".date-input-shell");
-    if (!input || !shell) return;
+    if (!input) return;
 
-    shell.querySelectorAll(".required-date-display, .date-leading-icon").forEach((node) => node.remove());
-    shell.classList.remove("controlled-date-control", "has-date", "native-date-control");
-    shell.classList.add("account-style-date-control");
+    document.getElementById("requiredDateDisplay")?.remove();
+    document.querySelectorAll(".required-date-display, .date-leading-icon").forEach((node) => node.remove());
+
+    input.type = "date";
+    input.hidden = false;
+    input.disabled = false;
+    input.tabIndex = 0;
+    input.classList.remove("date-native-picker");
     input.removeAttribute("style");
+    input.removeAttribute("aria-hidden");
+    input.setAttribute("aria-label", "Required date");
+
+    const label = input.closest(".sheet-field-row")?.querySelector("label");
+    if (label) label.htmlFor = "requiredDate";
+
+    const shell = input.closest(".date-input-shell");
+    if (shell) shell.replaceWith(input);
   }
 
   function cleanReference(value) {
@@ -64,20 +90,18 @@
   function patchReferenceSetValue() {
     if (typeof setValue !== "function" || setValue.__numericReference) return;
     const original = setValue;
-    const patched = function setNumericReference(id, valueToSet, ...args) {
-      const nextValue = id === "reference" ? cleanReference(valueToSet) : valueToSet;
-      return original.call(this, id, nextValue, ...args);
+    const patched = function setNumericReference(id, nextValue, ...args) {
+      return original.call(this, id, id === "reference" ? cleanReference(nextValue) : nextValue, ...args);
     };
     patched.__numericReference = true;
     try { setValue = patched; } catch (_error) { }
   }
 
   function updateExtrasPlaceholder() {
-    const selected = [...document.querySelectorAll('input[name="deliveryExtra"]:checked')];
-    if (selected.length) return;
-    const placeholder = "Select extras (optional)";
+    if (document.querySelector('input[name="deliveryExtra"]:checked')) return;
     document.querySelectorAll(".extras-dropdown > summary > span").forEach((label) => {
-      if (label.textContent !== placeholder) label.textContent = placeholder;
+      if (label.textContent !== EXTRAS_PLACEHOLDER) label.textContent = EXTRAS_PLACEHOLDER;
+      label.closest("summary")?.classList.add("is-placeholder");
     });
   }
 
@@ -87,17 +111,16 @@
     input.inputMode = "numeric";
     input.pattern = "[0-9]*";
     input.setAttribute("aria-valuemax", String(MAX_QUANTITY));
-    updateLargeQuantityClass(input);
-  }
-
-  function updateLargeQuantityClass(input) {
     input.classList.toggle("is-large-quantity", String(input.value || "").length >= 4);
   }
 
   function quantityContext(input) {
-    const floor = input.dataset.floor || input.closest("[data-floor-panel]")?.dataset.floorPanel || input.closest("[data-selected-additional]")?.dataset.selectedAdditional;
-    const productKey = input.dataset.productKey;
     const appState = typeof state !== "undefined" ? state : null;
+    const floor = input.dataset.floor
+      || input.closest("[data-floor-panel]")?.dataset.floorPanel
+      || input.closest("[data-selected-additional]")?.dataset.selectedAdditional;
+    const productKey = input.dataset.productKey;
+
     if (appState && floor && productKey && appState.quantities?.[floor] instanceof Map) {
       return {
         set(quantity) {
@@ -109,7 +132,9 @@
 
     const row = input.closest(".selected-additional-row");
     const sku = row?.querySelector("strong")?.textContent?.trim();
-    const materials = appState && floor && Array.isArray(appState.otherMaterials?.[floor]) ? appState.otherMaterials[floor] : null;
+    const materials = appState && floor && Array.isArray(appState.otherMaterials?.[floor])
+      ? appState.otherMaterials[floor]
+      : null;
     const item = materials?.find((candidate) => String(candidate.sku).trim() === sku);
     return item ? { set(quantity) { item.quantity = Math.max(1, quantity || 1); } } : null;
   }
@@ -119,7 +144,7 @@
     const quantity = Math.min(MAX_QUANTITY, Number(digits || 0));
     input.value = digits ? String(quantity) : "";
     input.classList.toggle("has-value", quantity > 0);
-    updateLargeQuantityClass(input);
+    input.classList.toggle("is-large-quantity", String(input.value || "").length >= 4);
     quantityContext(input)?.set(quantity);
     if (typeof renderCounts === "function") renderCounts();
     if (typeof scheduleDraft === "function") scheduleDraft();
@@ -198,18 +223,37 @@
     });
   }
 
-  function observeDynamicControls() {
-    const observer = new MutationObserver((records) => {
-      let shouldRefreshExtras = false;
-      records.forEach((record) => record.addedNodes.forEach((node) => {
-        if (!(node instanceof Element)) return;
-        if (node.matches(".quantity-input")) configureQuantityInput(node);
-        node.querySelectorAll?.(".quantity-input").forEach(configureQuantityInput);
-        if (node.matches(".extras-dropdown, .extras-dropdown *") || node.querySelector?.(".extras-dropdown")) shouldRefreshExtras = true;
-      }));
-      if (shouldRefreshExtras) updateExtrasPlaceholder();
+  function mutationTouchesExtras(record) {
+    const target = record.target instanceof Element ? record.target : record.target.parentElement;
+    if (target?.closest?.(".extras-dropdown")) return true;
+    return [...record.addedNodes].some((node) => {
+      const element = node instanceof Element ? node : node.parentElement;
+      return Boolean(element?.closest?.(".extras-dropdown") || element?.querySelector?.(".extras-dropdown"));
     });
-    observer.observe(document.body, { childList: true, subtree: true });
+  }
+
+  function observeDynamicControls() {
+    let extrasQueued = false;
+    const queueExtrasRefresh = () => {
+      if (extrasQueued) return;
+      extrasQueued = true;
+      queueMicrotask(() => {
+        extrasQueued = false;
+        updateExtrasPlaceholder();
+      });
+    };
+
+    const observer = new MutationObserver((records) => {
+      records.forEach((record) => {
+        record.addedNodes.forEach((node) => {
+          if (!(node instanceof Element)) return;
+          if (node.matches(".quantity-input")) configureQuantityInput(node);
+          node.querySelectorAll?.(".quantity-input").forEach(configureQuantityInput);
+        });
+        if (mutationTouchesExtras(record)) queueExtrasRefresh();
+      });
+    });
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
   }
 
   window.BPSPhone = phone;
@@ -219,13 +263,15 @@
   if (typeof formatMobileField === "function") formatMobileField = (event) => { event.target.value = phone.formatTyping(event.target.value); };
 
   document.addEventListener("DOMContentLoaded", () => {
-    [document.getElementById("contactMobile"), document.getElementById("defaultMobile"), document.getElementById("newDefaultMobile")].filter(Boolean).forEach((input) => {
-      input.maxLength = 16;
-      input.placeholder = "Phone";
-      input.setAttribute("aria-label", "Phone");
-    });
+    [document.getElementById("contactMobile"), document.getElementById("defaultMobile"), document.getElementById("newDefaultMobile")]
+      .filter(Boolean)
+      .forEach((input) => {
+        input.maxLength = 16;
+        input.placeholder = "Phone";
+        input.setAttribute("aria-label", "Phone");
+      });
 
-    initialiseRequiredDate();
+    restoreNativeRequiredDate();
     initialiseReference();
     patchReferenceSetValue();
     initialiseQuantityControls();
@@ -233,12 +279,16 @@
     observeDynamicControls();
 
     document.addEventListener("change", (event) => {
-      if (event.target instanceof HTMLInputElement && event.target.name === "deliveryExtra") queueMicrotask(updateExtrasPlaceholder);
+      if (event.target instanceof HTMLInputElement && event.target.name === "deliveryExtra") {
+        queueMicrotask(updateExtrasPlaceholder);
+      }
     });
 
     const address = document.getElementById("deliveryAddressSearch");
     if (address) {
-      const refine = () => { if (address.value && address.value !== "Pickup") address.value = addressTitleCase(address.value); };
+      const refine = () => {
+        if (address.value && address.value !== "Pickup") address.value = addressTitleCase(address.value);
+      };
       address.addEventListener("change", refine);
       address.addEventListener("blur", refine);
     }
@@ -249,27 +299,31 @@
       if (text) text.textContent = "Confirm this date";
       confirmation.title = "This required date is more than six months away";
     }
+
+    let attempts = 0;
+    const repairTimer = window.setInterval(() => {
+      attempts += 1;
+      restoreNativeRequiredDate();
+      initialiseReference();
+      patchReferenceSetValue();
+      updateExtrasPlaceholder();
+      document.querySelectorAll(".quantity-input").forEach(configureQuantityInput);
+      if (attempts >= 50) window.clearInterval(repairTimer);
+    }, 100);
   });
 
   const style = document.createElement("style");
   style.dataset.phoneDateRefinement = "true";
   style.textContent = `
-    .required-date-inline{display:grid!important;grid-template-columns:minmax(180px,1fr) auto!important;align-items:stretch!important;height:39px!important}
-    .required-date-inline>.date-input-shell{min-width:0!important}
-    .order-form-page .date-input-shell{position:relative!important;height:39px!important;background:#fff!important}
-    .order-form-page .date-input-shell::after,.order-form-page .required-date-display,.order-form-page .date-leading-icon{display:none!important;content:none!important}
-    .order-form-page .date-input-shell>#requiredDate{position:static!important;box-sizing:border-box!important;width:100%!important;height:39px!important;min-height:39px!important;margin:0!important;padding:0 14px 0 16px!important;opacity:1!important;color:#17211f!important;background:#fff!important;border:0!important;border-radius:0!important;outline:0!important;font:400 12px/1.35 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;text-align:left!important;cursor:pointer!important;-webkit-appearance:auto!important;appearance:auto!important}
-    .order-form-page #requiredDate::-webkit-datetime-edit{display:flex!important;align-items:center!important;padding:0!important;text-align:left!important}
-    .order-form-page #requiredDate::-webkit-datetime-edit-fields-wrapper{padding:0!important}
-    .order-form-page #requiredDate::-webkit-calendar-picker-indicator{position:static!important;inset:auto!important;width:16px!important;height:16px!important;margin:0 0 0 auto!important;padding:2px!important;opacity:.78!important;cursor:pointer!important}
-    .order-form-page #requiredDate:invalid::-webkit-datetime-edit{color:#9ba5a2!important}
-    .order-form-page #requiredDate:valid::-webkit-datetime-edit{color:#17211f!important}
+    .order-form-page #requiredDate{box-sizing:border-box!important;width:100%!important;height:39px!important;min-height:39px!important;margin:0!important;padding:0 14px 0 16px!important;color:#17211f!important;background:#fff!important;border:0!important;border-radius:0!important;outline:0!important;font:400 12px/1.35 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;text-align:left!important;cursor:pointer!important;color-scheme:light!important}
+    .order-form-page #requiredDate:focus{position:relative!important;z-index:2!important;box-shadow:inset 0 0 0 2px var(--bell-green)!important}
+    .order-form-page #requiredDate::-webkit-calendar-picker-indicator{width:16px!important;height:16px!important;margin-left:auto!important;padding:2px!important;opacity:.78!important;cursor:pointer!important}
     .quantity-input.is-large-quantity{font-size:9px!important;letter-spacing:-.25px!important}
     .future-confirmation:not([hidden]){display:inline-flex!important;align-items:center!important;gap:6px!important;min-width:142px!important;height:39px!important;margin:0!important;padding:0 9px!important;border:0!important;border-left:1px solid #ead9a6!important;background:#fff9ed!important;color:#725300!important;font-size:9px!important;font-weight:650!important;line-height:1!important;white-space:nowrap!important}
     .future-confirmation input[type="checkbox"]{width:13px!important;height:13px!important;min-height:13px!important;flex:0 0 13px!important;margin:0!important}
     .selected-additional:has(>.empty-state){height:0!important;min-height:0!important;max-height:0!important;overflow:hidden!important}
     .selected-additional>.empty-state{display:none!important}
-    @media(max-width:760px){.required-date-inline{grid-template-columns:1fr!important;height:auto!important}.future-confirmation:not([hidden]){min-width:0!important;width:100%!important;height:31px!important;border-left:0!important;border-top:1px solid #ead9a6!important}}
+    @media(max-width:760px){.future-confirmation:not([hidden]){min-width:0!important;width:100%!important;height:31px!important;border-left:0!important;border-top:1px solid #ead9a6!important}}
   `;
   document.head.append(style);
 })();
