@@ -25,7 +25,8 @@
 
 /* SKU | Product | m² | Qty */
 .review-column-heading,
-.review-line.review-line-metrics{
+.review-line.review-line-metrics,
+.review-total{
   display:grid!important;
   grid-template-columns:130px minmax(0,1fr) 150px 100px!important;
   width:100%!important;
@@ -105,21 +106,12 @@
   font:600 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
 }
 
-/* Product lines | Total m² | Total Units — one compact table row. */
+/* Footer uses the same four tracks as every product row. */
 .review-total{
-  display:grid!important;
-  grid-template-columns:minmax(0,1fr) 260px 190px!important;
-  width:100%!important;
-  height:26px!important;
-  min-height:26px!important;
   align-items:stretch!important;
-  margin:0!important;
-  padding:0!important;
-  gap:0!important;
   border:0!important;
   border-top:1px solid var(--line)!important;
   border-bottom:1px solid var(--line)!important;
-  box-sizing:border-box!important;
   background:#fff!important;
 }
 #reviewLineTotal{
@@ -136,45 +128,52 @@
   white-space:nowrap!important;
 }
 #reviewUnitTotal{
-  grid-column:2 / 4!important;
-  display:grid!important;
-  grid-template-columns:260px 190px!important;
-  width:100%!important;
-  height:26px!important;
-  margin:0!important;
-  padding:0!important;
-  border:0!important;
-  box-sizing:border-box!important;
+  display:contents!important;
 }
-#reviewUnitTotal .review-footer-metric{
+.review-footer-labels{
+  grid-column:2!important;
   display:grid!important;
-  grid-template-columns:minmax(0,1fr) max-content!important;
+  grid-template-columns:1fr 1fr!important;
   min-width:0!important;
   height:26px!important;
   align-items:center!important;
-  column-gap:10px!important;
   margin:0!important;
   padding:0 10px!important;
-  border:0!important;
+  column-gap:20px!important;
   box-sizing:border-box!important;
+}
+.review-footer-labels>small{
+  display:block!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:0!important;
+  text-align:right!important;
   white-space:nowrap!important;
 }
-#reviewUnitTotal .review-footer-area{
-  grid-column:1!important;
+.review-footer-area-value{
+  grid-column:3!important;
 }
-#reviewUnitTotal .review-footer-units{
-  grid-column:2!important;
+.review-footer-units-value{
+  grid-column:4!important;
+}
+.review-footer-area-value,
+.review-footer-units-value{
+  display:flex!important;
+  height:26px!important;
+  align-items:center!important;
+  justify-content:center!important;
+  margin:0!important;
+  padding:0 3px!important;
+  box-sizing:border-box!important;
+  white-space:nowrap!important;
 }
 .review-total span,
 .review-total small,
 .review-total strong{
-  margin:0!important;
-  padding:0!important;
   color:#17211f!important;
   font:500 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
   letter-spacing:0!important;
   text-transform:none!important;
-  white-space:nowrap!important;
 }
 .review-total strong{
   font-weight:700!important;
@@ -194,17 +193,21 @@
 
 @media(max-width:760px){
   .review-column-heading,
-  .review-line.review-line-metrics{
+  .review-line.review-line-metrics,
+  .review-total{
     grid-template-columns:90px minmax(0,1fr) 86px 52px!important;
   }
-  .review-total{
-    grid-template-columns:minmax(0,1fr) 150px 110px!important;
-  }
-  #reviewUnitTotal{
-    grid-template-columns:150px 110px!important;
-  }
-  #reviewUnitTotal .review-footer-metric{
-    column-gap:5px!important;
+  .review-footer-labels{
+    grid-template-columns:1fr!important;
+    justify-items:end!important;
+    column-gap:0!important;
     padding-inline:6px!important;
+  }
+  .review-footer-labels>small:last-child{
+    display:none!important;
+  }
+  .review-footer-area-value,
+  .review-footer-units-value{
+    padding-inline:2px!important;
   }
 }
