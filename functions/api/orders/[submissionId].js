@@ -1,30 +1,7 @@
 import {
   deleteOrderPermanently,
-  getOrderForEditing,
   setOrderArchiveStatus,
-  updateOrderSubmission,
 } from "../../_shared/orders-v2.js";
-
-export async function onRequestGet(context) {
-  return handle(context, async () => getOrderForEditing(
-    context.env,
-    String(context.params.submissionId || ""),
-    context.data?.auth,
-  ));
-}
-
-export async function onRequestPut(context) {
-  return handle(context, async () => {
-    const payload = await context.request.json().catch(() => null);
-    if (!payload || typeof payload !== "object" || Array.isArray(payload)) throw requestError("The portal submitted invalid JSON.");
-    return updateOrderSubmission(
-      context.env,
-      String(context.params.submissionId || ""),
-      payload,
-      context.data?.auth,
-    );
-  });
-}
 
 export async function onRequestPatch(context) {
   return handle(context, async () => {
