@@ -2,6 +2,7 @@
   let initialised = false;
   let applying = false;
   let originalResetOrder = null;
+  let resetButtonsBound = false;
 
   function configuredDate(value) {
     const text = String(value || "");
@@ -95,7 +96,16 @@
     return true;
   }
 
+  function bindCapturedResetButtons() {
+    if (resetButtonsBound) return;
+    ["startNewOrderButton", "cancelEditButton"].forEach((id) => {
+      document.getElementById(id)?.addEventListener("click", () => window.setTimeout(applyFreshOrderDefaults, 0));
+    });
+    resetButtonsBound = true;
+  }
+
   function initialiseDefaults() {
+    bindCapturedResetButtons();
     if (initialised || !controlsReady() || !installResetWrapper()) return initialised;
     if (typeof originalResetOrder === "function") originalResetOrder();
     initialised = applyFreshOrderDefaults();
