@@ -27,12 +27,16 @@
     if (!identity) {
       identity = document.createElement("div");
       identity.className = "portal-company-identity";
-      identity.innerHTML = '<span>Ordering account</span><strong></strong>';
+      identity.innerHTML = "<strong></strong><span></span>";
       header.prepend(identity);
     }
 
-    identity.querySelector("strong").textContent = profile.companyName || profile.debtorCode || "Customer account";
-    identity.title = [profile.companyName, profile.debtorCode].filter(Boolean).join(" · ");
+    const companyName = profile.companyName || "Customer account";
+    const debtorCode = profile.debtorCode || "";
+    identity.querySelector("strong").textContent = companyName;
+    identity.querySelector("span").textContent = debtorCode;
+    identity.querySelector("span").hidden = !debtorCode;
+    identity.title = [companyName, debtorCode].filter(Boolean).join(" · ");
     return true;
   }
 
