@@ -28,12 +28,24 @@
     return cleaned.toLowerCase().replace(/\b([a-z])/g, (match) => match.toUpperCase()).replace(/\bVic\b/g, "VIC").replace(/\bNsw\b/g, "NSW").replace(/\bQld\b/g, "QLD").replace(/\bSa\b/g, "SA").replace(/\bWa\b/g, "WA").replace(/\bAct\b/g, "ACT").replace(/\bNt\b/g, "NT");
   }
 
+  function ensureCalendarIcon(shell, input) {
+    let icon = shell.querySelector(".date-leading-icon");
+    if (icon) return icon;
+    icon = document.createElement("span");
+    icon.className = "date-leading-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 10h18"></path></svg>';
+    shell.insertBefore(icon, input);
+    return icon;
+  }
+
   function initialiseRequiredDate() {
     const input = document.getElementById("requiredDate");
     if (!input) return;
     const shell = input.closest(".date-input-shell");
     if (!shell) return;
 
+    ensureCalendarIcon(shell, input);
     shell.classList.add("controlled-date-control");
     const sync = () => shell.classList.toggle("has-date", Boolean(input.value));
     sync();
