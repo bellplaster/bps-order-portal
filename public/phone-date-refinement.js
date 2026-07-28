@@ -1,4 +1,6 @@
 (() => {
+  const MAX_QUANTITY = 10000;
+
   const phone = {
     normalise(value, optional = false) {
       let digits = String(value || "").replace(/\D/g, "");
@@ -28,83 +30,166 @@
     return cleaned.toLowerCase().replace(/\b([a-z])/g, (match) => match.toUpperCase()).replace(/\bVic\b/g, "VIC").replace(/\bNsw\b/g, "NSW").replace(/\bQld\b/g, "QLD").replace(/\bSa\b/g, "SA").replace(/\bWa\b/g, "WA").replace(/\bAct\b/g, "ACT").replace(/\bNt\b/g, "NT");
   }
 
-  function formatDisplayDate(value) {
-    const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    return match ? `${match[3]}/${match[2]}/${match[1]}` : "dd-----yyyy";
-  }
-
-  function openDatePicker(input) {
-    input.focus({ preventScroll: true });
-    if (typeof input.showPicker === "function") {
-      try { input.showPicker(); } catch (_error) { input.click(); }
-    } else {
-      input.click();
-    }
-  }
-
-  function ensureCalendarIcon(shell) {
-    let icon = shell.querySelector(".date-leading-icon");
-    if (!icon) {
-      icon = document.createElement("button");
-      icon.type = "button";
-      icon.className = "date-leading-icon";
-      icon.setAttribute("aria-label", "Choose required date");
-      icon.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M16 3v4M8 3v4M3 10h18"></path></svg>';
-      shell.append(icon);
-    } else if (icon.tagName !== "BUTTON") {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "date-leading-icon";
-      button.setAttribute("aria-label", "Choose required date");
-      button.innerHTML = icon.innerHTML;
-      icon.replaceWith(button);
-      icon = button;
-    }
-    return icon;
-  }
-
-  function ensureDateDisplay(shell) {
-    let display = shell.querySelector(".required-date-display");
-    if (!display) {
-      display = document.createElement("span");
-      display.className = "required-date-display";
-      display.setAttribute("aria-hidden", "true");
-      shell.prepend(display);
-    }
-    return display;
-  }
-
   function initialiseRequiredDate() {
     const input = document.getElementById("requiredDate");
+    const shell = input?.closest(".date-input-shell");
+    if (!input || !shell) return;
+
+    shell.querySelectorAll(".required-date-display, .date-leading-icon").forEach((node) => node.remove());
+    shell.classList.remove("controlled-date-control", "has-date", "native-date-control");
+    shell.classList.add("account-style-date-control");
+    input.removeAttribute("style");
+  }
+
+  function initialiseReference() {
+    const input = document.getElementById("reference");
     if (!input) return;
-    const shell = input.closest(".date-input-shell");
-    if (!shell) return;
+    input.placeholder = "Reference";
+    input.inputMode = "numeric";
+    input.pattern = "[0-9]*";
+    input.maxLength = 30;
+    if (input.dataset.numericReference === "true") return;
+    input.dataset.numericReference = "true";
+    input.addEventListener("input", () => {
+      const cleaned = input.value.replace(/\D/g, "");
+      if (input.value !== cleaned) input.value = cleaned;
+    });
+  }
 
-    shell.classList.add("controlled-date-control");
-    const display = ensureDateDisplay(shell);
-    const icon = ensureCalendarIcon(shell);
+  function updateExtrasPlaceholder() {
+    const selected = [...document.querySelectorAll('input[name="deliveryExtra"]:checked')];
+    if (selected.length) return;
+    document.querySelectorAll(".extras-dropdown > summary > span").forEach((label) => {
+      label.textContent = "Select extras (optional)";
+    });
+  }
 
-    const sync = () => {
-      const hasDate = Boolean(input.value);
-      shell.classList.toggle("has-date", hasDate);
-      display.textContent = formatDisplayDate(input.value);
-    };
+  function configureQuantityInput(input) {
+    if (!(input instanceof HTMLInputElement) || !input.classList.contains("quantity-input")) return;
+    input.maxLength = 5;
+    input.inputMode = "numeric";
+    input.pattern = "[0-9]*";
+    input.setAttribute("aria-valuemax", String(MAX_QUANTITY));
+    updateLargeQuantityClass(input);
+  }
 
-    if (shell.dataset.dateControlReady !== "true") {
-      shell.dataset.dateControlReady = "true";
-      input.addEventListener("input", sync);
-      input.addEventListener("change", sync);
-      icon.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        openDatePicker(input);
-      });
-      shell.addEventListener("click", (event) => {
-        if (event.target === icon || icon.contains(event.target)) return;
-        openDatePicker(input);
-      });
+  function updateLargeQuantityClass(input) {
+    input.classList.toggle("is-large-quantity", String(input.value || "").length >= 4);
+  }
+
+  function quantityContext(input) {
+    const floor = input.dataset.floor || input.closest("[data-floor-panel]")?.dataset.floorPanel || input.closest("[data-selected-additional]")?.dataset.selectedAdditional;
+    const productKey = input.dataset.productKey;
+    if (floor && productKey && window.state?.quantities?.[floor] instanceof Map) {
+      return {
+        set(quantity) {
+          if (quantity > 0) state.quantities[floor].set(productKey, quantity);
+          else state.quantities[floor].delete(productKey);
+        },
+      };
     }
-    sync();
+
+    const row = input.closest(".selected-additional-row");
+    const sku = row?.querySelector("strong")?.textContent?.trim();
+    const materials = floor && Array.isArray(window.state?.otherMaterials?.[floor]) ? state.otherMaterials[floor] : null;
+    const item = materials?.find((candidate) => String(candidate.sku).trim() === sku);
+    return item ? { set(quantity) { item.quantity = Math.max(1, quantity || 1); } } : null;
+  }
+
+  function normaliseQuantityInput(input, rawValue) {
+    const digits = String(rawValue ?? input.value ?? "").replace(/\D/g, "").slice(0, 5);
+    const quantity = Math.min(MAX_QUANTITY, Number(digits || 0));
+    input.value = digits ? String(quantity) : "";
+    input.classList.toggle("has-value", quantity > 0);
+    updateLargeQuantityClass(input);
+    quantityContext(input)?.set(quantity);
+    if (typeof renderCounts === "function") renderCounts();
+    if (typeof scheduleDraft === "function") scheduleDraft();
+  }
+
+  function visibleQuantityInputs() {
+    const activePanel = document.querySelector('.floor-panel.is-active:not([hidden]), .floor-panel[data-floor-panel]:not([hidden])');
+    const root = activePanel || document;
+    return [...root.querySelectorAll(".quantity-input")].filter((input) => !input.disabled && input.offsetParent !== null);
+  }
+
+  function focusQuantity(input) {
+    if (!input) return;
+    input.focus({ preventScroll: true });
+    input.select();
+    input.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
+
+  function tableQuantityTarget(input, key) {
+    const cell = input.closest("td");
+    const row = cell?.parentElement;
+    const table = cell?.closest("table");
+    if (!cell || !row || !table) return null;
+
+    if (key === "ArrowLeft" || key === "ArrowRight") {
+      const direction = key === "ArrowRight" ? 1 : -1;
+      for (let index = cell.cellIndex + direction; index >= 0 && index < row.cells.length; index += direction) {
+        const candidate = row.cells[index]?.querySelector(".quantity-input");
+        if (candidate && !candidate.disabled) return candidate;
+      }
+      return null;
+    }
+
+    const direction = key === "ArrowDown" ? 1 : -1;
+    const rows = [...table.rows];
+    const rowIndex = rows.indexOf(row);
+    for (let index = rowIndex + direction; index >= 0 && index < rows.length; index += direction) {
+      const candidate = rows[index]?.cells[cell.cellIndex]?.querySelector(".quantity-input");
+      if (candidate && !candidate.disabled) return candidate;
+    }
+    return null;
+  }
+
+  function moveQuantityFocus(input, key) {
+    const tableTarget = tableQuantityTarget(input, key);
+    if (tableTarget) return focusQuantity(tableTarget);
+    const inputs = visibleQuantityInputs();
+    const index = inputs.indexOf(input);
+    if (index < 0) return;
+    const direction = key === "ArrowRight" || key === "ArrowDown" ? 1 : -1;
+    focusQuantity(inputs[index + direction]);
+  }
+
+  function initialiseQuantityControls() {
+    document.querySelectorAll(".quantity-input").forEach(configureQuantityInput);
+
+    document.addEventListener("input", (event) => {
+      const input = event.target;
+      if (!(input instanceof HTMLInputElement) || !input.classList.contains("quantity-input")) return;
+      input.dataset.pendingQuantity = input.value.replace(/\D/g, "").slice(0, 5);
+    }, true);
+
+    document.addEventListener("input", (event) => {
+      const input = event.target;
+      if (!(input instanceof HTMLInputElement) || !input.classList.contains("quantity-input")) return;
+      normaliseQuantityInput(input, input.dataset.pendingQuantity);
+      delete input.dataset.pendingQuantity;
+    });
+
+    document.addEventListener("keydown", (event) => {
+      const input = event.target;
+      if (!(input instanceof HTMLInputElement) || !input.classList.contains("quantity-input")) return;
+      if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
+      event.preventDefault();
+      moveQuantityFocus(input, event.key);
+    });
+  }
+
+  function observeDynamicControls() {
+    const observer = new MutationObserver((records) => {
+      records.forEach((record) => record.addedNodes.forEach((node) => {
+        if (!(node instanceof Element)) return;
+        if (node.matches(".quantity-input")) configureQuantityInput(node);
+        node.querySelectorAll?.(".quantity-input").forEach(configureQuantityInput);
+      }));
+      updateExtrasPlaceholder();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
   }
 
   window.BPSPhone = phone;
@@ -121,6 +206,14 @@
     });
 
     initialiseRequiredDate();
+    initialiseReference();
+    initialiseQuantityControls();
+    updateExtrasPlaceholder();
+    observeDynamicControls();
+
+    document.addEventListener("change", (event) => {
+      if (event.target instanceof HTMLInputElement && event.target.name === "deliveryExtra") queueMicrotask(updateExtrasPlaceholder);
+    });
 
     const address = document.getElementById("deliveryAddressSearch");
     if (address) {
@@ -142,14 +235,15 @@
   style.textContent = `
     .required-date-inline{display:grid!important;grid-template-columns:minmax(180px,1fr) auto!important;align-items:stretch!important;height:39px!important}
     .required-date-inline>.date-input-shell{min-width:0!important}
-    .order-form-page .date-input-shell{position:relative!important;height:39px!important;background:#fff!important;cursor:pointer!important}
-    .order-form-page .date-input-shell::after{display:none!important;content:none!important}
-    .order-form-page .required-date-display{position:absolute!important;z-index:2!important;left:16px!important;right:44px!important;top:0!important;display:flex!important;height:39px!important;align-items:center!important;justify-content:flex-start!important;overflow:hidden!important;color:#aab0b2!important;font:400 12px/1.35 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;text-align:left!important;white-space:nowrap!important;pointer-events:none!important}
-    .order-form-page .date-input-shell.has-date .required-date-display{color:#17211f!important}
-    .order-form-page .date-leading-icon{position:absolute!important;z-index:4!important;right:10px!important;top:50%!important;display:flex!important;width:28px!important;height:28px!important;align-items:center!important;justify-content:center!important;margin:0!important;padding:0!important;color:#53615d!important;background:transparent!important;border:0!important;border-radius:0!important;outline:0!important;transform:translateY(-50%)!important;cursor:pointer!important}
-    .order-form-page .date-leading-icon svg{display:block!important;width:16px!important;height:16px!important;pointer-events:none!important}
-    .order-form-page .date-input-shell>#requiredDate{position:absolute!important;z-index:3!important;inset:0!important;box-sizing:border-box!important;width:100%!important;height:39px!important;min-height:39px!important;margin:0!important;padding:0!important;opacity:0!important;border:0!important;border-radius:0!important;outline:0!important;cursor:pointer!important}
-    .order-form-page #requiredDate::-webkit-calendar-picker-indicator{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;margin:0!important;padding:0!important;cursor:pointer!important}
+    .order-form-page .date-input-shell{position:relative!important;height:39px!important;background:#fff!important}
+    .order-form-page .date-input-shell::after,.order-form-page .required-date-display,.order-form-page .date-leading-icon{display:none!important;content:none!important}
+    .order-form-page .date-input-shell>#requiredDate{position:static!important;box-sizing:border-box!important;width:100%!important;height:39px!important;min-height:39px!important;margin:0!important;padding:0 14px 0 16px!important;opacity:1!important;color:#17211f!important;background:#fff!important;border:0!important;border-radius:0!important;outline:0!important;font:400 12px/1.35 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;text-align:left!important;cursor:pointer!important;-webkit-appearance:auto!important;appearance:auto!important}
+    .order-form-page #requiredDate::-webkit-datetime-edit{display:flex!important;align-items:center!important;padding:0!important;text-align:left!important}
+    .order-form-page #requiredDate::-webkit-datetime-edit-fields-wrapper{padding:0!important}
+    .order-form-page #requiredDate::-webkit-calendar-picker-indicator{position:static!important;inset:auto!important;width:16px!important;height:16px!important;margin:0 0 0 auto!important;padding:2px!important;opacity:.78!important;cursor:pointer!important}
+    .order-form-page #requiredDate:invalid::-webkit-datetime-edit{color:#9ba5a2!important}
+    .order-form-page #requiredDate:valid::-webkit-datetime-edit{color:#17211f!important}
+    .quantity-input.is-large-quantity{font-size:9px!important;letter-spacing:-.25px!important}
     .future-confirmation:not([hidden]){display:inline-flex!important;align-items:center!important;gap:6px!important;min-width:142px!important;height:39px!important;margin:0!important;padding:0 9px!important;border:0!important;border-left:1px solid #ead9a6!important;background:#fff9ed!important;color:#725300!important;font-size:9px!important;font-weight:650!important;line-height:1!important;white-space:nowrap!important}
     .future-confirmation input[type="checkbox"]{width:13px!important;height:13px!important;min-height:13px!important;flex:0 0 13px!important;margin:0!important}
     .selected-additional:has(>.empty-state){height:0!important;min-height:0!important;max-height:0!important;overflow:hidden!important}
