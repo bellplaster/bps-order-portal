@@ -2,9 +2,14 @@ import { hashPassword, verifyPassword } from "../_shared/auth.js";
 import { normaliseAustralianPhone } from "../_shared/phone.js";
 import { json } from "../_shared/responses.js";
 
+const TIME_SLOTS = new Set(["", "1ST", "2ND", "AM", "PM", "ANY"]);
+const DELIVERY_TYPES = new Set(["", "Hand Unload", "Forklift Delivery", "Crane Delivery", "Delivery (No Assistance)", "Pickup (Customer to collect)"]);
+const DELIVERY_EXTRAS = new Set(["Downstairs", "Upstairs", "Wrap", "Strap", "Extra Labour"]);
+
 export async function onRequestGet(context) {
   try {
     const auth = requireAuth(context);
+    await ensureAccountDefaultsSchema(context.env.DB);
     const profile = await getProfile(context.env.DB, auth);
     const response = { ok: true, profile };
 
@@ -35,6 +40,7 @@ export async function onRequestGet(context) {
 export async function onRequestPut(context) {
   try {
     const auth = requireAuth(context);
+    await ensureAccountDefaultsSchema(context.env.DB);
     const body = await context.request.json().catch(() => null);
     if (!body || typeof body !== "object") throw badRequest("Invalid account request.");
 
@@ -54,6 +60,9 @@ export async function onRequestPut(context) {
       optional: true,
       error: "Enter a valid Australian phone number.",
     });
+    const orderDefaults = body.orderDefaults === undefined
+      ? String(account.order_defaults_json || "{}")
+      : JSON.stringify(cleanOrderDefaults(body.orderDefaults));
     const debtorCode = auth.role === "admin"
       ? cleanRequired(body.debtorCode ?? account.debtor_code, "Debtor code", 80).toUpperCase()
       : account.debtor_code;
@@ -63,9 +72,10 @@ export async function onRequestPut(context) {
 
     await context.env.DB.prepare(
       `UPDATE customer_accounts
-       SET debtor_code = ?, company_name = ?, default_contact_name = ?, default_mobile = ?, active = ?, updated_at = ?
+       SET debtor_code = ?, company_name = ?, default_contact_name = ?, default_mobile = ?,
+           order_defaults_json = ?, active = ?, updated_at = ?
        WHERE id = ?`,
-    ).bind(debtorCode, companyName, defaultContactName, defaultMobile, active, nowIso(), targetAccountId).run();
+    ).bind(debtorCode, companyName, defaultContactName, defaultMobile, orderDefaults, active, nowIso(), targetAccountId).run();
 
     return json({ ok: true, profile: await getProfile(context.env.DB, { ...auth, accountId: targetAccountId }) });
   } catch (error) {
@@ -76,6 +86,7 @@ export async function onRequestPut(context) {
 export async function onRequestPost(context) {
   try {
     const auth = requireAuth(context);
+    await ensureAccountDefaultsSchema(context.env.DB);
     const body = await context.request.json().catch(() => null);
     if (!body || typeof body !== "object") throw badRequest("Invalid account request.");
     const action = String(body.action || "").trim().toLowerCase();
@@ -101,8 +112,9 @@ export async function onRequestPost(context) {
       });
       const result = await context.env.DB.prepare(
         `INSERT INTO customer_accounts (
-           debtor_code, company_name, default_contact_name, default_mobile, active, created_at, updated_at
-         ) VALUES (?, ?, ?, ?, 1, ?, ?)`,
+           debtor_code, company_name, default_contact_name, default_mobile,
+           order_defaults_json, active, created_at, updated_at
+         ) VALUES (?, ?, ?, ?, '{}', 1, ?, ?)`,
       ).bind(debtorCode, companyName, contact, phone, nowIso(), nowIso()).run();
       return json({ ok: true, accountId: Number(result?.meta?.last_row_id || 0) }, 201);
     }
@@ -156,7 +168,8 @@ export async function onRequestPost(context) {
 async function getProfile(db, auth) {
   const user = await db.prepare(
     `SELECT u.id, u.username, u.role, u.active, u.account_id,
-            a.debtor_code, a.company_name, a.default_contact_name, a.default_mobile, a.active AS account_active
+            a.debtor_code, a.company_name, a.default_contact_name, a.default_mobile,
+            a.order_defaults_json, a.active AS account_active
      FROM users u
      LEFT JOIN customer_accounts a ON a.id = u.account_id
      WHERE u.id = ? LIMIT 1`,
@@ -171,8 +184,49 @@ async function getProfile(db, auth) {
     companyName: user.company_name || "Bell Plaster Administration",
     defaultContactName: user.default_contact_name || "",
     defaultMobile: user.default_mobile || "",
+    orderDefaults: parseOrderDefaults(user.order_defaults_json),
     active: user.role === "admin" ? true : user.account_active === 1,
   };
+}
+
+async function ensureAccountDefaultsSchema(db) {
+  const columns = await db.prepare(`PRAGMA table_info(customer_accounts)`).all();
+  const existing = new Set((columns.results || []).map((row) => String(row.name)));
+  if (!existing.has("order_defaults_json")) {
+    await db.prepare(`ALTER TABLE customer_accounts ADD COLUMN order_defaults_json TEXT NOT NULL DEFAULT '{}'`).run();
+  }
+}
+
+function cleanOrderDefaults(input) {
+  const source = input && typeof input === "object" ? input : {};
+  const requiredDate = /^\d{4}-\d{2}-\d{2}$/.test(String(source.requiredDate || "")) ? String(source.requiredDate) : "";
+  const postcode = cleanOptional(source.postcode, 4);
+  if (postcode && !/^(?:3\d{3}|8\d{3})$/.test(postcode)) throw badRequest("Default postcode must be a Victorian postcode.");
+  const timeSlot = String(source.timeSlot || "");
+  if (!TIME_SLOTS.has(timeSlot)) throw badRequest("Choose a valid default time slot.");
+  const deliveryType = String(source.deliveryType || "");
+  if (!DELIVERY_TYPES.has(deliveryType)) throw badRequest("Choose a valid default delivery type.");
+  const extras = [...new Set((Array.isArray(source.extras) ? source.extras : []).map(String).filter((value) => DELIVERY_EXTRAS.has(value)))];
+  return {
+    reference: cleanOptional(source.reference, 80),
+    requiredDate,
+    street: cleanOptional(source.street, 240),
+    suburb: cleanOptional(source.suburb, 120),
+    state: "VIC",
+    postcode,
+    timeSlot,
+    deliveryType,
+    extras,
+    instructions: cleanMultiline(source.instructions, 1500),
+  };
+}
+
+function parseOrderDefaults(value) {
+  try {
+    return cleanOrderDefaults(JSON.parse(String(value || "{}")));
+  } catch (_error) {
+    return cleanOrderDefaults({});
+  }
 }
 
 async function setPassword(db, userId, password) {
@@ -202,6 +256,9 @@ function cleanRequired(value, label, maxLength) {
 }
 function cleanOptional(value, maxLength) {
   return String(value || "").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, maxLength);
+}
+function cleanMultiline(value, maxLength) {
+  return String(value || "").replace(/\r\n?/g, "\n").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, " ").trim().slice(0, maxLength);
 }
 function nowIso() { return new Date().toISOString(); }
 function apiError(error) {
