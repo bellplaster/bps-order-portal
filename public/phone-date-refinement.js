@@ -41,6 +41,10 @@
     input.removeAttribute("style");
   }
 
+  function cleanReference(value) {
+    return String(value || "").replace(/\D/g, "");
+  }
+
   function initialiseReference() {
     const input = document.getElementById("reference");
     if (!input) return;
@@ -48,19 +52,32 @@
     input.inputMode = "numeric";
     input.pattern = "[0-9]*";
     input.maxLength = 30;
+    input.value = cleanReference(input.value);
     if (input.dataset.numericReference === "true") return;
     input.dataset.numericReference = "true";
     input.addEventListener("input", () => {
-      const cleaned = input.value.replace(/\D/g, "");
+      const cleaned = cleanReference(input.value);
       if (input.value !== cleaned) input.value = cleaned;
     });
+  }
+
+  function patchReferenceSetValue() {
+    if (typeof setValue !== "function" || setValue.__numericReference) return;
+    const original = setValue;
+    const patched = function setNumericReference(id, valueToSet, ...args) {
+      const nextValue = id === "reference" ? cleanReference(valueToSet) : valueToSet;
+      return original.call(this, id, nextValue, ...args);
+    };
+    patched.__numericReference = true;
+    try { setValue = patched; } catch (_error) { }
   }
 
   function updateExtrasPlaceholder() {
     const selected = [...document.querySelectorAll('input[name="deliveryExtra"]:checked')];
     if (selected.length) return;
+    const placeholder = "Select extras (optional)";
     document.querySelectorAll(".extras-dropdown > summary > span").forEach((label) => {
-      label.textContent = "Select extras (optional)";
+      if (label.textContent !== placeholder) label.textContent = placeholder;
     });
   }
 
@@ -80,18 +97,19 @@
   function quantityContext(input) {
     const floor = input.dataset.floor || input.closest("[data-floor-panel]")?.dataset.floorPanel || input.closest("[data-selected-additional]")?.dataset.selectedAdditional;
     const productKey = input.dataset.productKey;
-    if (floor && productKey && window.state?.quantities?.[floor] instanceof Map) {
+    const appState = typeof state !== "undefined" ? state : null;
+    if (appState && floor && productKey && appState.quantities?.[floor] instanceof Map) {
       return {
         set(quantity) {
-          if (quantity > 0) state.quantities[floor].set(productKey, quantity);
-          else state.quantities[floor].delete(productKey);
+          if (quantity > 0) appState.quantities[floor].set(productKey, quantity);
+          else appState.quantities[floor].delete(productKey);
         },
       };
     }
 
     const row = input.closest(".selected-additional-row");
     const sku = row?.querySelector("strong")?.textContent?.trim();
-    const materials = floor && Array.isArray(window.state?.otherMaterials?.[floor]) ? state.otherMaterials[floor] : null;
+    const materials = appState && floor && Array.isArray(appState.otherMaterials?.[floor]) ? appState.otherMaterials[floor] : null;
     const item = materials?.find((candidate) => String(candidate.sku).trim() === sku);
     return item ? { set(quantity) { item.quantity = Math.max(1, quantity || 1); } } : null;
   }
@@ -182,12 +200,14 @@
 
   function observeDynamicControls() {
     const observer = new MutationObserver((records) => {
+      let shouldRefreshExtras = false;
       records.forEach((record) => record.addedNodes.forEach((node) => {
         if (!(node instanceof Element)) return;
         if (node.matches(".quantity-input")) configureQuantityInput(node);
         node.querySelectorAll?.(".quantity-input").forEach(configureQuantityInput);
+        if (node.matches(".extras-dropdown, .extras-dropdown *") || node.querySelector?.(".extras-dropdown")) shouldRefreshExtras = true;
       }));
-      updateExtrasPlaceholder();
+      if (shouldRefreshExtras) updateExtrasPlaceholder();
     });
     observer.observe(document.body, { childList: true, subtree: true });
   }
@@ -207,6 +227,7 @@
 
     initialiseRequiredDate();
     initialiseReference();
+    patchReferenceSetValue();
     initialiseQuantityControls();
     updateExtrasPlaceholder();
     observeDynamicControls();
