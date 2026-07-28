@@ -16,8 +16,12 @@ export async function onRequestGet(context) {
     if (auth.role === "admin") {
       const [accounts, users] = await Promise.all([
         context.env.DB.prepare(
-          `SELECT id, debtor_code, company_name, default_contact_name, default_mobile, active, created_at, updated_at
-           FROM customer_accounts ORDER BY company_name COLLATE NOCASE`,
+          `SELECT a.id, a.debtor_code, a.company_name, a.default_contact_name, a.default_mobile,
+                  a.active, a.created_at, a.updated_at,
+                  (SELECT COUNT(*) FROM users u WHERE u.account_id = a.id) AS user_count,
+                  (SELECT COUNT(*) FROM orders o WHERE o.account_id = a.id) AS order_count
+           FROM customer_accounts a
+           ORDER BY a.company_name COLLATE NOCASE`,
         ).all(),
         context.env.DB.prepare(
           `SELECT u.id, u.account_id, u.username, u.role, u.active, u.last_login_at,
@@ -77,7 +81,7 @@ export async function onRequestPut(context) {
        WHERE id = ?`,
     ).bind(debtorCode, companyName, defaultContactName, defaultMobile, orderDefaults, active, nowIso(), targetAccountId).run();
 
-    return json({ ok: true, profile: await getProfile(context.env.DB, { ...auth, accountId: targetAccountId }) });
+    return json({ ok: true, profile: await getProfile(context.env.DB, auth) });
   } catch (error) {
     return apiError(error);
   }
@@ -105,17 +109,12 @@ export async function onRequestPost(context) {
     if (action === "create_account") {
       const debtorCode = cleanRequired(body.debtorCode, "Debtor code", 80).toUpperCase();
       const companyName = cleanRequired(body.companyName, "Company name", 160);
-      const contact = cleanOptional(body.defaultContactName, 100);
-      const phone = normaliseAustralianPhone(body.defaultMobile, {
-        optional: true,
-        error: "Enter a valid Australian phone number.",
-      });
       const result = await context.env.DB.prepare(
         `INSERT INTO customer_accounts (
            debtor_code, company_name, default_contact_name, default_mobile,
            order_defaults_json, active, created_at, updated_at
-         ) VALUES (?, ?, ?, ?, '{}', 1, ?, ?)`,
-      ).bind(debtorCode, companyName, contact, phone, nowIso(), nowIso()).run();
+         ) VALUES (?, ?, '', '', '{}', 1, ?, ?)`,
+      ).bind(debtorCode, companyName, nowIso(), nowIso()).run();
       return json({ ok: true, accountId: Number(result?.meta?.last_row_id || 0) }, 201);
     }
 
@@ -124,6 +123,12 @@ export async function onRequestPost(context) {
       const role = body.role === "admin" ? "admin" : "customer";
       const accountId = role === "admin" ? null : Number(body.accountId || 0);
       if (role === "customer" && !accountId) throw badRequest("Choose a customer account.");
+      if (role === "customer") {
+        const account = await context.env.DB.prepare(
+          `SELECT id FROM customer_accounts WHERE id = ? AND active = 1 LIMIT 1`,
+        ).bind(accountId).first();
+        if (!account) throw badRequest("Choose an active customer account.");
+      }
       const passwordRecord = await hashPassword(String(body.password || ""));
       const result = await context.env.DB.prepare(
         `INSERT INTO users (
@@ -153,9 +158,49 @@ export async function onRequestPost(context) {
     if (action === "set_user_active") {
       const userId = Number(body.userId || 0);
       if (!userId) throw badRequest("Choose a user.");
-      await context.env.DB.prepare(
+      if (userId === Number(auth.userId) && body.active === false) throw badRequest("You cannot deactivate your own administrator account.");
+      const result = await context.env.DB.prepare(
         `UPDATE users SET active = ?, updated_at = ? WHERE id = ?`,
       ).bind(body.active === false ? 0 : 1, nowIso(), userId).run();
+      if (!Number(result?.meta?.changes || 0)) throw notFound("Portal user not found.");
+      return json({ ok: true });
+    }
+
+    if (action === "delete_user") {
+      const userId = Number(body.userId || 0);
+      if (!userId) throw badRequest("Choose a user.");
+      if (userId === Number(auth.userId)) throw badRequest("You cannot delete your own administrator account.");
+      const result = await context.env.DB.prepare(`DELETE FROM users WHERE id = ?`).bind(userId).run();
+      if (!Number(result?.meta?.changes || 0)) throw notFound("Portal user not found.");
+      return json({ ok: true });
+    }
+
+    if (action === "set_account_active") {
+      const accountId = Number(body.accountId || 0);
+      if (!accountId) throw badRequest("Choose a customer account.");
+      const result = await context.env.DB.prepare(
+        `UPDATE customer_accounts SET active = ?, updated_at = ? WHERE id = ?`,
+      ).bind(body.active === false ? 0 : 1, nowIso(), accountId).run();
+      if (!Number(result?.meta?.changes || 0)) throw notFound("Customer account not found.");
+      return json({ ok: true });
+    }
+
+    if (action === "delete_account") {
+      const accountId = Number(body.accountId || 0);
+      if (!accountId) throw badRequest("Choose a customer account.");
+      const account = await context.env.DB.prepare(
+        `SELECT id, company_name, debtor_code,
+                (SELECT COUNT(*) FROM users u WHERE u.account_id = customer_accounts.id) AS user_count,
+                (SELECT COUNT(*) FROM orders o WHERE o.account_id = customer_accounts.id) AS order_count
+         FROM customer_accounts WHERE id = ? LIMIT 1`,
+      ).bind(accountId).first();
+      if (!account) throw notFound("Customer account not found.");
+      const users = Number(account.user_count || 0);
+      const orders = Number(account.order_count || 0);
+      if (users || orders) {
+        throw conflict(`This customer has ${users} linked ${users === 1 ? "user" : "users"} and ${orders} linked ${orders === 1 ? "order" : "orders"}. Deactivate it instead.`);
+      }
+      await context.env.DB.prepare(`DELETE FROM customer_accounts WHERE id = ?`).bind(accountId).run();
       return json({ ok: true });
     }
 
@@ -254,17 +299,19 @@ function cleanRequired(value, label, maxLength) {
   if (!text) throw badRequest(`${label} is required.`);
   return text;
 }
+
 function cleanOptional(value, maxLength) {
   return String(value || "").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, maxLength);
 }
+
 function cleanMultiline(value, maxLength) {
   return String(value || "").replace(/\r\n?/g, "\n").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, " ").trim().slice(0, maxLength);
 }
+
 function nowIso() { return new Date().toISOString(); }
-function apiError(error) {
-  return json({ ok: false, error: error?.message || String(error) }, Number(error?.status || 500));
-}
+function apiError(error) { return json({ ok: false, error: error?.message || String(error) }, Number(error?.status || 500)); }
 function withStatus(message, status) { const error = new Error(message); error.status = status; return error; }
 function badRequest(message) { return withStatus(message, 400); }
 function forbidden(message) { return withStatus(message, 403); }
 function notFound(message) { return withStatus(message, 404); }
+function conflict(message) { return withStatus(message, 409); }
