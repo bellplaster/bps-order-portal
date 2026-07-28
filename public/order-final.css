@@ -38,4 +38,23 @@ details.extras-dropdown[open]>.stacked-options,details.extras-dropdown[open]>.ex
 .review-footer-area-value{grid-column:3!important}.review-footer-units-value{grid-column:4!important}
 .review-footer-area-value,.review-footer-units-value{display:flex!important;height:26px!important;align-items:center!important;justify-content:center!important;margin:0!important;padding:0 3px!important;box-sizing:border-box!important;color:#17211f!important;font:700 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;white-space:nowrap!important}
 .review-total,.review-total *{font-size:11px!important;line-height:26px!important;letter-spacing:0!important;text-transform:none!important}
-@media(max-width:760px){.review-column-heading,.review-line.review-line-metrics,.review-total{grid-template-columns:90px minmax(0,1fr) 86px 52px!important}.review-footer-labels>small:first-child{right:112px!important}.review-footer-labels>small:last-child{right:35px!important}}
+
+/* Professional three-part order header: customer identity | Bell Plaster | actions. */
+.order-form-page .portal-header{display:grid!important;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)!important;align-items:center!important;column-gap:28px!important;min-height:74px!important;padding:10px max(24px,calc((100% - 1320px)/2))!important;background:#fff!important}
+.order-form-page .portal-header .brand-link{grid-column:2!important;justify-self:center!important;display:flex!important;align-items:center!important}
+.order-form-page .portal-header .brand-link img{display:block!important;width:200px!important;max-width:200px!important;height:auto!important}
+.order-form-page .portal-header .portal-actions{grid-column:3!important;justify-self:end!important}
+.portal-company-identity{grid-column:1!important;justify-self:start!important;display:grid!important;min-width:0!important;gap:2px!important;padding-left:2px!important}
+.portal-company-identity span{color:#6b7774!important;font-size:10px!important;font-weight:600!important;letter-spacing:.08em!important;line-height:1.2!important;text-transform:uppercase!important}
+.portal-company-identity strong{display:block!important;max-width:360px!important;overflow:hidden!important;color:#17211f!important;font-size:14px!important;font-weight:700!important;line-height:1.3!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+
+@media(max-width:760px){
+.review-column-heading,.review-line.review-line-metrics,.review-total{grid-template-columns:90px minmax(0,1fr) 86px 52px!important}.review-footer-labels>small:first-child{right:112px!important}.review-footer-labels>small:last-child{right:35px!important}
+.order-form-page .portal-header{grid-template-columns:auto 1fr auto!important;column-gap:10px!important;min-height:60px!important;padding:8px 12px!important}
+.order-form-page .portal-header .brand-link{grid-column:1!important;justify-self:start!important}
+.order-form-page .portal-header .brand-link img{width:132px!important;max-width:132px!important}
+.order-form-page .portal-header .portal-actions{grid-column:3!important}
+.portal-company-identity{grid-column:2!important;grid-row:1!important;justify-self:start!important;max-width:150px!important}
+.portal-company-identity span{display:none!important}
+.portal-company-identity strong{max-width:150px!important;font-size:11px!important;font-weight:600!important}
+}
