@@ -1,154 +1,210 @@
-/* Final review product table: SKU | Product | m² | Qty */
+/* Sole authority for the review products table. */
 .review-floor-group{
+  width:100%!important;
+  margin:0!important;
+  padding:0!important;
   border:0!important;
+  background:#fff!important;
 }
+
+/* Delivery-area heading: full-width fill, no inset border. */
 .review-area-heading{
   display:flex!important;
-  min-height:28px!important;
+  width:100%!important;
+  height:26px!important;
+  min-height:26px!important;
   align-items:center!important;
   margin:0!important;
-  padding:0 11px!important;
+  padding:0 10px!important;
   border:0!important;
-  background:#cbd1cf!important;
+  box-sizing:border-box!important;
+  background:#b8bcbb!important;
   color:#17211f!important;
-  font:700 10px/1 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  font:700 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
 }
+
+/* SKU | Product | m² | Qty */
 .review-column-heading,
-.review-line.review-line-metrics,
-.review-total{
+.review-line.review-line-metrics{
   display:grid!important;
-  grid-template-columns:130px minmax(0,1fr) 110px 64px!important;
+  grid-template-columns:130px minmax(0,1fr) 150px 100px!important;
   width:100%!important;
+  height:26px!important;
+  min-height:26px!important;
+  margin:0!important;
+  padding:0!important;
+  gap:0!important;
   box-sizing:border-box!important;
 }
 .review-column-heading{
-  min-height:28px!important;
-  align-items:center!important;
-  margin:0!important;
-  padding:0!important;
-  border-top:1px solid var(--line)!important;
+  align-items:stretch!important;
+  border:0!important;
   border-bottom:1px solid var(--line)!important;
-  background:#eef1f0!important;
+  background:#d2d5d4!important;
 }
 .review-column-heading>span,
 .review-column-heading>small{
   display:flex!important;
   min-width:0!important;
-  height:100%!important;
+  height:26px!important;
   align-items:center!important;
   margin:0!important;
-  padding:0 11px!important;
+  padding:0 8px!important;
   border:0!important;
-  color:#43504d!important;
-  font:700 9px/1 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
-  text-align:left!important;
-  text-transform:uppercase!important;
   box-sizing:border-box!important;
+  color:#17211f!important;
+  font:700 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  text-align:left!important;
+  text-transform:none!important;
 }
-.review-column-heading>small:nth-last-child(-n+2){
+.review-column-heading>small{
   justify-content:center!important;
-  padding-inline:4px!important;
+  padding-inline:3px!important;
 }
+
 .review-line.review-line-metrics{
-  min-height:48px!important;
   align-items:stretch!important;
-  gap:0!important;
-  padding:0!important;
+  border:0!important;
   border-bottom:1px solid var(--line-light)!important;
+  background:#fff!important;
 }
 .review-line.review-line-metrics>*{
   display:flex!important;
   min-width:0!important;
+  height:26px!important;
   align-items:center!important;
   margin:0!important;
-  padding:8px 11px!important;
+  padding:0 8px!important;
   border:0!important;
   box-sizing:border-box!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
 }
 .review-line-sku{
-  color:#66736f!important;
-  font:500 10px/1.25 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
-  overflow-wrap:anywhere!important;
+  color:#53615d!important;
+  font:500 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
 }
 .review-line-product{
   color:#17211f!important;
-  font:700 11px/1.3 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  font:600 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
 }
 .review-line.review-line-metrics>em,
 .review-line.review-line-metrics>b{
   justify-content:center!important;
-  padding-inline:4px!important;
+  padding-inline:3px!important;
   text-align:center!important;
-  white-space:nowrap!important;
 }
 .review-line.review-line-metrics>em{
-  color:#3e4c48!important;
-  font:600 10px/1 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  color:#17211f!important;
+  font:500 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
   font-style:normal!important;
 }
 .review-line.review-line-metrics>b{
-  color:#006557!important;
-  font:700 11px/1 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  color:#17211f!important;
+  font:600 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
 }
+
+/* Product lines | Total m² | Total Units — one compact table row. */
 .review-total{
-  min-height:42px!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 260px 190px!important;
+  width:100%!important;
+  height:26px!important;
+  min-height:26px!important;
   align-items:stretch!important;
+  margin:0!important;
   padding:0!important;
+  gap:0!important;
+  border:0!important;
   border-top:1px solid var(--line)!important;
+  border-bottom:1px solid var(--line)!important;
+  box-sizing:border-box!important;
   background:#fff!important;
 }
 #reviewLineTotal{
-  grid-column:1 / span 2!important;
+  grid-column:1!important;
   display:flex!important;
   min-width:0!important;
+  height:26px!important;
   align-items:center!important;
-  gap:7px!important;
-  padding:8px 11px!important;
-  border:0!important;
-  color:#52615d!important;
-  white-space:nowrap!important;
-}
-#reviewUnitTotal{
-  display:contents!important;
-}
-#reviewUnitTotal .review-footer-area,
-#reviewUnitTotal .review-footer-units{
-  display:flex!important;
-  min-width:0!important;
-  flex-direction:column!important;
-  align-items:center!important;
-  justify-content:center!important;
-  gap:3px!important;
-  padding:6px 4px!important;
+  gap:8px!important;
+  margin:0!important;
+  padding:0 10px!important;
   border:0!important;
   box-sizing:border-box!important;
   white-space:nowrap!important;
 }
-#reviewUnitTotal .review-footer-area{grid-column:3!important}
-#reviewUnitTotal .review-footer-units{grid-column:4!important}
+#reviewUnitTotal{
+  grid-column:2 / 4!important;
+  display:grid!important;
+  grid-template-columns:260px 190px!important;
+  width:100%!important;
+  height:26px!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  box-sizing:border-box!important;
+}
+#reviewUnitTotal .review-footer-metric{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) max-content!important;
+  min-width:0!important;
+  height:26px!important;
+  align-items:center!important;
+  column-gap:10px!important;
+  margin:0!important;
+  padding:0 10px!important;
+  border:0!important;
+  box-sizing:border-box!important;
+  white-space:nowrap!important;
+}
+#reviewUnitTotal .review-footer-area{
+  grid-column:1!important;
+}
+#reviewUnitTotal .review-footer-units{
+  grid-column:2!important;
+}
 .review-total span,
-.review-total small{
-  color:#65716e!important;
-  font:650 9px/1 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
-  text-transform:uppercase!important;
+.review-total small,
+.review-total strong{
+  margin:0!important;
+  padding:0!important;
+  color:#17211f!important;
+  font:500 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  letter-spacing:0!important;
+  text-transform:none!important;
+  white-space:nowrap!important;
 }
 .review-total strong{
-  color:#17211f!important;
-  font:700 11px/1 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+  font-weight:700!important;
 }
-#reviewUnitTotal .review-footer-area strong{
-  color:#006557!important;
+
+/* Products section title should fill edge to edge without an inset outline. */
+.review-section:has(#reviewOrderLines),
+.review-section:has(#reviewOrderLines) .review-section-header{
+  border-left:0!important;
+  border-right:0!important;
 }
+.review-section:has(#reviewOrderLines) .review-section-header{
+  margin:0!important;
+  width:100%!important;
+  box-sizing:border-box!important;
+}
+
 @media(max-width:760px){
   .review-column-heading,
-  .review-line.review-line-metrics,
+  .review-line.review-line-metrics{
+    grid-template-columns:90px minmax(0,1fr) 86px 52px!important;
+  }
   .review-total{
-    grid-template-columns:92px minmax(0,1fr) 76px 48px!important;
+    grid-template-columns:minmax(0,1fr) 150px 110px!important;
   }
-  .review-column-heading>span,
-  .review-line.review-line-metrics>*{
-    padding-inline:7px!important;
+  #reviewUnitTotal{
+    grid-template-columns:150px 110px!important;
   }
-  .review-line-product{font-size:10px!important}
-  .review-line-sku{font-size:9px!important}
+  #reviewUnitTotal .review-footer-metric{
+    column-gap:5px!important;
+    padding-inline:6px!important;
+  }
 }
