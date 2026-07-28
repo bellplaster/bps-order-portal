@@ -122,7 +122,7 @@
       link.dataset.orderFinal = "true";
       document.head.append(link);
     }
-    link.href = "/order-final.css?v=20260728-1";
+    link.href = "/order-final.css?v=20260728-2";
   }
 
   function loadScriptOnce(src, marker) {
