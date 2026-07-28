@@ -32,8 +32,13 @@
     const input = document.getElementById("requiredDate");
     if (!input) return;
     const shell = input.closest(".date-input-shell");
-    shell?.querySelector(".date-leading-icon")?.remove();
-    shell?.classList.add("native-date-control");
+    if (!shell) return;
+
+    shell.classList.add("controlled-date-control");
+    const sync = () => shell.classList.toggle("has-date", Boolean(input.value));
+    sync();
+    input.addEventListener("input", sync);
+    input.addEventListener("change", sync);
   }
 
   window.BPSPhone = phone;
@@ -72,11 +77,14 @@
     .required-date-inline{display:grid!important;grid-template-columns:minmax(180px,1fr) auto!important;align-items:stretch!important;height:39px!important}
     .required-date-inline>.date-input-shell{min-width:0!important}
     .order-form-page .date-input-shell{position:relative!important;height:39px!important;background:#fff!important}
-    .order-form-page .date-input-shell::after,.order-form-page .date-leading-icon{display:none!important;content:none!important}
-    .order-form-page .date-input-shell>#requiredDate{box-sizing:border-box!important;width:100%!important;height:39px!important;min-height:39px!important;margin:0!important;padding:0 42px 0 16px!important;color:#17211f!important;background:#fff!important;border:0!important;border-radius:0!important;outline:0!important;font:400 12px/1.35 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;cursor:pointer!important}
-    .order-form-page #requiredDate:invalid::-webkit-datetime-edit{color:#aab0b2!important}
+    .order-form-page .date-input-shell::after{content:"dd-----yyyy"!important;position:absolute!important;z-index:1!important;left:16px!important;top:50%!important;color:#aab0b2!important;font:400 12px/1.35 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;pointer-events:none!important;transform:translateY(-50%)!important}
+    .order-form-page .date-input-shell.has-date::after{display:none!important}
+    .order-form-page .date-leading-icon{display:flex!important;position:absolute!important;z-index:2!important;left:auto!important;right:14px!important;top:50%!important;width:16px!important;height:16px!important;align-items:center!important;justify-content:center!important;color:#53615d!important;pointer-events:none!important;transform:translateY(-50%)!important}
+    .order-form-page .date-leading-icon svg{display:block!important;width:16px!important;height:16px!important;stroke-width:1.8!important}
+    .order-form-page .date-input-shell>#requiredDate{box-sizing:border-box!important;width:100%!important;height:39px!important;min-height:39px!important;margin:0!important;padding:0 44px 0 16px!important;color:#17211f!important;background:#fff!important;border:0!important;border-radius:0!important;outline:0!important;font:400 12px/1.35 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;text-align:left!important;cursor:pointer!important}
+    .order-form-page #requiredDate:invalid::-webkit-datetime-edit{color:transparent!important}
     .order-form-page #requiredDate:valid::-webkit-datetime-edit{color:#17211f!important}
-    .order-form-page #requiredDate::-webkit-calendar-picker-indicator{position:absolute!important;inset:auto 14px auto auto!important;top:50%!important;width:16px!important;height:16px!important;margin:0!important;padding:0!important;opacity:.78!important;transform:translateY(-50%)!important;cursor:pointer!important}
+    .order-form-page #requiredDate::-webkit-calendar-picker-indicator{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;margin:0!important;padding:0!important;opacity:0!important;cursor:pointer!important}
     .future-confirmation:not([hidden]){display:inline-flex!important;align-items:center!important;gap:6px!important;min-width:142px!important;height:39px!important;margin:0!important;padding:0 9px!important;border:0!important;border-left:1px solid #ead9a6!important;background:#fff9ed!important;color:#725300!important;font-size:9px!important;font-weight:650!important;line-height:1!important;white-space:nowrap!important}
     .future-confirmation input[type="checkbox"]{width:13px!important;height:13px!important;min-height:13px!important;flex:0 0 13px!important;margin:0!important}
     .selected-additional:has(>.empty-state){height:0!important;min-height:0!important;max-height:0!important;overflow:hidden!important}
