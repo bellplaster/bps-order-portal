@@ -17,6 +17,15 @@
     };
   };
 
+  const originalBuildPayload = buildPayload;
+  buildPayload = function buildSourceTruthPayload(...args) {
+    const payload = originalBuildPayload.apply(this, args);
+    if (state.account?.role === "admin") {
+      payload.customerAccountId = state.adminOrderAccountId || null;
+    }
+    return payload;
+  };
+
   const originalApplyPayload = applyPayload;
   applyPayload = function applySourceTruthPayload(payload) {
     const next = typeof structuredClone === "function"
@@ -71,6 +80,10 @@
     const originalValidateForm = validateForm;
     const refinedValidateForm = function refinedValidateForm(...args) {
       try {
+        if (state.account?.role === "admin" && !state.adminOrderAccountId) {
+          document.getElementById("adminCustomerAccount")?.focus();
+          throw new Error("Choose the customer account that will own this order.");
+        }
         return originalValidateForm.apply(this, args);
       } catch (error) {
         if (error && /Australian mobile number/i.test(String(error.message || ""))) {
