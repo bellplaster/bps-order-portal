@@ -2,9 +2,10 @@ import { hashPassword, verifyPassword } from "../_shared/auth.js";
 import { normaliseAustralianPhone } from "../_shared/phone.js";
 import { json } from "../_shared/responses.js";
 
-const TIME_SLOTS = new Set(["", "1ST", "2ND", "AM", "PM", "ANY"]);
+const TIME_SLOTS = new Set(["", "1ST", "2ND", "AM", "PM"]);
 const DELIVERY_TYPES = new Set(["", "Hand Unload", "Forklift Delivery", "Crane Delivery", "Delivery (No Assistance)", "Pickup (Customer to collect)"]);
 const DELIVERY_EXTRAS = new Set(["Downstairs", "Upstairs", "Wrap", "Strap", "Extra Labour"]);
+const USER_DEFAULTS_MIGRATION_KEY = "user_order_defaults_v1";
 
 export async function onRequestGet(context) {
   try {
@@ -16,7 +17,7 @@ export async function onRequestGet(context) {
     if (auth.role === "admin") {
       const [accounts, users] = await Promise.all([
         context.env.DB.prepare(
-          `SELECT a.id, a.debtor_code, a.company_name, a.default_contact_name, a.default_mobile,
+          `SELECT a.id, a.debtor_code, a.company_name,
                   a.active, a.created_at, a.updated_at,
                   (SELECT COUNT(*) FROM users u WHERE u.account_id = a.id) AS user_count,
                   (SELECT COUNT(*) FROM orders o WHERE o.account_id = a.id) AS order_count
@@ -59,14 +60,6 @@ export async function onRequestPut(context) {
     if (!account) throw notFound("Customer account not found.");
 
     const companyName = cleanRequired(body.companyName ?? account.company_name, "Company name", 160);
-    const defaultContactName = cleanOptional(body.defaultContactName ?? account.default_contact_name, 100);
-    const defaultMobile = normaliseAustralianPhone(body.defaultMobile ?? account.default_mobile, {
-      optional: true,
-      error: "Enter a valid Australian phone number.",
-    });
-    const orderDefaults = body.orderDefaults === undefined
-      ? String(account.order_defaults_json || "{}")
-      : JSON.stringify(cleanOrderDefaults(body.orderDefaults));
     const debtorCode = auth.role === "admin"
       ? cleanRequired(body.debtorCode ?? account.debtor_code, "Debtor code", 80).toUpperCase()
       : account.debtor_code;
@@ -76,10 +69,33 @@ export async function onRequestPut(context) {
 
     await context.env.DB.prepare(
       `UPDATE customer_accounts
-       SET debtor_code = ?, company_name = ?, default_contact_name = ?, default_mobile = ?,
-           order_defaults_json = ?, active = ?, updated_at = ?
+       SET debtor_code = ?, company_name = ?, active = ?, updated_at = ?
        WHERE id = ?`,
-    ).bind(debtorCode, companyName, defaultContactName, defaultMobile, orderDefaults, active, nowIso(), targetAccountId).run();
+    ).bind(debtorCode, companyName, active, nowIso(), targetAccountId).run();
+
+    if (auth.role !== "admin") {
+      const user = await context.env.DB.prepare(
+        `SELECT id, account_id, default_contact_name, default_mobile, order_defaults_json
+         FROM users
+         WHERE id = ? LIMIT 1`,
+      ).bind(auth.userId).first();
+      if (!user || Number(user.account_id || 0) !== targetAccountId) throw forbidden("User account does not belong to this customer.");
+
+      const defaultContactName = cleanOptional(body.defaultContactName ?? user.default_contact_name, 100);
+      const defaultMobile = normaliseAustralianPhone(body.defaultMobile ?? user.default_mobile, {
+        optional: true,
+        error: "Enter a valid Australian phone number.",
+      });
+      const orderDefaults = body.orderDefaults === undefined
+        ? String(user.order_defaults_json || "{}")
+        : JSON.stringify(cleanOrderDefaults(body.orderDefaults));
+
+      await context.env.DB.prepare(
+        `UPDATE users
+         SET default_contact_name = ?, default_mobile = ?, order_defaults_json = ?, updated_at = ?
+         WHERE id = ?`,
+      ).bind(defaultContactName, defaultMobile, orderDefaults, nowIso(), auth.userId).run();
+    }
 
     return json({ ok: true, profile: await getProfile(context.env.DB, auth) });
   } catch (error) {
@@ -133,8 +149,9 @@ export async function onRequestPost(context) {
       const result = await context.env.DB.prepare(
         `INSERT INTO users (
            account_id, username, password_hash, password_salt, password_iterations,
-           role, active, created_at, updated_at
-         ) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+           role, active, default_contact_name, default_mobile, order_defaults_json,
+           created_at, updated_at
+         ) VALUES (?, ?, ?, ?, ?, ?, 1, '', '', '{}', ?, ?)`,
       ).bind(
         accountId,
         username,
@@ -213,8 +230,10 @@ export async function onRequestPost(context) {
 async function getProfile(db, auth) {
   const user = await db.prepare(
     `SELECT u.id, u.username, u.role, u.active, u.account_id,
-            a.debtor_code, a.company_name, a.default_contact_name, a.default_mobile,
-            a.order_defaults_json, a.active AS account_active
+            u.default_contact_name AS user_default_contact_name,
+            u.default_mobile AS user_default_mobile,
+            u.order_defaults_json AS user_order_defaults_json,
+            a.debtor_code, a.company_name, a.active AS account_active
      FROM users u
      LEFT JOIN customer_accounts a ON a.id = u.account_id
      WHERE u.id = ? LIMIT 1`,
@@ -227,19 +246,75 @@ async function getProfile(db, auth) {
     accountId: user.account_id || null,
     debtorCode: user.debtor_code || "",
     companyName: user.company_name || "Bell Plaster Administration",
-    defaultContactName: user.default_contact_name || "",
-    defaultMobile: user.default_mobile || "",
-    orderDefaults: parseOrderDefaults(user.order_defaults_json),
+    defaultContactName: user.user_default_contact_name || "",
+    defaultMobile: user.user_default_mobile || "",
+    orderDefaults: parseOrderDefaults(user.user_order_defaults_json),
     active: user.role === "admin" ? true : user.account_active === 1,
   };
 }
 
 async function ensureAccountDefaultsSchema(db) {
-  const columns = await db.prepare(`PRAGMA table_info(customer_accounts)`).all();
+  await ensureTableColumns(db, "customer_accounts", {
+    order_defaults_json: "TEXT NOT NULL DEFAULT '{}'",
+  });
+  await ensureTableColumns(db, "users", {
+    default_contact_name: "TEXT NOT NULL DEFAULT ''",
+    default_mobile: "TEXT NOT NULL DEFAULT ''",
+    order_defaults_json: "TEXT NOT NULL DEFAULT '{}'",
+  });
+  await migrateLegacyAccountDefaults(db);
+}
+
+async function ensureTableColumns(db, table, definitions) {
+  const columns = await db.prepare(`PRAGMA table_info(${table})`).all();
   const existing = new Set((columns.results || []).map((row) => String(row.name)));
-  if (!existing.has("order_defaults_json")) {
-    await db.prepare(`ALTER TABLE customer_accounts ADD COLUMN order_defaults_json TEXT NOT NULL DEFAULT '{}'`).run();
+  for (const [name, definition] of Object.entries(definitions)) {
+    if (!existing.has(name)) {
+      await db.prepare(`ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`).run();
+    }
   }
+}
+
+async function migrateLegacyAccountDefaults(db) {
+  await db.prepare(
+    `CREATE TABLE IF NOT EXISTS portal_settings (
+       key TEXT PRIMARY KEY,
+       value TEXT NOT NULL,
+       updated_at TEXT NOT NULL
+     )`,
+  ).run();
+
+  const migrated = await db.prepare(
+    `SELECT value FROM portal_settings WHERE key = ? LIMIT 1`,
+  ).bind(USER_DEFAULTS_MIGRATION_KEY).first();
+  if (migrated?.value === "complete") return;
+
+  await db.prepare(
+    `UPDATE users
+     SET default_contact_name = COALESCE((
+           SELECT a.default_contact_name FROM customer_accounts a WHERE a.id = users.account_id
+         ), ''),
+         default_mobile = COALESCE((
+           SELECT a.default_mobile FROM customer_accounts a WHERE a.id = users.account_id
+         ), ''),
+         order_defaults_json = COALESCE((
+           SELECT a.order_defaults_json FROM customer_accounts a WHERE a.id = users.account_id
+         ), '{}')
+     WHERE role = 'customer'
+       AND account_id IS NOT NULL
+       AND (SELECT COUNT(*) FROM users peers
+            WHERE peers.account_id = users.account_id AND peers.role = 'customer') = 1`,
+  ).run();
+
+  await db.prepare(
+    `UPDATE customer_accounts
+     SET default_contact_name = '', default_mobile = '', order_defaults_json = '{}'`,
+  ).run();
+
+  await db.prepare(
+    `INSERT OR REPLACE INTO portal_settings (key, value, updated_at)
+     VALUES (?, 'complete', ?)`,
+  ).bind(USER_DEFAULTS_MIGRATION_KEY, nowIso()).run();
 }
 
 function cleanOrderDefaults(input) {
@@ -252,8 +327,10 @@ function cleanOrderDefaults(input) {
   const deliveryType = String(source.deliveryType || "");
   if (!DELIVERY_TYPES.has(deliveryType)) throw badRequest("Choose a valid default delivery type.");
   const extras = [...new Set((Array.isArray(source.extras) ? source.extras : []).map(String).filter((value) => DELIVERY_EXTRAS.has(value)))];
+  const reference = cleanOptional(source.reference, 80);
+  if (reference && !/^\d+$/.test(reference)) throw badRequest("Default reference must contain numbers only.");
   return {
-    reference: cleanOptional(source.reference, 80),
+    reference,
     requiredDate,
     street: cleanOptional(source.street, 240),
     suburb: cleanOptional(source.suburb, 120),
