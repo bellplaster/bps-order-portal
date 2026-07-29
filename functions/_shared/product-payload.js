@@ -18,23 +18,33 @@ export async function reconcileStandardProductItems(env, payload) {
 
     for (const item of Array.isArray(area.items) ? area.items : []) {
       const key = String(item?.key || "").trim();
+      const sku = normaliseSku(item?.sku);
+
+      // Prefer the live SKU submitted by the browser. The frontend catalogue
+      // can be newer than the legacy static PRODUCT_CATALOG key map.
+      if (sku) {
+        const canonicalKey = CATALOG_KEY_BY_SKU.get(sku);
+        if (canonicalKey) {
+          retainedItems.push({ ...item, key: canonicalKey, sku });
+          continue;
+        }
+
+        if (sku.length > 80 || !/^[A-Z0-9._/-]+$/.test(sku)) {
+          throw clientError(`${areaLabel(area, areaKey)}: invalid stock code "${sku}".`);
+        }
+
+        sourceItems.push({ sku, quantity: item?.quantity });
+        continue;
+      }
+
+      // Legacy drafts may contain only the internal key. Continue supporting
+      // them when that key still exists in the static catalogue.
       if (key && PRODUCT_CATALOG[key]) {
         retainedItems.push(item);
         continue;
       }
 
-      const sku = normaliseSku(item?.sku);
-      const canonicalKey = CATALOG_KEY_BY_SKU.get(sku);
-      if (canonicalKey) {
-        retainedItems.push({ ...item, key: canonicalKey });
-        continue;
-      }
-
-      if (!sku || sku.length > 80 || !/^[A-Z0-9._/-]+$/.test(sku)) {
-        throw clientError(`${areaLabel(area, areaKey)}: Unknown product key "${key || "missing"}".`);
-      }
-
-      sourceItems.push({ sku, quantity: item?.quantity });
+      throw clientError(`${areaLabel(area, areaKey)}: Unknown product key "${key || "missing"}".`);
     }
 
     if (sourceItems.length) {
