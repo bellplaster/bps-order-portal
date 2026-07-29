@@ -172,7 +172,7 @@ function loadDeliveryRefinement() {
 
   const controlStyle = document.createElement("link");
   controlStyle.rel = "stylesheet";
-  controlStyle.href = "/order-control-refinement.css?v=20260729-1";
+  controlStyle.href = "/order-control-refinement.css?v=20260729-2";
   document.head.append(controlStyle);
 
   const script = document.createElement("script");
