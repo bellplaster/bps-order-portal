@@ -19,6 +19,8 @@ const state = {
   addressPredictionIndex: -1,
   addressPreviewCache: new Map(),
   addressPreviewTimer: null,
+  adminAccounts: [],
+  adminOrderAccountId: null,
 };
 
 const floorLabels = { ground: "Ground Floor", first: "1st Floor" };
@@ -64,6 +66,12 @@ function bindStaticActions() {
   document.getElementById("viewHistoryButton")?.addEventListener("click", openHistory);
   document.getElementById("cancelEditButton")?.addEventListener("click", resetOrder);
 
+  document.getElementById("adminCustomerAccount")?.addEventListener("change", (event) => {
+    selectAdminOrderAccount(Number(event.target.value || 0));
+  });
+  document.getElementById("fillActiveAreaWithOneButton")?.addEventListener("click", fillActiveAreaWithOne);
+  document.getElementById("clearActiveAreaTestButton")?.addEventListener("click", clearActiveAreaTestValues);
+
   document.querySelectorAll("[data-step-target]").forEach((button) => {
     button.addEventListener("click", () => {
       if (button.dataset.stepTarget === "review") {
@@ -107,14 +115,148 @@ function bindStaticActions() {
 async function loadAccount() {
   const result = await fetchJson("/api/account");
   state.account = result.profile;
+
   if (state.account?.role === "admin") {
-    window.location.replace("/account/");
-    throw new Error("Opening customer administration.");
+    configureAdminOrderTools(result.accounts || []);
+    return;
   }
+
   document.getElementById("customerName").value = state.account.companyName || "";
   document.getElementById("contactName").value = state.account.defaultContactName || "";
   document.getElementById("contactMobile").value = state.account.defaultMobile || "";
   document.getElementById("accountSummary").textContent = [state.account.companyName, state.account.debtorCode].filter(Boolean).join(" · ");
+}
+
+function configureAdminOrderTools(accounts) {
+  state.adminAccounts = accounts.filter((account) => Number(account.active) === 1);
+  const tools = document.getElementById("adminOrderTools");
+  const select = document.getElementById("adminCustomerAccount");
+  if (!tools || !select) return;
+
+  tools.hidden = false;
+  select.replaceChildren();
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = "Select customer account";
+  select.append(placeholder);
+
+  state.adminAccounts.forEach((account) => {
+    const option = document.createElement("option");
+    option.value = String(account.id);
+    option.textContent = `${account.company_name} · ${account.debtor_code}`;
+    select.append(option);
+  });
+
+  const selected = state.adminAccounts.find((account) => Number(account.id) === Number(state.account.accountId || 0));
+  applyAdminOrderAccount(selected || null);
+}
+
+async function selectAdminOrderAccount(accountId) {
+  if (state.account?.role !== "admin") return;
+  const select = document.getElementById("adminCustomerAccount");
+  const previousId = state.adminOrderAccountId;
+  setAdminOrderToolsBusy(true);
+
+  try {
+    const result = await fetchJson("/api/admin-order-account", {
+      method: "POST",
+      body: JSON.stringify({ accountId: accountId || null }),
+    });
+    const selected = result.account
+      ? state.adminAccounts.find((account) => Number(account.id) === Number(result.account.id)) || {
+          id: result.account.id,
+          debtor_code: result.account.debtorCode,
+          company_name: result.account.companyName,
+          active: 1,
+        }
+      : null;
+    applyAdminOrderAccount(selected);
+    resetOrder();
+    showGlobal(selected
+      ? `Admin orders will be placed under ${selected.company_name}.`
+      : "Choose a customer account before testing an order.", "success");
+  } catch (error) {
+    if (select) select.value = previousId ? String(previousId) : "";
+    showGlobal(error.message || String(error), "error");
+  } finally {
+    setAdminOrderToolsBusy(false);
+  }
+}
+
+function applyAdminOrderAccount(account) {
+  const id = Number(account?.id || 0) || null;
+  const companyName = String(account?.company_name || account?.companyName || "");
+  const debtorCode = String(account?.debtor_code || account?.debtorCode || "");
+
+  state.adminOrderAccountId = id;
+  state.account.accountId = id;
+  state.account.companyName = companyName;
+  state.account.debtorCode = debtorCode;
+  state.account.defaultContactName = "";
+  state.account.defaultMobile = "";
+  state.account.orderDefaults = {};
+
+  const select = document.getElementById("adminCustomerAccount");
+  if (select) select.value = id ? String(id) : "";
+  const customerName = document.getElementById("customerName");
+  if (customerName) customerName.value = companyName;
+  const summary = document.getElementById("accountSummary");
+  if (summary) summary.textContent = [companyName, debtorCode].filter(Boolean).join(" · ");
+
+  document.getElementById("fillActiveAreaWithOneButton")?.toggleAttribute("disabled", !id);
+  document.getElementById("clearActiveAreaTestButton")?.toggleAttribute("disabled", !id);
+}
+
+function setAdminOrderToolsBusy(busy) {
+  const select = document.getElementById("adminCustomerAccount");
+  const fill = document.getElementById("fillActiveAreaWithOneButton");
+  const clear = document.getElementById("clearActiveAreaTestButton");
+  if (select) select.disabled = busy;
+  if (fill) fill.disabled = busy || !state.adminOrderAccountId;
+  if (clear) clear.disabled = busy || !state.adminOrderAccountId;
+}
+
+function fillActiveAreaWithOne() {
+  if (state.account?.role !== "admin" || !state.adminOrderAccountId) {
+    showGlobal("Choose a customer account before using the test controls.", "error");
+    return;
+  }
+
+  const areaId = state.activeFloor;
+  const sheet = document.getElementById(`${areaId}OrderSheet`);
+  const inputs = [...(sheet?.querySelectorAll(".quantity-input[data-product-key]") || [])];
+  if (!(state.quantities[areaId] instanceof Map)) state.quantities[areaId] = new Map();
+
+  const keys = new Set();
+  inputs.forEach((input) => {
+    const key = String(input.dataset.productKey || "").trim();
+    if (!key) return;
+    keys.add(key);
+    state.quantities[areaId].set(key, 1);
+    input.value = "1";
+    input.classList.add("has-value");
+  });
+
+  renderCounts();
+  scheduleDraft();
+  showGlobal(`${keys.size} standard products in ${floorLabels[areaId] || "the active area"} were set to 1.`, "success");
+}
+
+function clearActiveAreaTestValues() {
+  if (state.account?.role !== "admin" || !state.adminOrderAccountId) return;
+  const areaId = state.activeFloor;
+  const sheet = document.getElementById(`${areaId}OrderSheet`);
+  state.quantities[areaId]?.clear();
+  state.otherMaterials[areaId] = [];
+
+  sheet?.querySelectorAll(".quantity-input[data-product-key]").forEach((input) => {
+    input.value = "";
+    input.classList.remove("has-value");
+  });
+  if (typeof renderSelectedAdditional === "function") renderSelectedAdditional(areaId);
+  renderCounts();
+  scheduleDraft();
+  showGlobal(`${floorLabels[areaId] || "The active area"} was cleared.`, "success");
 }
 
 async function loadCatalog() {
@@ -167,7 +309,7 @@ function formatAddressDisplay(value) {
 function loadDeliveryRefinement() {
   const style = document.createElement("link");
   style.rel = "stylesheet";
-  style.href = "/final-ui-polish.css?v=20260723-4";
+  style.href = "/final-ui-polish.css?v=20260729-3";
   document.head.append(style);
 
   const controlStyle = document.createElement("link");
