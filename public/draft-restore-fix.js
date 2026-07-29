@@ -7,6 +7,14 @@
     document.body.append(script);
   }
 
+  if (!document.querySelector('script[data-order-product-payload="true"]')) {
+    const script = document.createElement("script");
+    script.src = "/order-product-payload.js?v=20260729-1";
+    script.defer = true;
+    script.dataset.orderProductPayload = "true";
+    document.body.append(script);
+  }
+
   const syncRequiredDateState = () => {
     const input = document.getElementById("requiredDate");
     if (!(input instanceof HTMLInputElement)) return false;
