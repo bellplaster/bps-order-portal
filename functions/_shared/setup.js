@@ -1,5 +1,6 @@
 const BPS_DEBTOR_CODE = "BPS BRUNSW17";
 const BPS_COMPANY_NAME = "BPS Brunswick Plastering Services";
+const USER_DEFAULTS_MIGRATION_KEY = "user_order_defaults_v1";
 
 export async function getOrCreateSessionSecret(env) {
   const configured = String(env.SESSION_SECRET || "").trim();
@@ -39,6 +40,7 @@ export async function ensurePortalSchema(db) {
        company_name TEXT NOT NULL,
        default_contact_name TEXT NOT NULL DEFAULT '',
        default_mobile TEXT NOT NULL DEFAULT '',
+       order_defaults_json TEXT NOT NULL DEFAULT '{}',
        active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
        created_at TEXT NOT NULL,
        updated_at TEXT NOT NULL
@@ -55,6 +57,9 @@ export async function ensurePortalSchema(db) {
        password_iterations INTEGER NOT NULL DEFAULT 100000,
        role TEXT NOT NULL DEFAULT 'customer' CHECK (role IN ('admin', 'customer')),
        active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+       default_contact_name TEXT NOT NULL DEFAULT '',
+       default_mobile TEXT NOT NULL DEFAULT '',
+       order_defaults_json TEXT NOT NULL DEFAULT '{}',
        last_login_at TEXT,
        created_at TEXT NOT NULL,
        updated_at TEXT NOT NULL,
@@ -111,6 +116,16 @@ export async function ensurePortalSchema(db) {
      )`,
   ).run();
 
+  await ensureColumns(db, "customer_accounts", {
+    order_defaults_json: "TEXT NOT NULL DEFAULT '{}'",
+  });
+
+  await ensureColumns(db, "users", {
+    default_contact_name: "TEXT NOT NULL DEFAULT ''",
+    default_mobile: "TEXT NOT NULL DEFAULT ''",
+    order_defaults_json: "TEXT NOT NULL DEFAULT '{}'",
+  });
+
   await ensureColumns(db, "orders", {
     customer_reference: "TEXT NOT NULL DEFAULT ''",
     project_name: "TEXT NOT NULL DEFAULT ''",
@@ -136,9 +151,11 @@ export async function ensurePortalSchema(db) {
   await db.prepare(
     `INSERT OR IGNORE INTO customer_accounts (
        debtor_code, company_name, default_contact_name, default_mobile,
-       active, created_at, updated_at
-     ) VALUES (?, ?, '', '', 1, ?, ?)`,
+       order_defaults_json, active, created_at, updated_at
+     ) VALUES (?, ?, '', '', '{}', 1, ?, ?)`,
   ).bind(BPS_DEBTOR_CODE, BPS_COMPANY_NAME, now, now).run();
+
+  await migrateLegacyAccountDefaults(db);
 
   const account = await db.prepare(
     `SELECT id FROM customer_accounts WHERE debtor_code = ? COLLATE NOCASE LIMIT 1`,
@@ -168,6 +185,40 @@ export async function ensurePortalSchema(db) {
   for (const sql of indexStatements) await db.prepare(sql).run();
 
   return { accountId: Number(account.id), debtorCode: BPS_DEBTOR_CODE, companyName: BPS_COMPANY_NAME };
+}
+
+async function migrateLegacyAccountDefaults(db) {
+  const migrated = await db.prepare(
+    `SELECT value FROM portal_settings WHERE key = ? LIMIT 1`,
+  ).bind(USER_DEFAULTS_MIGRATION_KEY).first();
+  if (migrated?.value === "complete") return;
+
+  await db.prepare(
+    `UPDATE users
+     SET default_contact_name = COALESCE((
+           SELECT a.default_contact_name FROM customer_accounts a WHERE a.id = users.account_id
+         ), ''),
+         default_mobile = COALESCE((
+           SELECT a.default_mobile FROM customer_accounts a WHERE a.id = users.account_id
+         ), ''),
+         order_defaults_json = COALESCE((
+           SELECT a.order_defaults_json FROM customer_accounts a WHERE a.id = users.account_id
+         ), '{}')
+     WHERE role = 'customer'
+       AND account_id IS NOT NULL
+       AND (SELECT COUNT(*) FROM users peers
+            WHERE peers.account_id = users.account_id AND peers.role = 'customer') = 1`,
+  ).run();
+
+  await db.prepare(
+    `UPDATE customer_accounts
+     SET default_contact_name = '', default_mobile = '', order_defaults_json = '{}'`,
+  ).run();
+
+  await db.prepare(
+    `INSERT OR REPLACE INTO portal_settings (key, value, updated_at)
+     VALUES (?, 'complete', ?)`,
+  ).bind(USER_DEFAULTS_MIGRATION_KEY, new Date().toISOString()).run();
 }
 
 async function ensureSettingsTable(db) {
