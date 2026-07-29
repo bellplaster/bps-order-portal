@@ -52,6 +52,23 @@
       <section class="step-panel is-active" data-step="form">
         <p id="accountSummary" class="account-summary" hidden></p>
 
+        <section id="adminOrderTools" class="admin-order-tools" aria-label="Administrator order testing" hidden>
+          <div class="admin-order-copy">
+            <strong>Admin testing</strong>
+            <span>Choose the debtor account that will own this test order.</span>
+          </div>
+          <label class="admin-order-account" for="adminCustomerAccount">
+            <span>Order as customer</span>
+            <select id="adminCustomerAccount">
+              <option value="">Select customer account</option>
+            </select>
+          </label>
+          <div class="admin-order-actions">
+            <button id="fillActiveAreaWithOneButton" class="button button-secondary" type="button" disabled>Set active tab to 1</button>
+            <button id="clearActiveAreaTestButton" class="button button-secondary" type="button" disabled>Clear active tab</button>
+          </div>
+        </section>
+
         <section class="paper-section order-details-section" aria-labelledby="orderDetailsHeading">
           <h2 id="orderDetailsHeading" class="section-bar">Order details</h2>
           <input id="orderDate" type="hidden">
@@ -194,7 +211,7 @@
     <div id="historyList" class="history-list"><p class="empty-state">Loading orders…</p></div>
   </aside>
 
-  <script src="/app.js?v=20260723-7" defer></script>
+  <script src="/app.js?v=20260729-3" defer></script>
   <script src="/app-products.js?v=20260722-4" defer></script>
   <script src="/app-order.js?v=20260724-2" defer></script>
   <script src="/app-address.js?v=20260724-2" defer></script>
@@ -203,7 +220,7 @@
   <script src="/sku-source-truth.js?v=20260724-1" defer></script>
   <script src="/ux-refinement.js?v=20260722-1" defer></script>
   <script src="/delivery-areas.js?v=20260724-1" defer></script>
-  <script src="/source-truth-payload.js?v=20260729-2" defer></script>
+  <script src="/source-truth-payload.js?v=20260729-3" defer></script>
   <script src="/phone-date-refinement.js?v=20260728-6" defer></script>
   <script src="/additional-products-refinement.js?v=20260724-2" defer></script>
   <script src="/review-metrics-refinement.js?v=20260728-6" defer></script>
