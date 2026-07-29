@@ -28,6 +28,33 @@
     return payload;
   }
 
+  function ensureAnyTimeSlotOption() {
+    const accountSelect = document.getElementById("defaultTimeSlot");
+    if (accountSelect && !accountSelect.querySelector('option[value="ANY"]')) {
+      accountSelect.append(new Option("Any", "ANY"));
+    }
+
+    const sourceRadio = document.querySelector('input[name="timeSlot"][value="ANY"]');
+    const orderSelect = document.querySelector(".delivery-select-timeSlot .delivery-select");
+    if (orderSelect && !orderSelect.querySelector('option[value="ANY"]')) {
+      orderSelect.append(new Option("Any", "ANY"));
+    }
+
+    const savedAccountSlot = typeof data !== "undefined"
+      ? String(data?.profile?.orderDefaults?.timeSlot || "").toUpperCase()
+      : "";
+    if (accountSelect && savedAccountSlot === "ANY") accountSelect.value = "ANY";
+
+    const savedOrderSlot = typeof state !== "undefined"
+      ? String(state.account?.orderDefaults?.timeSlot || "").toUpperCase()
+      : "";
+    if (savedOrderSlot === "ANY" && sourceRadio && orderSelect) {
+      sourceRadio.checked = true;
+      orderSelect.value = "ANY";
+      orderSelect.classList.remove("is-placeholder");
+    }
+  }
+
   function collectDefaultsFromAccountPage() {
     return {
       reference: document.getElementById("defaultReference")?.value || "",
@@ -62,6 +89,7 @@
     form.classList.add("admin-order-defaults-form");
     adminSection.parentElement?.insertBefore(form, adminSection);
 
+    ensureAnyTimeSlotOption();
     const defaults = profile.orderDefaults || {};
     const values = {
       defaultReference: defaults.reference || "",
@@ -151,8 +179,12 @@
         state.account.defaultMobile = ownDefaults.defaultMobile;
         state.account.orderDefaults = clone(ownDefaults.orderDefaults);
       }
+      ensureAnyTimeSlotOption();
       if (installed && typeof resetOrder === "function") {
-        window.setTimeout(() => resetOrder(), 0);
+        window.setTimeout(() => {
+          resetOrder();
+          ensureAnyTimeSlotOption();
+        }, 0);
         window.clearInterval(timer);
       } else if (attempts >= 80) {
         window.clearInterval(timer);
@@ -191,8 +223,16 @@
 
   const start = () => {
     installExtrasBorderRepair();
+    ensureAnyTimeSlotOption();
     initialiseAdminAccountDefaults();
     initialiseAdminOrderDefaults();
+
+    let attempts = 0;
+    const timer = window.setInterval(() => {
+      attempts += 1;
+      ensureAnyTimeSlotOption();
+      if (attempts >= 80) window.clearInterval(timer);
+    }, 100);
   };
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
