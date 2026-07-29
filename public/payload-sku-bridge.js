@@ -1,7 +1,7 @@
 (() => {
-  // The live review catalogue is the source of truth for SKU identity.
-  // Include the SKU with every standard matrix line so the backend does not
-  // have to rely on the older static key-to-SKU map when building Accrivia XLSX.
+  // The live review catalogue is the source of truth for SKU identity and
+  // description. Include both with every standard matrix line so the backend
+  // can build a complete Accrivia XLSX without depending on the old catalogue.
   buildFloorPayload = function buildSkuAwareFloorPayload(floor) {
     return {
       items: [...state.quantities[floor].entries()]
@@ -11,6 +11,7 @@
           return {
             key,
             sku: String(product.sku || "").trim(),
+            description: String(product.description || product.descriptionRaw || product.label || product.name || "").trim(),
             quantity,
           };
         }),
