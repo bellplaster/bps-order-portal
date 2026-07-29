@@ -41,3 +41,23 @@
   max-width: 100% !important;
   margin: 0 !important;
 }
+
+/* The final Extras grid cell carries its own right border. Cover that seam so
+   the summary and open menu provide the single visible right edge. */
+.order-form-page .extras-dropdown-field {
+  overflow: visible !important;
+  border-right: 0 !important;
+}
+
+.order-form-page .extras-dropdown-field .extras-dropdown {
+  width: calc(100% + 2px) !important;
+  max-width: none !important;
+  margin-right: -2px !important;
+}
+
+.order-form-page .extras-dropdown-field .extras-dropdown > summary,
+.order-form-page .extras-dropdown-field .extras-dropdown-menu {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+}
