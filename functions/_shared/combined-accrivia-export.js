@@ -45,6 +45,11 @@ export async function replaceAreaExportsWithCombined(env, payload, result, auth)
 
   if (!productRows.length) throw new Error("The combined Accrivia export contains no products.");
 
+  // Accrivia imports this final stock-code row as the complete delivery note.
+  // Keep it after every unit marker and product so staff can find it at the
+  // bottom of the imported order without checking separate fields.
+  productRows.push(["NOTES", buildDeliveryNotesDescription(payload), 1]);
+
   const pickup = isPickup(payload?.deliveryType);
   const addresses = buildExportAddresses(payload, areaEntries.map(([, area]) => String(area?.label || "")), pickup);
   const orderDate = String(payload?.orderDate || todayInMelbourne());
@@ -125,6 +130,49 @@ function combineRows(items, areaLabel) {
     combined.set(key, current);
   }
   return [...combined.values()].map((item) => [upper(item.sku), upper(item.description), item.quantity]);
+}
+
+function buildDeliveryNotesDescription(payload) {
+  const timeSlot = timeSlotLabel(payload?.timeSlot);
+  const deliveryType = deliveryTypeLabel(payload?.deliveryType);
+  const extras = Array.isArray(payload?.extras)
+    ? payload.extras.map(upper).filter(Boolean).join(", ")
+    : upper(payload?.extras || "");
+  const instructions = upper(payload?.deliveryInstructions || payload?.instructions || "");
+
+  return [
+    `TIME SLOT: ${timeSlot || "NOT SELECTED"}`,
+    `DELIVERY TYPE: ${deliveryType || "NOT SELECTED"}`,
+    `EXTRAS: ${extras || "NONE"}`,
+    `INSTRUCTIONS: ${instructions || "NONE"}`,
+  ].join("; ");
+}
+
+function timeSlotLabel(value) {
+  const key = upper(value);
+  const labels = {
+    "1ST": "1ST",
+    "2ND": "2ND",
+    "AM": "AM",
+    "PM": "PM",
+    "ANY": "ANY",
+  };
+  return labels[key] || key;
+}
+
+function deliveryTypeLabel(value) {
+  const key = String(value || "").trim();
+  const labels = {
+    "Manual Unload (Knauf Labour)": "MANUAL UNLOAD",
+    "Mechanical (Forklift/Crane/Own)": "MECHANICAL",
+    "Mixed Unload (Hand + Machine)": "MIXED UNLOAD",
+    "Pickup (Customer to collect)": "CUSTOMER PICKUP",
+    "Hand Unload": "HAND UNLOAD",
+    "Forklift Delivery": "FORKLIFT DELIVERY",
+    "Crane Delivery": "CRANE DELIVERY",
+    "Delivery (No Assistance)": "DELIVERY (NO ASSISTANCE)",
+  };
+  return labels[key] || upper(key);
 }
 
 function buildExportAddresses(payload, labels, pickup) {
