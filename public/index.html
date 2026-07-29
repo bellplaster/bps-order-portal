@@ -18,6 +18,7 @@
   <link rel="stylesheet" href="/focus-refinement.css?v=20260724-2">
   <link rel="stylesheet" href="/experience-refinement.css?v=20260724-2">
   <link rel="stylesheet" href="/review-metrics-refinement.css?v=20260724-2">
+  <link rel="stylesheet" href="/order-control-refinement.css?v=20260729-3">
 </head>
 <body class="order-form-page">
   <header class="portal-header">
@@ -46,28 +47,28 @@
   <div id="globalMessage" class="portal-message" hidden role="alert"></div>
 
   <main class="order-shell">
+    <section id="adminOrderTools" class="admin-order-tools" aria-label="Administrator order testing" hidden>
+      <div class="admin-order-copy">
+        <strong>Admin testing</strong>
+        <span>Choose the debtor account that will own this test order.</span>
+      </div>
+      <label class="admin-order-account" for="adminCustomerAccount">
+        <span>Order as customer</span>
+        <select id="adminCustomerAccount">
+          <option value="">Select customer account</option>
+        </select>
+      </label>
+      <div class="admin-order-actions">
+        <button id="fillActiveAreaWithOneButton" class="button button-secondary" type="button" disabled>Set active tab to 1</button>
+        <button id="clearActiveAreaTestButton" class="button button-secondary" type="button" disabled>Clear active tab</button>
+      </div>
+    </section>
+
     <form id="orderForm" novalidate>
       <div id="editModeBanner" class="edit-banner" hidden></div>
 
       <section class="step-panel is-active" data-step="form">
         <p id="accountSummary" class="account-summary" hidden></p>
-
-        <section id="adminOrderTools" class="admin-order-tools" aria-label="Administrator order testing" hidden>
-          <div class="admin-order-copy">
-            <strong>Admin testing</strong>
-            <span>Choose the debtor account that will own this test order.</span>
-          </div>
-          <label class="admin-order-account" for="adminCustomerAccount">
-            <span>Order as customer</span>
-            <select id="adminCustomerAccount">
-              <option value="">Select customer account</option>
-            </select>
-          </label>
-          <div class="admin-order-actions">
-            <button id="fillActiveAreaWithOneButton" class="button button-secondary" type="button" disabled>Set active tab to 1</button>
-            <button id="clearActiveAreaTestButton" class="button button-secondary" type="button" disabled>Clear active tab</button>
-          </div>
-        </section>
 
         <section class="paper-section order-details-section" aria-labelledby="orderDetailsHeading">
           <h2 id="orderDetailsHeading" class="section-bar">Order details</h2>
