@@ -20,17 +20,11 @@ export async function reconcileStandardProductItems(_env, payload) {
       const key = String(item?.key || "").trim();
       const sku = normaliseSku(item?.sku);
 
-      // A valid matrix key is authoritative. Keep it as a standard product even
-      // when the searchable Accrivia/D1 catalogue does not currently contain
-      // the same SKU. orders-v2 will export the SKU and description from the
-      // static matrix catalogue directly into the XLSX.
       if (key && PRODUCT_CATALOG[key]) {
         retainedItems.push({ ...item, key });
         continue;
       }
 
-      // Some newer/legacy browser drafts may submit a generated source key.
-      // Resolve those back to the canonical matrix key by SKU where possible.
       if (sku) {
         if (sku.length > 80 || !/^[A-Z0-9._/-]+$/.test(sku)) {
           throw clientError(`${areaLabel(area, areaKey)}: invalid stock code "${sku}".`);
@@ -40,11 +34,14 @@ export async function reconcileStandardProductItems(_env, payload) {
         if (canonicalKey) {
           retainedItems.push({ ...item, key: canonicalKey, sku });
         } else {
-          // Only truly non-matrix products fall back to Additional Products.
+          // This row came from a standard matrix cell, not the user-entered
+          // Additional Products field. Preserve that provenance so the order
+          // submission can trust the matrix SKU without depending on D1.
           sourceItems.push({
             sku,
-            description: String(item?.description || item?.name || "").trim(),
+            description: String(item?.description || item?.name || sku).trim(),
             quantity: item?.quantity,
+            matrixSource: true,
           });
         }
         continue;
