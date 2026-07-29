@@ -1,6 +1,7 @@
 import { processOrderSubmission } from "../_shared/orders-v2.js";
 import { sendOrderFilesEmail } from "../_shared/order-email.js";
 import { reconcileStandardProductItems } from "../_shared/product-payload.js";
+import { createMatrixAwareDb } from "../_shared/matrix-catalog-db.js";
 
 export async function onRequestPost(context) {
   const requestId = crypto.randomUUID();
@@ -58,7 +59,18 @@ export async function onRequestPost(context) {
     }
 
     await reconcileStandardProductItems(context.env, payload);
-    const result = await processOrderSubmission(context.env, payload, auth);
+
+    // orders-v2 validates Additional Products against D1. Live matrix rows that
+    // are newer than the old static catalogue are temporarily represented in
+    // that collection, but remain authoritative matrix products. Supply those
+    // trusted rows to the lookup without changing or polluting the real D1
+    // products table.
+    const submissionEnv = {
+      ...context.env,
+      DB: createMatrixAwareDb(context.env.DB, payload),
+    };
+
+    const result = await processOrderSubmission(submissionEnv, payload, auth);
     await preservePickupSiteReference(context.env, payload, result).catch((error) => {
       console.warn("Pickup site reference could not be stored.", error);
     });
