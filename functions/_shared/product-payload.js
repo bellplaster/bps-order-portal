@@ -6,7 +6,7 @@ const CATALOG_KEY_BY_SKU = new Map(
     .filter(([sku]) => Boolean(sku)),
 );
 
-export async function reconcileStandardProductItems(env, payload) {
+export async function reconcileStandardProductItems(_env, payload) {
   const floors = payload?.floors;
   if (!floors || typeof floors !== "object" || Array.isArray(floors)) return payload;
 
@@ -20,20 +20,24 @@ export async function reconcileStandardProductItems(env, payload) {
       const key = String(item?.key || "").trim();
       const sku = normaliseSku(item?.sku);
 
-      // Prefer the live SKU submitted by the browser. The frontend catalogue
-      // can be newer than the legacy static PRODUCT_CATALOG key map.
+      // Matrix mappings are authoritative for standard products. When the
+      // browser submits a SKU, preserve it for XLSX generation even when the
+      // searchable D1 catalogue has not yet been refreshed.
       if (sku) {
-        const canonicalKey = CATALOG_KEY_BY_SKU.get(sku);
-        if (canonicalKey) {
-          retainedItems.push({ ...item, key: canonicalKey, sku });
-          continue;
-        }
-
         if (sku.length > 80 || !/^[A-Z0-9._/-]+$/.test(sku)) {
           throw clientError(`${areaLabel(area, areaKey)}: invalid stock code "${sku}".`);
         }
 
-        sourceItems.push({ sku, quantity: item?.quantity });
+        const canonicalKey = CATALOG_KEY_BY_SKU.get(sku);
+        if (canonicalKey) {
+          retainedItems.push({ ...item, key: canonicalKey, sku });
+        } else {
+          sourceItems.push({
+            sku,
+            description: String(item?.description || item?.name || "").trim(),
+            quantity: item?.quantity,
+          });
+        }
         continue;
       }
 
@@ -47,10 +51,6 @@ export async function reconcileStandardProductItems(env, payload) {
       throw clientError(`${areaLabel(area, areaKey)}: Unknown product key "${key || "missing"}".`);
     }
 
-    if (sourceItems.length) {
-      await requireActiveAccriviaSkus(env, sourceItems.map((item) => item.sku), areaLabel(area, areaKey));
-    }
-
     area.items = retainedItems;
     area.otherMaterials = [
       ...(Array.isArray(area.otherMaterials) ? area.otherMaterials : []),
@@ -59,33 +59,6 @@ export async function reconcileStandardProductItems(env, payload) {
   }
 
   return payload;
-}
-
-async function requireActiveAccriviaSkus(env, skus, label) {
-  if (!env?.DB) throw new Error("Missing Cloudflare binding: DB");
-
-  const uniqueSkus = [...new Set(skus)];
-  const found = new Set();
-
-  for (let start = 0; start < uniqueSkus.length; start += 50) {
-    const chunk = uniqueSkus.slice(start, start + 50);
-    const placeholders = chunk.map(() => "?").join(", ");
-    const result = await env.DB.prepare(
-      `SELECT sku FROM products
-       WHERE active = 1 AND sku COLLATE NOCASE IN (${placeholders})`,
-    ).bind(...chunk).all();
-
-    for (const product of result.results || []) {
-      found.add(normaliseSku(product?.sku));
-    }
-  }
-
-  const missing = uniqueSkus.filter((sku) => !found.has(sku));
-  if (missing.length) {
-    throw clientError(
-      `${label}: unknown or inactive Accrivia stock code${missing.length === 1 ? "" : "s"}: ${missing.slice(0, 8).join(", ")}${missing.length > 8 ? "…" : ""}.`,
-    );
-  }
 }
 
 function areaLabel(area, fallback) {
