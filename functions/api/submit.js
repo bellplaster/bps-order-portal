@@ -2,6 +2,7 @@ import { processOrderSubmission } from "../_shared/orders-v2.js";
 import { sendOrderFilesEmail } from "../_shared/order-email.js";
 import { reconcileStandardProductItems } from "../_shared/product-payload.js";
 import { createMatrixAwareDb } from "../_shared/matrix-catalog-db.js";
+import { replaceAreaExportsWithCombined } from "../_shared/combined-accrivia-export.js";
 
 export async function onRequestPost(context) {
   const requestId = crypto.randomUUID();
@@ -71,6 +72,10 @@ export async function onRequestPost(context) {
     };
 
     const result = await processOrderSubmission(submissionEnv, payload, auth);
+    await replaceAreaExportsWithCombined(context.env, payload, result, {
+      ...auth,
+      accountId: Number(payload.customerAccountId || auth.accountId || accountId || 0),
+    });
     await preservePickupSiteReference(context.env, payload, result).catch((error) => {
       console.warn("Pickup site reference could not be stored.", error);
     });
@@ -99,7 +104,7 @@ export async function onRequestPost(context) {
 }
 
 async function preservePickupSiteReference(env, payload, result) {
-  if (!env?.DB || payload?.deliveryType !== "Pickup (Customer to collect)") return;
+  if (!env?.DB || !/pickup|pick\s*up|collect/i.test(String(payload?.deliveryType || ""))) return;
   const submissionId = String(result?.submissionId || payload?.submissionId || "").trim();
   if (!submissionId) return;
   const street = String(payload?.addressLine1 || "").trim();
