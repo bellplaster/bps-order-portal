@@ -1,7 +1,7 @@
 import { normaliseAustralianPhone } from "../_shared/phone.js";
 import { json } from "../_shared/responses.js";
 
-const TIME_SLOTS = new Set(["", "1ST", "2ND", "AM", "PM"]);
+const TIME_SLOTS = new Set(["", "1ST", "2ND", "AM", "PM", "ANY"]);
 const DELIVERY_TYPES = new Set(["", "Hand Unload", "Forklift Delivery", "Crane Delivery", "Delivery (No Assistance)", "Pickup (Customer to collect)"]);
 
 export async function onRequestPut(context) {
