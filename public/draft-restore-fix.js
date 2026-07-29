@@ -15,6 +15,14 @@
     document.body.append(script);
   }
 
+  if (!document.querySelector('script[data-admin-defaults="true"]')) {
+    const script = document.createElement("script");
+    script.src = "/admin-defaults.js?v=20260729-1";
+    script.defer = true;
+    script.dataset.adminDefaults = "true";
+    document.body.append(script);
+  }
+
   const syncRequiredDateState = () => {
     const input = document.getElementById("requiredDate");
     if (!(input instanceof HTMLInputElement)) return false;
