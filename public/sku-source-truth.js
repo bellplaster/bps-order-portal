@@ -91,8 +91,6 @@
       ["Aluminium Clips Flat (each)", "", "__UNAVAILABLE__"],
       ["50mm Partiwall Batt (3 Pack)", "", "IIPWBATT"],
       ["16mm Small Head DP", "", "LS55"],
-      ["25mm Coarse NP", "", "NPBUZYCO725-PWR"],
-      ["32mm Coarse NP", "", "NPBUZYCO732-PWR"],
       ["38mm Laminating", "", "LAMZ1038500"]
     ]
   };
@@ -104,7 +102,7 @@
     "LOOSE|COARSE (W)|32 MM": "NPBUZYCO732-PWR",
     "COLLATED|NEEDLE POINT (S)|25 MM": "CNPBUZYF0625-PWR",
     "COLLATED|NEEDLE POINT (S)|32 MM": "CNPBUZYF0632-PWR",
-    "COLLATED|COARSE (W)|25 MM": "CNPBUZYC0632-PWR",
+    "COLLATED|COARSE (W)|25 MM": "CNPBUZYC0625-PWR",
     "COLLATED|COARSE (W)|32 MM": "CNPBUZYC0632-PWR"
   };
 
