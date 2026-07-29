@@ -144,7 +144,12 @@ function buildExportAddresses(payload, labels, pickup) {
   let prefix = "";
   if (cleanLabels.length && unitNumbers.length === cleanLabels.length) {
     const sorted = [...new Set(unitNumbers)].sort((a, b) => a - b);
-    prefix = sorted.length === 1 ? `UNIT ${sorted[0]}` : `UNIT ${sorted[0]}-${sorted.at(-1)}`;
+    const consecutive = sorted.every((number, index) => index === 0 || number === sorted[index - 1] + 1);
+    prefix = sorted.length === 1
+      ? `UNIT ${sorted[0]}`
+      : consecutive
+        ? `UNIT ${sorted[0]}-${sorted.at(-1)}`
+        : sorted.map((number) => `UNIT ${number}`).join(", ");
   } else {
     const meaningful = cleanLabels.filter((label) => !/^(TAB|AREA)\s*\d+$/i.test(label));
     if (meaningful.length) return {
@@ -167,11 +172,13 @@ function parseUnitLabel(value) {
 }
 
 function extractSuburb(value) {
-  return upper(value)
+  const withoutState = upper(value)
     .replace(/\b(?:VIC|VICTORIA)\b\s*\d{4}\b.*$/i, "")
     .replace(/\s+/g, " ")
     .replace(/^[,\s]+|[,\s]+$/g, "")
     .trim();
+  const parts = withoutState.split(",").map((part) => part.trim()).filter(Boolean);
+  return parts.at(-1) || withoutState;
 }
 
 function isPickup(value) {
