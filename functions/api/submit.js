@@ -1,5 +1,6 @@
 import { processOrderSubmission } from "../_shared/orders-v2.js";
 import { sendOrderFilesEmail } from "../_shared/order-email.js";
+import { reconcileStandardProductItems } from "../_shared/product-payload.js";
 
 export async function onRequestPost(context) {
   const requestId = crypto.randomUUID();
@@ -56,6 +57,7 @@ export async function onRequestPost(context) {
       }
     }
 
+    await reconcileStandardProductItems(context.env, payload);
     const result = await processOrderSubmission(context.env, payload, auth);
     await preservePickupSiteReference(context.env, payload, result).catch((error) => {
       console.warn("Pickup site reference could not be stored.", error);
