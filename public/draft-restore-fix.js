@@ -1,7 +1,7 @@
 (() => {
   if (!document.querySelector('script[data-order-defaults="true"]')) {
     const script = document.createElement("script");
-    script.src = "/order-defaults.js?v=20260728-4";
+    script.src = "/order-defaults.js?v=20260729-1";
     script.defer = true;
     script.dataset.orderDefaults = "true";
     document.body.append(script);
