@@ -69,6 +69,43 @@
     };
   }
 
+  function revealAdminDefaultsForm() {
+    const form = document.getElementById("accountForm");
+    const adminSection = document.getElementById("adminSection");
+    if (!form || !adminSection) return;
+
+    document.getElementById("customerAccountCard")?.setAttribute("hidden", "");
+    form.hidden = false;
+    form.removeAttribute("hidden");
+    form.classList.add("admin-order-defaults-form");
+
+    if (form.nextElementSibling !== adminSection) {
+      adminSection.parentElement?.insertBefore(form, adminSection);
+    }
+  }
+
+  function keepAdminDefaultsVisible() {
+    const form = document.getElementById("accountForm");
+    const adminSection = document.getElementById("adminSection");
+    if (!form || !adminSection || form.dataset.adminVisibilityGuard === "true") return;
+    form.dataset.adminVisibilityGuard = "true";
+
+    const repair = () => {
+      if (typeof data !== "undefined" && data?.profile?.role === "admin") revealAdminDefaultsForm();
+    };
+
+    const observer = new MutationObserver(repair);
+    observer.observe(form, { attributes: true, attributeFilter: ["hidden", "class"] });
+    observer.observe(adminSection, { attributes: true, attributeFilter: ["hidden", "class"] });
+
+    let attempts = 0;
+    const timer = window.setInterval(() => {
+      attempts += 1;
+      repair();
+      if (attempts >= 100) window.clearInterval(timer);
+    }, 100);
+  }
+
   async function initialiseAdminAccountDefaults() {
     if (!document.body.classList.contains("account-page")) return;
     const form = document.getElementById("accountForm");
@@ -84,12 +121,10 @@
     const profile = result?.profile;
     if (profile?.role !== "admin") return;
 
-    document.getElementById("customerAccountCard")?.setAttribute("hidden", "");
-    form.hidden = false;
-    form.classList.add("admin-order-defaults-form");
-    adminSection.parentElement?.insertBefore(form, adminSection);
-
+    revealAdminDefaultsForm();
+    keepAdminDefaultsVisible();
     ensureAnyTimeSlotOption();
+
     const defaults = profile.orderDefaults || {};
     const values = {
       defaultReference: defaults.reference || "",
