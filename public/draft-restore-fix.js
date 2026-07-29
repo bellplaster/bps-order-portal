@@ -23,6 +23,14 @@
     document.body.append(script);
   }
 
+  if (!document.querySelector('script[data-board-width-order="true"]')) {
+    const script = document.createElement("script");
+    script.src = "/board-width-order.js?v=20260729-1";
+    script.defer = true;
+    script.dataset.boardWidthOrder = "true";
+    document.body.append(script);
+  }
+
   const syncRequiredDateState = () => {
     const input = document.getElementById("requiredDate");
     if (!(input instanceof HTMLInputElement)) return false;
