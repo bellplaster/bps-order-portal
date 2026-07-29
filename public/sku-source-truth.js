@@ -127,6 +127,7 @@
     "PSIA INTERNAL ANGLE 135°|3600": "PA13536",
     "P18 INT|2400": "P1802400",
     "P40 INT|1800": "P4001800",
+    "METAL CASING BEAD 10 MM|3000": "P0503000",
     "PVC CASING BEAD 10 MM|3000": "PCB1030",
     "BATTENS NAIL UP|6000": "30106000"
   };
@@ -242,40 +243,41 @@
       row.cells = widths.map((width, index) => {
         const signature = `VILLABOARD|6 mm|${width}|${length}`;
         const sku = BOARD_SKUS[signature];
-        return sku ? assignKey(row.cells?.[index], `board-${signature}`, sku, `Villaboard 6 mm ${width} x ${length}`) : null;
+        return sku ? assignKey(row.cells?.[index], `board-${signature}`, sku, `VILLABOARD 6 mm ${width} x ${length}`) : null;
       });
     });
-    entry.rows = (entry.rows || []).filter((row) => String(row.label ?? row.length ?? "") !== "1800");
   }
 
   function applyCompoundsAndAccessories() {
     const section = state.layout.sections?.compounds;
     if (!section) return;
-    const desired = [...LISTS.compounds, ...LISTS.accessories];
-    section.rows = desired.map(([label, detail, sku]) => {
-      const found = findListRow(section.rows, label, detail);
-      const key = assignKey(found?.key, `list-${sku}`, sku, label, detail);
-      return { ...(found || {}), label, detail, key };
+    const existingRows = section.rows || [];
+    section.rows = [...LISTS.compounds, ...LISTS.accessories].map(([label, detail, sku]) => {
+      const found = findListRow(existingRows, label, detail);
+      return { ...(found || {}), label, detail, key: assignKey(found?.key, `list-${sku}`, sku, label, detail) };
     });
   }
 
   function applyFasteners() {
     const screws = state.layout.sections?.screws;
     if (screws) {
-      const columns = (screws.columns || ["25 mm", "32 mm"]).map((value) => canonical(value));
-      const desiredRows = [
-        ["Loose - Needle Point (S)", "LOOSE", "NEEDLE POINT (S)"],
-        ["Loose - Coarse (W)", "LOOSE", "COARSE (W)"],
-        ["Collated - Needle Point (S)", "COLLATED", "NEEDLE POINT (S)"],
-        ["Collated - Coarse (W)", "COLLATED", "COARSE (W)"]
+      const rows = [
+        ["Loose - Needle Point (S)", "LOOSE|NEEDLE POINT (S)"],
+        ["Loose - Coarse (W)", "LOOSE|COARSE (W)"],
+        ["Collated - Needle Point (S)", "COLLATED|NEEDLE POINT (S)"],
+        ["Collated - Coarse (W)", "COLLATED|COARSE (W)"]
       ];
-      screws.rows = desiredRows.map(([label, group, item]) => {
+      screws.columns = ["25 mm", "32 mm"];
+      screws.rows = rows.map(([label, signatureLabel]) => {
         const found = (screws.rows || []).find((row) => canonical(row.label) === canonical(label));
-        const cells = columns.map((column, index) => {
-          const sku = SCREW_SKUS[`${group}|${item}|${column}`];
-          return assignKey(found?.cells?.[index], `screw-${group}-${item}-${column}`, sku, `${group === "LOOSE" ? "Loose" : "Collated"} ${item}`, column);
-        });
-        return { ...(found || {}), label, cells };
+        return {
+          ...(found || {}),
+          label,
+          cells: ["25 MM", "32 MM"].map((length, index) => {
+            const sku = SCREW_SKUS[`${signatureLabel}|${length}`];
+            return assignKey(found?.cells?.[index], `screw-${signatureLabel}-${length}`, sku, label, length);
+          })
+        };
       });
     }
 
@@ -405,7 +407,7 @@
     const desiredRows = LISTS.partiwallExtra.map(([label, detail, sku]) => {
       const found = findListRow(originalRows, label, detail);
       if (sku === "__UNAVAILABLE__") {
-        return { ...(found || {}), label: "Aluminium Clips Flat\u200B (each)", detail, key: assignKey(found?.key, "partiwall-flat-unavailable", sku, label, detail), sourceUnavailable: true };
+        return { ...(found || {}), label: "Aluminium Clips Flat​ (each)", detail, key: assignKey(found?.key, "partiwall-flat-unavailable", sku, label, detail), sourceUnavailable: true };
       }
       return { ...(found || {}), label, detail, key: assignKey(found?.key, `partiwall-${sku}`, sku, label, detail) };
     });
@@ -522,6 +524,7 @@
       "PSIA INTERNAL ANGLE 135°": "PSIA Internal Angle 135°",
       "P18 INT": "P18 Int",
       "P40 INT": "P40 Int",
+      "METAL CASING BEAD 10 MM": "Metal Casing Bead 10 mm",
       "PVC CASING BEAD 10 MM": "PVC Casing Bead 10 mm",
       "BATTENS NAIL UP": "Battens Nail Up"
     };
