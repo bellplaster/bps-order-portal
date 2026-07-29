@@ -170,6 +170,11 @@ function loadDeliveryRefinement() {
   style.href = "/final-ui-polish.css?v=20260723-4";
   document.head.append(style);
 
+  const controlStyle = document.createElement("link");
+  controlStyle.rel = "stylesheet";
+  controlStyle.href = "/order-control-refinement.css?v=20260729-1";
+  document.head.append(controlStyle);
+
   const script = document.createElement("script");
   script.src = "/delivery-refinement.js?v=20260723-5";
   script.defer = true;
