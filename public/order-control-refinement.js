@@ -23,14 +23,6 @@
     document.body.append(script);
   }
 
-  if (!document.querySelector('script[data-metal-casing-bead="true"]')) {
-    const script = document.createElement("script");
-    script.src = "/metal-casing-bead-refinement.js?v=20260729-1";
-    script.defer = true;
-    script.dataset.metalCasingBead = "true";
-    document.body.append(script);
-  }
-
   const syncRequiredDateState = () => {
     const input = document.getElementById("requiredDate");
     if (!(input instanceof HTMLInputElement)) return false;
