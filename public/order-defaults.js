@@ -10,6 +10,11 @@
     return /^\d{4}-\d{2}-\d{2}$/.test(text) && text >= today ? text : "";
   }
 
+  function normaliseTimeSlot(value) {
+    const slot = String(value || "").trim().toUpperCase();
+    return ["1ST", "2ND", "AM", "PM"].includes(slot) ? slot : "";
+  }
+
   function fullAddress(defaults) {
     const street = String(defaults.street || "").trim();
     const suburb = String(defaults.suburb || "").trim();
@@ -40,12 +45,50 @@
     return true;
   }
 
+  function removeAnyTimeSlot() {
+    document.querySelectorAll('input[name="timeSlot"][value="ANY"]').forEach((input) => input.closest("label")?.remove());
+    document.querySelectorAll('.delivery-select-timeSlot .delivery-select option[value="ANY"]').forEach((option) => option.remove());
+  }
+
+  function visibleTimeSlotSelect() {
+    return document.querySelector(".delivery-select-timeSlot .delivery-select");
+  }
+
+  function ensureTimeSlotPlaceholder() {
+    removeAnyTimeSlot();
+    const select = visibleTimeSlotSelect();
+    if (!(select instanceof HTMLSelectElement)) return false;
+    let placeholder = [...select.options].find((option) => option.value === "");
+    if (!placeholder) {
+      placeholder = new Option("Select time slot", "");
+      select.insertBefore(placeholder, select.firstChild);
+    } else {
+      placeholder.textContent = "Select time slot";
+    }
+    return true;
+  }
+
+  function syncVisibleDeliveryControls() {
+    ensureTimeSlotPlaceholder();
+    if (typeof window.syncUnifiedDeliveryControls === "function") {
+      window.syncUnifiedDeliveryControls();
+    }
+    const timeSelect = visibleTimeSlotSelect();
+    const selectedTime = document.querySelector('input[name="timeSlot"]:checked');
+    if (timeSelect) timeSelect.value = selectedTime?.value || "";
+
+    const deliverySelect = document.querySelector(".delivery-select-deliveryType .delivery-select");
+    const selectedDelivery = document.querySelector('input[name="deliveryType"]:checked');
+    if (deliverySelect) deliverySelect.value = selectedDelivery?.value || "";
+  }
+
   function controlsReady() {
     return Boolean(
       state?.account
       && document.getElementById("deliveryStreet")
       && document.getElementById("deliveryAddressSearch")
       && document.getElementById("deliveryPostcode")
+      && visibleTimeSlotSelect()
       && document.querySelector(".delivery-select-deliveryType .delivery-select")
     );
   }
@@ -57,6 +100,7 @@
     const street = document.getElementById("deliveryStreet");
     const suburb = document.getElementById("deliveryAddressSearch");
     const postcode = document.getElementById("deliveryPostcode");
+    const savedTimeSlot = normaliseTimeSlot(defaults.timeSlot);
 
     applying = true;
     state.suppressDraft = true;
@@ -70,7 +114,7 @@
       setValue("deliveryInstructions", defaults.instructions || "");
 
       document.querySelectorAll('input[name="timeSlot"]').forEach((input) => {
-        input.checked = Boolean(defaults.timeSlot) && input.value === defaults.timeSlot;
+        input.checked = Boolean(savedTimeSlot) && input.value === savedTimeSlot;
       });
       document.querySelectorAll('input[name="deliveryType"]').forEach((input) => {
         input.checked = Boolean(defaults.deliveryType) && input.value === defaults.deliveryType;
@@ -89,7 +133,7 @@
       setValue("deliveryAddress", fullAddress(defaults));
 
       if (typeof syncStructuredAddress === "function") syncStructuredAddress();
-      if (typeof syncDeliverySelect === "function") syncDeliverySelect();
+      syncVisibleDeliveryControls();
       if (typeof updateExtrasSummary === "function") updateExtrasSummary();
       if (typeof updatePickupMode === "function") updatePickupMode();
       if (typeof updateFutureDateConfirmation === "function") updateFutureDateConfirmation();
@@ -128,12 +172,11 @@
 
   function initialiseDefaults() {
     ensureHeaderIdentity();
+    removeAnyTimeSlot();
+    ensureTimeSlotPlaceholder();
     bindCapturedResetButtons();
     if (initialised || !controlsReady() || !installResetWrapper()) return initialised;
 
-    // The base application has already built a clean product workspace.
-    // Applying account defaults must not call resetOrder again here, because
-    // later tab refinements can remove the freshly rendered product panels.
     initialised = applyFreshOrderDefaults();
     return initialised;
   }
@@ -142,6 +185,8 @@
   const timer = window.setInterval(() => {
     attempts += 1;
     ensureHeaderIdentity();
+    removeAnyTimeSlot();
+    ensureTimeSlotPlaceholder();
     if (initialiseDefaults() || attempts >= 150) window.clearInterval(timer);
   }, 100);
 
