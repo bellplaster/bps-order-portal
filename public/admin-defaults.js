@@ -86,24 +86,16 @@
 
   function keepAdminDefaultsVisible() {
     const form = document.getElementById("accountForm");
-    const adminSection = document.getElementById("adminSection");
-    if (!form || !adminSection || form.dataset.adminVisibilityGuard === "true") return;
+    if (!form || form.dataset.adminVisibilityGuard === "true") return;
     form.dataset.adminVisibilityGuard = "true";
 
     const repair = () => {
-      if (typeof data !== "undefined" && data?.profile?.role === "admin") revealAdminDefaultsForm();
+      if (typeof data === "undefined" || data?.profile?.role !== "admin") return;
+      if (form.hidden || form.hasAttribute("hidden")) revealAdminDefaultsForm();
     };
 
-    const observer = new MutationObserver(repair);
-    observer.observe(form, { attributes: true, attributeFilter: ["hidden", "class"] });
-    observer.observe(adminSection, { attributes: true, attributeFilter: ["hidden", "class"] });
-
-    let attempts = 0;
-    const timer = window.setInterval(() => {
-      attempts += 1;
-      repair();
-      if (attempts >= 100) window.clearInterval(timer);
-    }, 100);
+    repair();
+    window.setInterval(repair, 500);
   }
 
   async function initialiseAdminAccountDefaults() {
