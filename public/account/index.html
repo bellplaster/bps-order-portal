@@ -95,9 +95,9 @@
           <label class="account-field"><span>Required date</span><input id="defaultRequiredDate" type="date"></label>
           <label class="account-field"><span>Contact</span><input id="defaultContactName" maxlength="100" autocomplete="name"></label>
           <label class="account-field"><span>Phone</span><input id="defaultMobile" type="tel" maxlength="16" inputmode="tel" autocomplete="tel" placeholder="Phone"></label>
-          <label class="account-field account-field-wide"><span>Street</span><input id="defaultStreet" maxlength="240" autocomplete="street-address"></label>
-          <label class="account-field"><span>Suburb</span><input id="defaultSuburb" maxlength="120" autocomplete="address-level2"></label>
-          <label class="account-field account-field-divider"><span>Postcode</span><input id="defaultPostcode" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="postal-code"></label>
+          <label class="account-field account-field-wide"><span>Street</span><input id="defaultStreet" maxlength="240" autocomplete="off"></label>
+          <label class="account-field"><span>Suburb</span><input id="defaultSuburb" maxlength="120" autocomplete="off"></label>
+          <label class="account-field account-field-divider"><span>Postcode</span><input id="defaultPostcode" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" autocomplete="off"></label>
           <label class="account-field"><span>Time slot</span><select id="defaultTimeSlot"><option value="">Select time slot</option><option value="1ST">1st</option><option value="2ND">2nd</option><option value="AM">AM</option><option value="PM">PM</option></select></label>
           <label class="account-field account-field-divider"><span>Delivery type</span><select id="defaultDeliveryType"><option value="">Select delivery type</option><option value="Hand Unload">Hand Unload</option><option value="Forklift Delivery">Forklift Delivery</option><option value="Crane Delivery">Crane Delivery</option><option value="Delivery (No Assistance)">Delivery (No Assistance)</option><option value="Pickup (Customer to collect)">Customer Pickup</option></select></label>
           <label class="account-field account-field-wide"><span>Instructions</span><textarea id="defaultInstructions" rows="3" maxlength="1500" placeholder="Access, unloading or site notes"></textarea></label>
@@ -210,6 +210,7 @@
 
   <script src="/account.js?v=20260728-5" defer></script>
   <script src="/phone-date-refinement.js?v=20260724-2" defer></script>
-  <script src="/admin-defaults.js?v=20260729-1" defer></script>
+  <script src="/account-address.js?v=20260730-1" defer></script>
+  <script src="/admin-defaults.js?v=20260729-2" defer></script>
 </body>
 </html>
