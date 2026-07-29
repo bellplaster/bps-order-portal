@@ -1,6 +1,12 @@
 (() => {
   const MAX_RESULTS = 100;
   const DEFAULT_TAB = { id: 'tab-1', label: 'Tab 1' };
+  const METAL_CASING_BEAD = {
+    key: 'source-rondo-metal-casing-bead-10-mm-3000',
+    sku: 'P0503000',
+    label: 'Metal Casing Bead 10 mm',
+    detail: '3000 mm',
+  };
   let attempts = 0;
   let defaultTabInitialised = false;
 
@@ -56,6 +62,57 @@
     try { resetOrder = patched; } catch (_error) { }
   }
 
+  function registerMetalCasingBead() {
+    if (typeof state === 'undefined') return;
+    if (!state.catalog) state.catalog = {};
+    const existing = state.catalog[METAL_CASING_BEAD.key] || {};
+    state.catalog[METAL_CASING_BEAD.key] = {
+      ...existing,
+      key: METAL_CASING_BEAD.key,
+      sku: METAL_CASING_BEAD.sku,
+      stockCode: METAL_CASING_BEAD.sku,
+      label: METAL_CASING_BEAD.label,
+      description: METAL_CASING_BEAD.label,
+      detail: METAL_CASING_BEAD.detail,
+      mapped: true,
+      available: true,
+    };
+  }
+
+  function ensureMetalCasingBead(floor) {
+    const root = document.getElementById(`${floor}OrderSheet`);
+    if (!root || typeof createQuantityCell !== 'function') return;
+
+    registerMetalCasingBead();
+
+    const section = [...root.querySelectorAll('.pdf-product-section')].find((candidate) => {
+      const heading = candidate.querySelector(':scope > .pdf-section-title');
+      return String(heading?.textContent || '').trim().toUpperCase() === 'RONDO/PVC';
+    });
+    const tbody = section?.querySelector('table tbody');
+    if (!tbody || tbody.querySelector(`tr[data-product-key="${METAL_CASING_BEAD.key}"]`)) return;
+
+    const columns = state.layout?.sections?.rondo?.columns || ['1800', '2400', '2700', '3000', '3600', '6000'];
+    const row = document.createElement('tr');
+    row.dataset.productKey = METAL_CASING_BEAD.key;
+
+    const heading = document.createElement('th');
+    heading.scope = 'row';
+    heading.textContent = METAL_CASING_BEAD.label;
+    row.append(heading);
+
+    columns.forEach((length) => {
+      const normalized = String(length || '').match(/\d+/)?.[0] || '';
+      row.append(createQuantityCell(floor, normalized === '3000' ? METAL_CASING_BEAD.key : null));
+    });
+
+    const pvcRow = [...tbody.rows].find((candidate) =>
+      /PVC\s+Casing\s+Bead\s+10\s*mm/i.test(candidate.cells?.[0]?.textContent || '')
+    );
+    if (pvcRow) tbody.insertBefore(row, pvcRow);
+    else tbody.append(row);
+  }
+
   function refinePanelLabels(panel) {
     const selectedHeader = panel?.querySelector('.selected-additional-header');
     if (selectedHeader) {
@@ -99,10 +156,12 @@
 
   function restructureFloor(floor) {
     const root = document.getElementById(`${floor}OrderSheet`);
-    const grid = root?.querySelector('.lower-catalogue-grid');
-    const panel = root?.querySelector('.additional-products-panel');
     if (!root) return;
 
+    ensureMetalCasingBead(floor);
+
+    const grid = root.querySelector('.lower-catalogue-grid');
+    const panel = root.querySelector('.additional-products-panel');
     markBoardProductBoundaries(root);
     if (!grid || !panel) return;
     refinePanelLabels(panel);
@@ -139,6 +198,7 @@
     if (typeof original !== 'function' || original.__additionalProductsRefined) return;
     const patched = function renderUnifiedFloorSheetWithCompactSearch(floor, ...args) {
       const result = original.call(this, floor, ...args);
+      ensureMetalCasingBead(floor);
       restructureFloor(floor);
       return result;
     };
@@ -193,6 +253,7 @@
 
   function initialise() {
     initialiseDefaultTab();
+    registerMetalCasingBead();
     patchResetOrder();
     patchRenderer();
     patchSearch();
