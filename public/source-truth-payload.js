@@ -3,21 +3,17 @@
   refineInterface();
   refineValidationMessage();
 
+  // Keep standard matrix products and manually searched Additional Products
+  // in separate payload collections. The API applies different validation
+  // limits and catalogue handling to each collection.
   buildFloorPayload = function buildSourceTruthFloorPayload(floor) {
-    const totals = new Map();
-    [...state.quantities[floor].entries()]
-      .filter(([, quantity]) => quantity > 0)
-      .forEach(([key, quantity]) => {
-        const product = state.catalog[key];
-        const sku = String(product?.sku || "").trim();
-        if (sku && sku !== "__UNAVAILABLE__") totals.set(sku, (totals.get(sku) || 0) + quantity);
-      });
-    (state.otherMaterials[floor] || [])
-      .filter((item) => item.quantity > 0)
-      .forEach((item) => totals.set(item.sku, (totals.get(item.sku) || 0) + item.quantity));
     return {
-      items: [],
-      otherMaterials: [...totals.entries()].map(([sku, quantity]) => ({ sku, quantity })),
+      items: [...state.quantities[floor].entries()]
+        .filter(([, quantity]) => quantity > 0)
+        .map(([key, quantity]) => ({ key, quantity })),
+      otherMaterials: (state.otherMaterials[floor] || [])
+        .filter((item) => item.quantity > 0)
+        .map((item) => ({ sku: item.sku, quantity: item.quantity })),
     };
   };
 
