@@ -1,6 +1,8 @@
 (() => {
   if (document.getElementById("tab-drag-indicator-fix")) return;
 
+  removeLegacyDragIndicatorRules();
+
   const style = document.createElement("style");
   style.id = "tab-drag-indicator-fix";
   style.textContent = `
@@ -34,4 +36,22 @@
     }
   `;
   document.head.append(style);
+
+  function removeLegacyDragIndicatorRules() {
+    document.querySelectorAll("style").forEach((legacyStyle) => {
+      if (legacyStyle.id === "tab-drag-indicator-fix") return;
+      const sheet = legacyStyle.sheet;
+      if (!sheet) return;
+      try {
+        for (let index = sheet.cssRules.length - 1; index >= 0; index -= 1) {
+          const selector = sheet.cssRules[index]?.selectorText || "";
+          if (selector.includes(".area-tab-shell.drop-before") || selector.includes(".area-tab-shell.drop-after")) {
+            sheet.deleteRule(index);
+          }
+        }
+      } catch (_error) {
+        // Ignore inaccessible style sheets; injected same-page tab styles remain removable.
+      }
+    });
+  }
 })();
