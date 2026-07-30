@@ -17,7 +17,7 @@
 
   if (!document.querySelector('script[data-admin-defaults="true"]')) {
     const script = document.createElement("script");
-    script.src = "/admin-defaults.js?v=20260729-1";
+    script.src = "/admin-defaults.js?v=20260731-1";
     script.defer = true;
     script.dataset.adminDefaults = "true";
     document.body.append(script);
