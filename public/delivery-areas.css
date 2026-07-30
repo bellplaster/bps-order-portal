@@ -49,15 +49,21 @@
 }
 
 .area-tab-shell {
+  position: relative !important;
   display: inline-flex !important;
   flex: 0 0 auto !important;
   min-width: 88px !important;
   height: 32px !important;
   align-items: stretch !important;
-  overflow: hidden !important;
+  overflow: visible !important;
   border: 1px solid #bcc6c3 !important;
   background: #ffffff !important;
   box-shadow: none !important;
+  cursor: grab !important;
+}
+
+.area-tab-shell:active {
+  cursor: grabbing !important;
 }
 
 .area-tab-shell:hover {
@@ -67,6 +73,30 @@
 .area-tab-shell.is-active {
   border-color: var(--bell-maroon) !important;
   background: var(--bell-maroon) !important;
+}
+
+.area-tab-shell.is-dragging {
+  opacity: 0.45 !important;
+}
+
+.area-tab-shell.drop-before::before,
+.area-tab-shell.drop-after::after {
+  position: absolute !important;
+  top: -2px !important;
+  bottom: -2px !important;
+  display: block !important;
+  width: 3px !important;
+  content: "" !important;
+  background: var(--bell-maroon) !important;
+  z-index: 3 !important;
+}
+
+.area-tab-shell.drop-before::before {
+  left: -4px !important;
+}
+
+.area-tab-shell.drop-after::after {
+  right: -4px !important;
 }
 
 .floor-tab {
