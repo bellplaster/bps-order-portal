@@ -23,31 +23,30 @@ export async function replaceAreaExportsWithCombined(env, payload, result, auth)
   const productRows = [];
   for (const [areaKey, area] of areaEntries) {
     const label = upper(area.label || areaKey || "AREA");
-    const unit = parseUnitLabel(label);
-    if (unit) productRows.push([`UNIT ${unit}`, `UNIT ${unit}`, 1]);
+
+    // Every visible tab becomes its own Accrivia stock-code marker, even when the
+    // tab does not contain products. The description is deliberately blank.
+    productRows.push([label, "", 1]);
 
     const rows = [];
     for (const item of Array.isArray(area.items) ? area.items : []) {
       const product = PRODUCT_CATALOG[String(item?.key || "").trim()] || {};
       const sku = upper(item?.sku || product.sku);
-      const description = upper(item?.description || item?.name || product.description || product.label);
       const quantity = Number(item?.quantity || 0);
-      if (sku && Number.isInteger(quantity) && quantity > 0) rows.push({ sku, description, quantity });
+      if (sku && Number.isInteger(quantity) && quantity > 0) rows.push({ sku, quantity });
     }
     for (const item of Array.isArray(area.otherMaterials) ? area.otherMaterials : []) {
       const sku = upper(item?.sku);
-      const description = upper(item?.description || item?.name || item?.sku);
       const quantity = Number(item?.quantity || 0);
-      if (sku && Number.isInteger(quantity) && quantity > 0) rows.push({ sku, description, quantity });
+      if (sku && Number.isInteger(quantity) && quantity > 0) rows.push({ sku, quantity });
     }
     productRows.push(...combineRows(rows, label));
   }
 
   if (!productRows.length) throw new Error("The combined Accrivia export contains no products.");
 
-  // Accrivia imports this final stock-code row as the complete delivery note.
-  // Keep it after every unit marker and product so staff can find it at the
-  // bottom of the imported order without checking separate fields.
+  // NOTES is the only line below the heading row that keeps a description,
+  // because Accrivia uses it as the complete delivery note.
   productRows.push(["NOTES", buildDeliveryNotesDescription(payload), 1]);
 
   const pickup = isPickup(payload?.deliveryType);
@@ -123,13 +122,12 @@ function combineRows(items, areaLabel) {
   const combined = new Map();
   for (const item of items) {
     const key = item.sku.toUpperCase();
-    const current = combined.get(key) || { ...item, quantity: 0 };
+    const current = combined.get(key) || { sku: item.sku, quantity: 0 };
     current.quantity += item.quantity;
     if (current.quantity > 10000) throw new Error(`${areaLabel}: combined quantity for ${item.sku} exceeds 10000.`);
-    if (!current.description && item.description) current.description = item.description;
     combined.set(key, current);
   }
-  return [...combined.values()].map((item) => [upper(item.sku), upper(item.description), item.quantity]);
+  return [...combined.values()].map((item) => [upper(item.sku), "", item.quantity]);
 }
 
 function buildDeliveryNotesDescription(payload) {
