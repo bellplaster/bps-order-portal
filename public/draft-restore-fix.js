@@ -47,6 +47,14 @@
     document.body.append(script);
   }
 
+  if (!document.querySelector('script[data-linked-contact-picker="true"]')) {
+    const script = document.createElement("script");
+    script.src = "/linked-contact-picker.js?v=20260730-1";
+    script.defer = true;
+    script.dataset.linkedContactPicker = "true";
+    document.body.append(script);
+  }
+
   const syncRequiredDateState = () => {
     const input = document.getElementById("requiredDate");
     if (!(input instanceof HTMLInputElement)) return false;
