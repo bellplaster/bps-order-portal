@@ -1,6 +1,15 @@
 (() => {
   let placesPromise = null;
 
+  function loadAdminUserGroups() {
+    if (!document.getElementById("usersList") || document.querySelector('script[data-admin-user-groups="true"]')) return;
+    const script = document.createElement("script");
+    script.src = "/admin-user-groups.js?v=20260730-1";
+    script.defer = true;
+    script.dataset.adminUserGroups = "true";
+    document.body.append(script);
+  }
+
   function fetchJson(url) {
     return fetch(url, {
       credentials: "same-origin",
@@ -146,6 +155,7 @@
 
   async function initialise() {
     if (!document.body.classList.contains("account-page")) return;
+    loadAdminUserGroups();
     initialiseReferenceField();
 
     const fields = {
