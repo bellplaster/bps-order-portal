@@ -328,7 +328,9 @@ function cleanOrderDefaults(input) {
   if (!DELIVERY_TYPES.has(deliveryType)) throw badRequest("Choose a valid default delivery type.");
   const extras = [...new Set((Array.isArray(source.extras) ? source.extras : []).map(String).filter((value) => DELIVERY_EXTRAS.has(value)))];
   const reference = cleanOptional(source.reference, 80);
-  if (reference && !/^\d+$/.test(reference)) throw badRequest("Default reference must contain numbers only.");
+  if (reference && !/^\d+(?:-\d+)*$/.test(reference)) {
+    throw badRequest("Default reference must use numbers with optional single dashes.");
+  }
   return {
     reference,
     requiredDate,
