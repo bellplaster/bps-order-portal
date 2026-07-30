@@ -42,7 +42,13 @@ export async function onRequestPost(context) {
 
     const reference = String(payload.reference || payload.customerReference || "").trim();
     const submissionId = String(payload.submissionId || "").trim();
-    if (accountId && reference && context.env.DB) {
+    if (!/^\d+(?:-\d+)*$/.test(reference)) {
+      return Response.json(
+        { ok: false, error: "Reference must use numbers with optional single dashes, for example 8888-1.", requestId },
+        { status: 400, headers: { "Cache-Control": "no-store", "X-Request-ID": requestId } },
+      );
+    }
+    if (accountId && context.env.DB) {
       const duplicate = await context.env.DB.prepare(
         `SELECT submission_id
          FROM orders
