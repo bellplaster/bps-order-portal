@@ -14,6 +14,37 @@
     });
   }
 
+  function cleanReference(value) {
+    return String(value || "")
+      .replace(/[^0-9-]/g, "")
+      .replace(/-{2,}/g, "-")
+      .replace(/^-+/g, "")
+      .slice(0, 30);
+  }
+
+  function initialiseReferenceField() {
+    const input = document.getElementById("defaultReference");
+    if (!input) return;
+
+    input.oninput = null;
+    input.inputMode = "text";
+    input.pattern = "[0-9]+(?:-[0-9]+)*";
+    input.maxLength = 30;
+    input.title = "Use numbers with optional dashes, for example 8888-1.";
+    input.value = cleanReference(input.value);
+
+    if (input.dataset.referenceFormat === "true") return;
+    input.dataset.referenceFormat = "true";
+    input.addEventListener("input", () => {
+      const cleaned = cleanReference(input.value);
+      if (input.value !== cleaned) input.value = cleaned;
+      input.setCustomValidity("");
+    });
+    input.addEventListener("invalid", () => {
+      input.setCustomValidity("Use numbers with single dashes, for example 8888-1.");
+    });
+  }
+
   function loadPlaces(apiKey) {
     if (window.google?.maps?.places) return Promise.resolve();
     if (placesPromise) return placesPromise;
@@ -115,6 +146,7 @@
 
   async function initialise() {
     if (!document.body.classList.contains("account-page")) return;
+    initialiseReferenceField();
 
     const fields = {
       street: document.getElementById("defaultStreet"),
