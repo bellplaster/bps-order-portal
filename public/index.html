@@ -79,7 +79,7 @@
           <div class="sheet-details-grid">
             <div class="sheet-field-row">
               <label for="reference">Reference</label>
-              <input id="reference" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="30" autocomplete="off" required placeholder="Reference">
+              <input id="reference" type="text" inputmode="text" pattern="[0-9]+(?:-[0-9]+)*" maxlength="30" autocomplete="off" required placeholder="Reference" title="Use numbers with optional dashes, for example 8888-1.">
             </div>
             <div class="sheet-field-row">
               <label for="requiredDate">Required date</label>
@@ -223,9 +223,9 @@
   <script src="/delivery-areas.js?v=20260724-1" defer></script>
   <script src="/source-truth-payload.js?v=20260729-3" defer></script>
   <script src="/payload-sku-bridge.js?v=20260729-1" defer></script>
-  <script src="/phone-date-refinement.js?v=20260728-6" defer></script>
+  <script src="/phone-date-refinement.js?v=20260730-1" defer></script>
   <script src="/additional-products-refinement.js?v=20260729-2" defer></script>
-  <script src="/review-metrics-refinement.js?v=20260728-6" defer></script>
+  <script src="/review-metrics-refinement.js?v=20260730-1" defer></script>
   <script src="/draft-restore-fix.js?v=20260728-2" defer></script>
 </body>
 </html>
