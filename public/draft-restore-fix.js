@@ -55,6 +55,14 @@
     document.body.append(script);
   }
 
+  if (!document.querySelector('script[data-order-form-enhancements="true"]')) {
+    const script = document.createElement("script");
+    script.src = "/order-form-enhancements.js?v=20260730-1";
+    script.defer = true;
+    script.dataset.orderFormEnhancements = "true";
+    document.body.append(script);
+  }
+
   const syncRequiredDateState = () => {
     const input = document.getElementById("requiredDate");
     if (!(input instanceof HTMLInputElement)) return false;
