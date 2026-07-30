@@ -1,12 +1,12 @@
 (() => {
   let placesPromise = null;
 
-  function loadAdminUserGroups() {
-    if (!document.getElementById("usersList") || document.querySelector('script[data-admin-user-groups="true"]')) return;
+  function loadAdminUserManagement() {
+    if (!document.getElementById("usersList") || document.querySelector('script[data-admin-user-management="true"]')) return;
     const script = document.createElement("script");
-    script.src = "/admin-user-groups.js?v=20260730-1";
+    script.src = "/admin-user-management.js?v=20260730-2";
     script.defer = true;
-    script.dataset.adminUserGroups = "true";
+    script.dataset.adminUserManagement = "true";
     document.body.append(script);
   }
 
@@ -155,7 +155,7 @@
 
   async function initialise() {
     if (!document.body.classList.contains("account-page")) return;
-    loadAdminUserGroups();
+    loadAdminUserManagement();
     initialiseReferenceField();
 
     const fields = {
@@ -165,7 +165,6 @@
     };
     if (!fields.street || !fields.suburb || !fields.postcode) return;
 
-    // Prevent the older admin-defaults handler from attaching its street-only autocomplete.
     fields.street.dataset.placesBound = "true";
     fields.street.autocomplete = "off";
     fields.suburb.autocomplete = "off";
