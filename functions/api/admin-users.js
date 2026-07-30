@@ -4,7 +4,7 @@ import { json } from "../_shared/responses.js";
 
 export async function onRequestGet(context) {
   try {
-    requireAdmin(context);
+    const auth = requireAdmin(context);
     await ensureSchema(context.env.DB);
     const [accounts, users] = await Promise.all([
       context.env.DB.prepare(`SELECT id, debtor_code, company_name, active FROM customer_accounts ORDER BY company_name COLLATE NOCASE`).all(),
@@ -13,9 +13,17 @@ export async function onRequestGet(context) {
                                     a.company_name, a.debtor_code
                              FROM users u
                              LEFT JOIN customer_accounts a ON a.id = u.account_id
-                             ORDER BY COALESCE(a.company_name, 'Bell Plaster') COLLATE NOCASE, u.username COLLATE NOCASE`).all(),
+                             ORDER BY CASE WHEN u.role = 'admin' THEN 0 ELSE 1 END,
+                                      COALESCE(a.company_name, 'Bell Plaster') COLLATE NOCASE,
+                                      u.is_primary DESC,
+                                      u.username COLLATE NOCASE`).all(),
     ]);
-    return json({ ok: true, accounts: accounts.results || [], users: users.results || [] });
+    return json({
+      ok: true,
+      currentUserId: Number(auth.userId),
+      accounts: accounts.results || [],
+      users: users.results || [],
+    });
   } catch (error) {
     return fail(error);
   }
@@ -28,9 +36,11 @@ export async function onRequestPost(context) {
     const body = await context.request.json().catch(() => null);
     if (!body || typeof body !== "object") throw badRequest("Invalid portal user request.");
     const action = String(body.action || "").trim().toLowerCase();
+
+    if (action === "create") return createUser(context.env.DB, body);
+
     const userId = Number(body.userId || 0);
     if (!userId) throw badRequest("Choose a portal user.");
-
     const existing = await context.env.DB.prepare(`SELECT * FROM users WHERE id = ? LIMIT 1`).bind(userId).first();
     if (!existing) throw notFound("Portal user not found.");
 
@@ -43,43 +53,110 @@ export async function onRequestPost(context) {
     if (action !== "update") throw badRequest("Unknown portal user action.");
 
     const username = normaliseUsername(body.username ?? existing.username);
-    const duplicate = await context.env.DB.prepare(`SELECT id FROM users WHERE username = ? COLLATE NOCASE AND id <> ? LIMIT 1`).bind(username, userId).first();
-    if (duplicate) throw conflict("That username is already in use.");
+    await assertUniqueUsername(context.env.DB, username, userId);
 
     const role = existing.role === "admin" ? "admin" : "customer";
     const accountId = role === "admin" ? null : Number(body.accountId || existing.account_id || 0);
-    if (role === "customer" && !accountId) throw badRequest("Choose a customer account.");
-    if (role === "customer") {
-      const account = await context.env.DB.prepare(`SELECT id FROM customer_accounts WHERE id = ? LIMIT 1`).bind(accountId).first();
-      if (!account) throw badRequest("Customer account not found.");
-    }
+    if (role === "customer") await assertCustomerAccount(context.env.DB, accountId, false);
 
     const contactName = cleanOptional(body.contactName, 100);
-    const mobile = normaliseAustralianPhone(body.mobile, { optional: true, error: "Enter a valid Australian phone number." });
+    const mobile = normaliseAustralianPhone(body.mobile, {
+      optional: true,
+      error: "Enter a valid Australian phone number.",
+    });
     const active = body.active === false ? 0 : 1;
-    const primary = role === "customer" && body.primary === true ? 1 : 0;
+    if (userId === Number(auth.userId) && role === "admin" && !active) {
+      throw badRequest("You cannot deactivate your own administrator account.");
+    }
+    const primary = role === "customer" && active === 1 && body.primary === true ? 1 : 0;
     const now = new Date().toISOString();
 
-    if (primary) {
-      await context.env.DB.prepare(`UPDATE users SET is_primary = 0, updated_at = ? WHERE account_id = ? AND role = 'customer'`).bind(now, accountId).run();
-    }
+    if (primary) await clearPrimary(context.env.DB, accountId, now);
 
     await context.env.DB.prepare(`UPDATE users
                                   SET username = ?, account_id = ?, default_contact_name = ?, default_mobile = ?,
                                       active = ?, is_primary = ?, updated_at = ?
-                                  WHERE id = ?`).bind(username, accountId, contactName, mobile, active, primary, now, userId).run();
+                                  WHERE id = ?`)
+      .bind(username, accountId, contactName, mobile, active, primary, now, userId).run();
 
     const newPassword = String(body.newPassword || "");
-    if (newPassword) {
-      const password = await hashPassword(newPassword);
-      await context.env.DB.prepare(`UPDATE users SET password_hash = ?, password_salt = ?, password_iterations = ?, updated_at = ? WHERE id = ?`)
-        .bind(password.hash, password.salt, password.iterations, now, userId).run();
-    }
+    if (newPassword) await updatePassword(context.env.DB, userId, newPassword, now);
 
     return json({ ok: true });
   } catch (error) {
     return fail(error);
   }
+}
+
+async function createUser(db, body) {
+  const username = normaliseUsername(body.username);
+  await assertUniqueUsername(db, username, 0);
+
+  const role = body.role === "admin" ? "admin" : "customer";
+  const accountId = role === "admin" ? null : Number(body.accountId || 0);
+  if (role === "customer") await assertCustomerAccount(db, accountId, true);
+
+  const passwordValue = String(body.password || "");
+  if (passwordValue.length < 8) throw badRequest("Password must contain at least 8 characters.");
+  const password = await hashPassword(passwordValue);
+  const contactName = cleanOptional(body.contactName, 100);
+  const mobile = normaliseAustralianPhone(body.mobile, {
+    optional: true,
+    error: "Enter a valid Australian phone number.",
+  });
+  const primary = role === "customer" && body.primary === true ? 1 : 0;
+  const now = new Date().toISOString();
+
+  if (primary) await clearPrimary(db, accountId, now);
+
+  const result = await db.prepare(`INSERT INTO users (
+      account_id, username, password_hash, password_salt, password_iterations,
+      role, active, is_primary, default_contact_name, default_mobile,
+      order_defaults_json, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, '{}', ?, ?)`)
+    .bind(
+      accountId,
+      username,
+      password.hash,
+      password.salt,
+      password.iterations,
+      role,
+      primary,
+      contactName,
+      mobile,
+      now,
+      now,
+    ).run();
+
+  return json({ ok: true, userId: Number(result?.meta?.last_row_id || 0) }, 201);
+}
+
+async function assertUniqueUsername(db, username, excludedUserId) {
+  const duplicate = excludedUserId
+    ? await db.prepare(`SELECT id FROM users WHERE username = ? COLLATE NOCASE AND id <> ? LIMIT 1`).bind(username, excludedUserId).first()
+    : await db.prepare(`SELECT id FROM users WHERE username = ? COLLATE NOCASE LIMIT 1`).bind(username).first();
+  if (duplicate) throw conflict("That username is already in use.");
+}
+
+async function assertCustomerAccount(db, accountId, requireActive) {
+  if (!accountId) throw badRequest("Choose a customer account.");
+  const account = await db.prepare(`SELECT id, active FROM customer_accounts WHERE id = ? LIMIT 1`).bind(accountId).first();
+  if (!account) throw badRequest("Customer account not found.");
+  if (requireActive && Number(account.active) !== 1) throw badRequest("Choose an active customer account.");
+}
+
+async function clearPrimary(db, accountId, now) {
+  await db.prepare(`UPDATE users SET is_primary = 0, updated_at = ? WHERE account_id = ? AND role = 'customer'`)
+    .bind(now, accountId).run();
+}
+
+async function updatePassword(db, userId, value, now) {
+  if (value.length < 8) throw badRequest("Password must contain at least 8 characters.");
+  const password = await hashPassword(value);
+  await db.prepare(`UPDATE users
+                    SET password_hash = ?, password_salt = ?, password_iterations = ?, updated_at = ?
+                    WHERE id = ?`)
+    .bind(password.hash, password.salt, password.iterations, now, userId).run();
 }
 
 function requireAdmin(context) {
@@ -92,16 +169,32 @@ function requireAdmin(context) {
 async function ensureSchema(db) {
   const columns = await db.prepare(`PRAGMA table_info(users)`).all();
   const names = new Set((columns.results || []).map((row) => String(row.name)));
-  if (!names.has("is_primary")) await db.prepare(`ALTER TABLE users ADD COLUMN is_primary INTEGER NOT NULL DEFAULT 0`).run();
-  await db.prepare(`UPDATE users SET is_primary = 0 WHERE role <> 'customer' OR account_id IS NULL`).run();
+  if (!names.has("is_primary")) {
+    await db.prepare(`ALTER TABLE users ADD COLUMN is_primary INTEGER NOT NULL DEFAULT 0`).run();
+  }
+  await db.prepare(`UPDATE users SET is_primary = 0 WHERE role <> 'customer' OR account_id IS NULL OR active <> 1`).run();
+  await db.prepare(`UPDATE users
+                    SET is_primary = 0
+                    WHERE is_primary = 1
+                      AND id NOT IN (
+                        SELECT MIN(id) FROM users WHERE is_primary = 1 GROUP BY account_id
+                      )`).run();
+  await db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_one_primary_per_account
+                    ON users(account_id)
+                    WHERE is_primary = 1 AND role = 'customer'`).run();
 }
 
 function normaliseUsername(value) {
   const username = String(value || "").trim().toLowerCase();
-  if (!/^[a-z0-9._-]{3,80}$/.test(username)) throw badRequest("Username must be 3–80 characters using letters, numbers, dots, underscores or dashes.");
+  if (!/^[a-z0-9._-]{3,80}$/.test(username)) {
+    throw badRequest("Username must be 3–80 characters using letters, numbers, dots, underscores or dashes.");
+  }
   return username;
 }
-function cleanOptional(value, max) { return String(value || "").trim().replace(/\s+/g, " ").slice(0, max); }
+
+function cleanOptional(value, max) {
+  return String(value || "").trim().replace(/\s+/g, " ").slice(0, max);
+}
 function badRequest(message) { return Object.assign(new Error(message), { status: 400 }); }
 function notFound(message) { return Object.assign(new Error(message), { status: 404 }); }
 function conflict(message) { return Object.assign(new Error(message), { status: 409 }); }
