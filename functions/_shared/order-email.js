@@ -3,8 +3,8 @@ import { PRODUCT_CATALOG } from "./catalog.js";
 const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const MAX_ATTACHMENT_BYTES = 3_500_000;
 const DEFAULT_FROM = "portal@orders.bellplaster.com.au";
-const DEFAULT_TO = "info@bellplaster.com.au";
-const DEFAULT_CC = "zac@bellplaster.com.au,maria@bellplaster.com.au,marketing@bellplaster.com.au";
+const DEFAULT_TO = "marketing@bellplaster.com.au";
+const DEFAULT_CC = "";
 const DEFAULT_REPLY_TO = "info@bellplaster.com.au";
 
 export async function sendOrderFilesEmail(env, payload, result, auth = {}) {
