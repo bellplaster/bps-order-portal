@@ -1,14 +1,15 @@
 import { PRODUCT_CATALOG } from "./catalog.js";
 
 const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-const MAX_ATTACHMENT_BYTES = 4_500_000;
+const MAX_ATTACHMENT_BYTES = 3_500_000;
 const DEFAULT_FROM = "portal@orders.bellplaster.com.au";
 const DEFAULT_TO = "info@bellplaster.com.au";
 const DEFAULT_CC = "zac@bellplaster.com.au,maria@bellplaster.com.au,marketing@bellplaster.com.au";
 const DEFAULT_REPLY_TO = "info@bellplaster.com.au";
 
 export async function sendOrderFilesEmail(env, payload, result, auth = {}) {
-  if (!env?.ORDER_EMAIL?.send) return { sent: false, reason: "not_configured" };
+  const transport = emailTransport(env);
+  if (!transport) return { sent: false, reason: "not_configured" };
 
   const generatedFiles = Array.isArray(result?.generatedFiles) ? result.generatedFiles : [];
   if (!generatedFiles.length) return { sent: false, reason: "no_files" };
@@ -27,7 +28,7 @@ export async function sendOrderFilesEmail(env, payload, result, auth = {}) {
       return { sent: false, reason: "attachments_too_large" };
     }
     attachments.push({
-      content,
+      content: arrayBufferToBase64(content),
       filename: String(file.filename || "order.xlsx"),
       type: XLSX_MIME,
       disposition: "attachment",
@@ -153,13 +154,46 @@ export async function sendOrderFilesEmail(env, payload, result, auth = {}) {
   };
   if (cc.length) message.cc = cc;
 
-  const response = await env.ORDER_EMAIL.send(message);
+  const response = await sendEmail(env, message, transport);
   return {
     sent: true,
     messageId: response?.messageId || null,
     recipient: to.join(", "),
     cc,
     subject,
+    provider: transport,
+  };
+}
+
+function emailTransport(env) {
+  if (env?.ORDER_EMAIL?.send) return "binding";
+  if (String(env?.CLOUDFLARE_ACCOUNT_ID || "").trim() && String(env?.CLOUDFLARE_EMAIL_API_TOKEN || "").trim()) return "cloudflare_rest";
+  return "";
+}
+
+async function sendEmail(env, message, transport) {
+  if (transport === "binding") return env.ORDER_EMAIL.send(message);
+
+  const accountId = String(env.CLOUDFLARE_ACCOUNT_ID || "").trim();
+  const token = String(env.CLOUDFLARE_EMAIL_API_TOKEN || "").trim();
+  const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/email/sending/send`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(message),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok || body?.success === false) {
+    const details = Array.isArray(body?.errors)
+      ? body.errors.map((error) => error?.message || error?.code).filter(Boolean).join("; ")
+      : "";
+    throw new Error(details || `Cloudflare Email Service returned ${response.status}.`);
+  }
+  return {
+    messageId: body?.result?.message_id || body?.result?.messageId || null,
+    result: body?.result || null,
   };
 }
 
@@ -388,6 +422,16 @@ function parseEmailList(value) {
     .split(/[;,\n]+/)
     .map((address) => address.trim().toLowerCase())
     .filter(Boolean))];
+}
+
+function arrayBufferToBase64(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+  return btoa(binary);
 }
 
 function escapeHtml(value) {
