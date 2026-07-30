@@ -68,33 +68,60 @@
   }
 
   function cleanReference(value) {
-    return String(value || "").replace(/\D/g, "");
+    return String(value || "")
+      .replace(/[^0-9-]/g, "")
+      .replace(/-{2,}/g, "-")
+      .replace(/^-+/g, "")
+      .slice(0, 30);
+  }
+
+  function isValidReference(value) {
+    return /^\d+(?:-\d+)*$/.test(String(value || ""));
   }
 
   function initialiseReference() {
     const input = document.getElementById("reference");
     if (!input) return;
     input.placeholder = "Reference";
-    input.inputMode = "numeric";
-    input.pattern = "[0-9]*";
+    input.inputMode = "text";
+    input.pattern = "[0-9]+(?:-[0-9]+)*";
     input.maxLength = 30;
+    input.title = "Use numbers with optional dashes, for example 8888-1.";
     input.value = cleanReference(input.value);
-    if (input.dataset.numericReference === "true") return;
-    input.dataset.numericReference = "true";
+    if (input.dataset.referenceFormat === "true") return;
+    input.dataset.referenceFormat = "true";
     input.addEventListener("input", () => {
       const cleaned = cleanReference(input.value);
       if (input.value !== cleaned) input.value = cleaned;
+      input.setCustomValidity("");
     });
   }
 
   function patchReferenceSetValue() {
-    if (typeof setValue !== "function" || setValue.__numericReference) return;
+    if (typeof setValue !== "function" || setValue.__referenceFormat) return;
     const original = setValue;
-    const patched = function setNumericReference(id, nextValue, ...args) {
+    const patched = function setReferenceValue(id, nextValue, ...args) {
       return original.call(this, id, id === "reference" ? cleanReference(nextValue) : nextValue, ...args);
     };
-    patched.__numericReference = true;
+    patched.__referenceFormat = true;
     try { setValue = patched; } catch (_error) { }
+  }
+
+  function patchReferenceValidation() {
+    if (typeof validateForm !== "function" || validateForm.__referenceFormat) return;
+    const original = validateForm;
+    const patched = function validateReferenceFormat(...args) {
+      const reference = document.getElementById("reference")?.value.trim() || "";
+      if (reference && !isValidReference(reference)) {
+        const message = "Use numbers with single dashes, for example 8888-1.";
+        if (typeof fieldError === "function") throw fieldError("reference", message);
+        throw new Error(message);
+      }
+      return original.apply(this, args);
+    };
+    patched.__referenceFormat = true;
+    window.validateForm = patched;
+    try { validateForm = patched; } catch (_error) { }
   }
 
   function updateExtrasPlaceholder() {
@@ -274,6 +301,7 @@
     restoreNativeRequiredDate();
     initialiseReference();
     patchReferenceSetValue();
+    patchReferenceValidation();
     initialiseQuantityControls();
     updateExtrasPlaceholder();
     observeDynamicControls();
@@ -306,6 +334,7 @@
       restoreNativeRequiredDate();
       initialiseReference();
       patchReferenceSetValue();
+      patchReferenceValidation();
       updateExtrasPlaceholder();
       document.querySelectorAll(".quantity-input").forEach(configureQuantityInput);
       if (attempts >= 50) window.clearInterval(repairTimer);
