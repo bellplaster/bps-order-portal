@@ -88,7 +88,7 @@ export async function onRequestPost(context) {
 
     let email = { sent: false, reason: "not_attempted" };
     try {
-      email = await sendOrderFilesEmail(context.env, payload, result);
+      email = await sendOrderFilesEmail(context.env, payload, result, auth);
     } catch (error) {
       email = { sent: false, reason: "send_failed", error: error?.message || String(error) };
       console.error("Order email could not be sent.", error);
