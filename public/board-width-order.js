@@ -1,19 +1,61 @@
 (() => {
-  const previousRenderer = window.renderUnifiedFloorSheet;
-  if (typeof previousRenderer !== "function" || previousRenderer.__boardWidthDescending) return;
+  let installAttempts = 0;
+  let observerStarted = false;
 
-  const reorderedRenderer = function renderUnifiedFloorSheetWithWideBoardsFirst(floor, ...args) {
-    const result = previousRenderer.call(this, floor, ...args);
-    reorderBoardWidthColumns(floor);
-    return result;
-  };
+  function installRendererWrapper() {
+    const previousRenderer = window.renderUnifiedFloorSheet;
 
-  reorderedRenderer.__boardWidthDescending = true;
-  window.renderUnifiedFloorSheet = reorderedRenderer;
+    if (typeof previousRenderer !== "function") {
+      installAttempts += 1;
+      if (installAttempts < 100) window.setTimeout(installRendererWrapper, 50);
+      return;
+    }
+
+    if (!previousRenderer.__boardWidthDescending) {
+      const reorderedRenderer = function renderUnifiedFloorSheetWithWideBoardsFirst(floor, ...args) {
+        const result = previousRenderer.call(this, floor, ...args);
+        reorderBoardWidthColumns(floor);
+        return result;
+      };
+
+      reorderedRenderer.__boardWidthDescending = true;
+      window.renderUnifiedFloorSheet = reorderedRenderer;
+    }
+
+    reorderAllBoardMatrices();
+    startBoardMatrixObserver();
+  }
+
+  function startBoardMatrixObserver() {
+    if (observerStarted || !document.body) return;
+    observerStarted = true;
+
+    let scheduled = false;
+    const observer = new MutationObserver(() => {
+      if (scheduled) return;
+      scheduled = true;
+      window.requestAnimationFrame(() => {
+        scheduled = false;
+        reorderAllBoardMatrices();
+      });
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+
+  function reorderAllBoardMatrices() {
+    document.querySelectorAll(".unified-board-table").forEach((table) => {
+      reorderBoardWidthColumnsFromTable(table);
+    });
+  }
 
   function reorderBoardWidthColumns(floor) {
     const root = document.getElementById(`${floor}OrderSheet`);
     const table = root?.querySelector(".unified-board-table");
+    reorderBoardWidthColumnsFromTable(table);
+  }
+
+  function reorderBoardWidthColumnsFromTable(table) {
     if (!(table instanceof HTMLTableElement) || !table.tHead || !table.tBodies.length) return;
 
     const headerRows = table.tHead.rows;
@@ -43,6 +85,7 @@
     });
 
     if (order.length !== widthRow.cells.length) return;
+    if (order.every((sourceIndex, targetIndex) => sourceIndex === targetIndex)) return;
 
     [widthRow, ...bodyRows].forEach((row) => {
       const cells = [...row.cells];
@@ -50,5 +93,11 @@
         if (cells[sourceIndex]) row.append(cells[sourceIndex]);
       });
     });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", installRendererWrapper, { once: true });
+  } else {
+    installRendererWrapper();
   }
 })();
