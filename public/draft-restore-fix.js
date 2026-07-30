@@ -52,13 +52,45 @@
     return true;
   };
 
+  const initialiseSafeOrderSubmission = () => {
+    const form = document.getElementById("orderForm");
+    if (!(form instanceof HTMLFormElement) || form.dataset.safeSubmitBound === "true") return Boolean(form);
+    form.dataset.safeSubmitBound = "true";
+
+    form.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" || event.isComposing) return;
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.closest(".area-name-editor")) return;
+      if (target instanceof HTMLTextAreaElement) return;
+      if (target instanceof HTMLButtonElement && target.id === "submitButton") return;
+      event.preventDefault();
+      event.stopPropagation();
+    }, true);
+
+    form.addEventListener("submit", (event) => {
+      const submitter = event.submitter;
+      const intentionalSubmit = submitter instanceof HTMLButtonElement
+        && submitter.id === "submitButton"
+        && typeof state !== "undefined"
+        && state.activeStep === "review";
+      if (intentionalSubmit) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+    }, true);
+    return true;
+  };
+
   const start = () => {
     initialiseRequiredDateState();
+    initialiseSafeOrderSubmission();
 
     let attempts = 0;
     const timer = window.setInterval(() => {
       attempts += 1;
       initialiseRequiredDateState();
+      initialiseSafeOrderSubmission();
       if (attempts >= 30) window.clearInterval(timer);
     }, 100);
   };
@@ -69,7 +101,10 @@
     start();
   }
 
-  window.addEventListener("pageshow", syncRequiredDateState);
+  window.addEventListener("pageshow", () => {
+    syncRequiredDateState();
+    initialiseSafeOrderSubmission();
+  });
 
   const style = document.createElement("style");
   style.dataset.requiredDateValueState = "true";
