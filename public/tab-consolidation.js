@@ -31,7 +31,7 @@
     event.stopPropagation();
     event.stopImmediatePropagation();
     editorTargetAreaId = tab.dataset.floorTab || "";
-    openAreaEditor(editorTargetAreaId, { selectText: true });
+    openAreaEditor(editorTargetAreaId, { usePlaceholder: false });
   }, true);
 
   document.addEventListener("dragstart", (event) => {
@@ -122,7 +122,7 @@
     shells.forEach((shell, index) => {
       const areaId = shell.dataset.areaId || "";
       shell.draggable = true;
-      shell.style.order = String(orderById.get(areaId) || (index + 1) * 10);
+      shell.style.setProperty("order", String(orderById.get(areaId) || (index + 1) * 10), "important");
       shell.querySelector("[data-floor-tab]")?.setAttribute("title", "Double-click to rename. Drag to reorder.");
     });
 
@@ -136,12 +136,12 @@
         || editorTargetAreaId
         || currentActiveAreaId();
       if (targetAreaId) editor.dataset.targetAreaId = targetAreaId;
-      editor.style.order = String((orderById.get(targetAreaId) || 0) + 1);
+      editor.style.setProperty("order", String((orderById.get(targetAreaId) || 0) + 1), "important");
     }
 
     const add = tabs.querySelector(":scope > [data-add-area]");
     if (add) {
-      add.style.order = "10000";
+      add.style.setProperty("order", "10000", "important");
       add.textContent = "+";
       add.setAttribute("aria-label", "Add tab");
       add.setAttribute("title", "Add tab");
@@ -149,9 +149,15 @@
     }
 
     const reset = tabs.querySelector(":scope > .area-tabs-reset");
-    if (reset) reset.style.order = "10010";
+    if (reset) {
+      reset.style.setProperty("order", "10010", "important");
+      reset.replaceChildren(makeBinIcon());
+      reset.setAttribute("aria-label", "Delete all tabs");
+      reset.setAttribute("title", "Delete all tabs");
+    }
+
     const summary = tabs.querySelector(":scope > .area-tab-summary");
-    if (summary) summary.style.order = "10020";
+    if (summary) summary.style.setProperty("order", "10020", "important");
   }
 
   function initialiseCurrentTabsReference() {
@@ -180,7 +186,7 @@
       editorTargetAreaId = id;
 
       await rerenderAreas();
-      openAreaEditor(id, { selectText: true });
+      openAreaEditor(id, { usePlaceholder: true });
     } finally {
       operationPending = false;
       queueSync();
@@ -205,8 +211,9 @@
 
     const input = editor.querySelector("input");
     const cancel = editor.querySelector("[data-cancel-area]");
-    input.value = existing.label;
-    input.placeholder = "Tab name";
+    const usePlaceholder = options.usePlaceholder === true;
+    input.value = usePlaceholder ? "" : existing.label;
+    input.placeholder = existing.label;
 
     editor.addEventListener("submit", (event) => {
       event.preventDefault();
@@ -230,8 +237,10 @@
     else tabs.append(editor);
 
     queueSync();
-    input.focus();
-    if (options.selectText !== false) input.select();
+    window.requestAnimationFrame(() => {
+      input.focus({ preventScroll: true });
+      if (!usePlaceholder) input.select();
+    });
   }
 
   async function saveAreaName(area, input) {
@@ -343,6 +352,17 @@
     return String(value || "").trim().replace(/\s+/g, " ").slice(0, 40);
   }
 
+  function makeBinIcon() {
+    const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    icon.setAttribute("viewBox", "0 0 24 24");
+    icon.setAttribute("width", "14");
+    icon.setAttribute("height", "14");
+    icon.setAttribute("aria-hidden", "true");
+    icon.setAttribute("focusable", "false");
+    icon.innerHTML = '<path d="M8 4h8l1 2h3v2H4V6h3l1-2Zm1 6h2v7H9v-7Zm4 0h2v7h-2v-7ZM7 10h10l-1 10H8L7 10Z" fill="currentColor"/>';
+    return icon;
+  }
+
   function installStyles() {
     if (document.getElementById("consolidated-tab-styles")) return;
     const style = document.createElement("style");
@@ -374,6 +394,28 @@
 
       .area-tab-shell.drop-after {
         box-shadow: inset -3px 0 0 var(--bell-green, #006557) !important;
+      }
+
+      #deliveryAreaTabs > .area-name-editor input::placeholder,
+      .products-area > .floor-tabs > .area-name-editor input::placeholder {
+        color: #9aa3a0 !important;
+        opacity: 1 !important;
+      }
+
+      #deliveryAreaTabs > .area-tabs-reset,
+      .products-area > .floor-tabs > .area-tabs-reset {
+        display: inline-grid !important;
+        place-items: center !important;
+        flex: 0 0 32px !important;
+        width: 32px !important;
+        min-width: 32px !important;
+        max-width: 32px !important;
+        padding: 0 !important;
+      }
+
+      #deliveryAreaTabs > .area-tabs-reset svg,
+      .products-area > .floor-tabs > .area-tabs-reset svg {
+        pointer-events: none;
       }
     `;
     document.head.append(style);
