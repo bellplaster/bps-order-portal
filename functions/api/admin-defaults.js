@@ -39,7 +39,9 @@ export async function onRequestPut(context) {
 function cleanOrderDefaults(input) {
   const source = input && typeof input === "object" ? input : {};
   const reference = cleanOptional(source.reference, 80);
-  if (reference && !/^\d+$/.test(reference)) throw badRequest("Default reference must contain numbers only.");
+  if (reference && !/^\d+(?:-\d+)*$/.test(reference)) {
+    throw badRequest("Default reference must use numbers with optional single dashes.");
+  }
 
   const requiredDate = /^\d{4}-\d{2}-\d{2}$/.test(String(source.requiredDate || ""))
     ? String(source.requiredDate)
