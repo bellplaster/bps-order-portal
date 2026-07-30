@@ -160,88 +160,13 @@
     });
   }
 
-  function titleCaseWords(value) {
-    return String(value || "")
-      .toLowerCase()
-      .replace(/(^|[\s\-/'’])([a-z])/g, (_match, prefix, letter) => `${prefix}${letter.toUpperCase()}`)
-      .replace(/\bPo\s+Box\b/g, "PO Box")
-      .replace(/\bVic\b/g, "VIC");
-  }
-
-  function sentenceCase(value) {
-    const text = String(value || "");
-    const index = text.search(/[a-z]/i);
-    if (index < 0) return text;
-    return `${text.slice(0, index)}${text[index].toUpperCase()}${text.slice(index + 1)}`;
-  }
-
-  function formatField(field, formatter) {
-    if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) return false;
-    const previous = field.value;
-    const next = formatter(previous);
-    if (next === previous) return false;
-
-    const start = field.selectionStart;
-    const end = field.selectionEnd;
-    field.value = next;
-    if (document.activeElement === field && start != null && end != null) {
-      try { field.setSelectionRange(start, end); } catch (_error) { }
-    }
-    return true;
-  }
-
-  function formatOrderField(field) {
-    if (!(field instanceof HTMLElement)) return false;
-    if (["contactName", "deliveryStreet", "deliveryAddressSearch"].includes(field.id)) {
-      return formatField(field, titleCaseWords);
-    }
-    if (field.id === "deliveryInstructions") return formatField(field, sentenceCase);
-    return false;
-  }
-
-  function formatAllOrderFields() {
-    ["contactName", "deliveryStreet", "deliveryAddressSearch"].forEach((id) => {
-      const field = document.getElementById(id);
-      if (field) formatField(field, titleCaseWords);
-    });
-    const instructions = document.getElementById("deliveryInstructions");
-    if (instructions) formatField(instructions, sentenceCase);
-
-    try {
-      if (typeof parseAndStoreManualAddress === "function") parseAndStoreManualAddress();
-    } catch (_error) { }
-  }
-
-  function installFormattingListeners() {
+  function installListeners() {
     document.addEventListener("input", (event) => {
-      if (event.isComposing) return;
-      const changed = formatOrderField(event.target);
-      if (changed && ["deliveryStreet", "deliveryAddressSearch"].includes(event.target.id)) {
-        try {
-          if (typeof parseAndStoreManualAddress === "function") parseAndStoreManualAddress();
-        } catch (_error) { }
-      }
       if (event.target.matches(`${BOARD_TABLE_SELECTOR} .quantity-input`)) scheduleBoardUpdate();
     }, true);
-
     document.addEventListener("change", (event) => {
-      if (event.isComposing) return;
-      formatOrderField(event.target);
       if (event.target.matches(`${BOARD_TABLE_SELECTOR} .quantity-input`)) scheduleBoardUpdate();
     }, true);
-
-    document.addEventListener("blur", (event) => {
-      if (event.isComposing) return;
-      formatOrderField(event.target);
-    }, true);
-
-    document.addEventListener("click", (event) => {
-      if (event.target.closest("#continueToReviewButton, #submitButton, [data-step-target='review']")) {
-        formatAllOrderFields();
-      }
-    }, true);
-
-    document.getElementById("orderForm")?.addEventListener("submit", formatAllOrderFields, true);
   }
 
   function installObserver() {
@@ -312,7 +237,7 @@
 
   function initialise() {
     installStyles();
-    installFormattingListeners();
+    installListeners();
     installObserver();
     patchRenderCounts();
     patchRondoSource();
@@ -323,15 +248,11 @@
       window.setTimeout(() => {
         patchRondoSource();
         renameRenderedRondoRows();
-        formatAllOrderFields();
         updateAllBoardSummaries();
       }, delay);
     });
 
-    window.addEventListener("pageshow", () => {
-      formatAllOrderFields();
-      scheduleBoardUpdate();
-    });
+    window.addEventListener("pageshow", scheduleBoardUpdate);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initialise, { once: true });
