@@ -23,7 +23,7 @@
         childList: true,
         subtree: true,
         attributes: true,
-        attributeFilter: ["class", "aria-selected", "hidden", "draggable"],
+        attributeFilter: ["class", "aria-selected", "hidden"],
       });
     }
 
@@ -52,7 +52,7 @@
     [...tabs.querySelectorAll(":scope > .area-tab-shell[data-area-id]")].forEach((shell, index) => {
       const order = orderById.get(shell.dataset.areaId || "") || (index + 1) * 10;
       shell.style.setProperty("order", String(order), "important");
-      shell.setAttribute("draggable", "true");
+      if (!shell.draggable) shell.draggable = true;
     });
 
     const editor = tabs.querySelector(":scope > .area-name-editor");
