@@ -27,6 +27,8 @@
       stateId: null,
     },
   ];
+  const formattedFields = new WeakSet();
+  const addressFields = new WeakSet();
 
   let scanTimer = 0;
   let scanAttempts = 0;
@@ -81,7 +83,8 @@
 
   function bindFormatting(field) {
     if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) return;
-    if (field.dataset.orderDetailFormatting === "true") return;
+    if (formattedFields.has(field)) return;
+    formattedFields.add(field);
     field.dataset.orderDetailFormatting = "true";
 
     const apply = (event) => {
@@ -112,7 +115,8 @@
 
   function bindAddressInput(input, mode, group) {
     if (!(input instanceof HTMLInputElement)) return;
-    if (input.dataset.serverAddressSearch === "true") return;
+    if (addressFields.has(input)) return;
+    addressFields.add(input);
 
     const host = addressHost(input);
     if (!host) return;
@@ -125,8 +129,10 @@
     input.setAttribute("aria-expanded", "false");
     host.classList.add("order-detail-autocomplete-host");
 
+    host.querySelector(`:scope > .order-detail-suggestions[data-owner="${input.id}"]`)?.remove();
     const panel = document.createElement("div");
     panel.className = "order-detail-suggestions";
+    panel.dataset.owner = input.id;
     panel.hidden = true;
     panel.setAttribute("role", "listbox");
     panel.id = `${input.id}Suggestions`;
