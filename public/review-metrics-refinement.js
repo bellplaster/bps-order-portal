@@ -122,7 +122,7 @@
       link.dataset.orderFinal = "true";
       document.head.append(link);
     }
-    link.href = "/order-final.css?v=20260728-6";
+    link.href = "/order-final.css?v=20260730-1";
   }
 
   function loadScriptOnce(src, marker) {
@@ -141,19 +141,14 @@
 
   async function loadRefinements() {
     loadStyles();
-    await loadScriptOnce("/tab-controls.js?v=20260727-2", "tab-controls");
-    await loadScriptOnce("/manager-hotfix.js?v=20260727-1", "manager-hotfix");
-    await loadScriptOnce("/manager-refinement.js?v=20260727-3", "manager-refinement");
+    await loadScriptOnce("/tab-consolidation.js?v=20260730-1", "tab-consolidation");
+    await loadScriptOnce("/manager-hotfix.js?v=20260730-1", "manager-hotfix");
+    await loadScriptOnce("/manager-refinement.js?v=20260730-1", "manager-refinement");
     ensureEditablePostcode();
   }
 
   window.renderReview = refinedRenderReview;
   try { renderReview = refinedRenderReview; } catch (_error) { }
 
-  if (document.querySelector('script[data-manager-refinement="true"]')) {
-    loadStyles();
-    ensureEditablePostcode();
-  } else {
-    void loadRefinements();
-  }
+  void loadRefinements();
 })();
