@@ -4,6 +4,7 @@
     { id: "first", label: "1st Floor" },
   ];
   const MAX_AREAS = 20;
+  let draggedAreaId = "";
 
   prepareAreaWorkspace();
   initialiseAreaState();
@@ -242,6 +243,7 @@
       const shell = document.createElement("div");
       shell.className = "area-tab-shell";
       shell.dataset.areaId = area.id;
+      shell.draggable = true;
 
       const tab = document.createElement("button");
       tab.type = "button";
@@ -249,7 +251,7 @@
       tab.dataset.floorTab = area.id;
       tab.setAttribute("role", "tab");
       tab.setAttribute("aria-selected", "false");
-      tab.title = "Double-click to rename";
+      tab.title = "Double-click to rename. Drag to reorder.";
       tab.textContent = area.label;
 
       const remove = document.createElement("button");
@@ -279,8 +281,10 @@
     add.type = "button";
     add.className = "area-tab-add";
     add.dataset.addArea = "true";
-    add.textContent = "+ Add area";
+    add.textContent = "+";
     add.disabled = state.deliveryAreas.length >= MAX_AREAS;
+    add.setAttribute("aria-label", "Add tab");
+    add.title = "Add tab";
     tabs.append(add);
     activateFloor(state.activeFloor);
   }
@@ -289,6 +293,7 @@
     const tabs = document.getElementById("deliveryAreaTabs");
     if (!tabs || tabs.dataset.bound === "true") return;
     tabs.dataset.bound = "true";
+
     tabs.addEventListener("click", (event) => {
       const deleteButton = event.target.closest("[data-delete-area]");
       if (deleteButton) {
@@ -296,55 +301,143 @@
         return;
       }
       if (event.target.closest("[data-add-area]")) {
-        openAreaEditor();
+        addAreaAndRename();
         return;
       }
       const tab = event.target.closest("[data-floor-tab]");
       if (tab) activateFloor(tab.dataset.floorTab);
     });
+
     tabs.addEventListener("dblclick", (event) => {
       const tab = event.target.closest("[data-floor-tab]");
       if (tab) openAreaEditor(tab.dataset.floorTab);
     });
+
+    tabs.addEventListener("dragstart", (event) => {
+      const shell = event.target.closest(".area-tab-shell[data-area-id]");
+      if (!shell) return;
+      draggedAreaId = shell.dataset.areaId || "";
+      shell.classList.add("is-dragging");
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", draggedAreaId);
+    });
+
+    tabs.addEventListener("dragover", (event) => {
+      if (!draggedAreaId) return;
+      const target = event.target.closest(".area-tab-shell[data-area-id]");
+      if (!target || target.dataset.areaId === draggedAreaId) return;
+      event.preventDefault();
+      const rect = target.getBoundingClientRect();
+      const before = event.clientX < rect.left + rect.width / 2;
+      clearDropIndicators(tabs);
+      target.classList.add(before ? "drop-before" : "drop-after");
+      event.dataTransfer.dropEffect = "move";
+    });
+
+    tabs.addEventListener("drop", (event) => {
+      if (!draggedAreaId) return;
+      const target = event.target.closest(".area-tab-shell[data-area-id]");
+      if (!target || target.dataset.areaId === draggedAreaId) return;
+      event.preventDefault();
+      const rect = target.getBoundingClientRect();
+      const before = event.clientX < rect.left + rect.width / 2;
+      reorderArea(draggedAreaId, target.dataset.areaId, before);
+    });
+
+    tabs.addEventListener("dragend", () => {
+      draggedAreaId = "";
+      tabs.querySelectorAll(".area-tab-shell").forEach((shell) => shell.classList.remove("is-dragging"));
+      clearDropIndicators(tabs);
+    });
   }
 
-  function openAreaEditor(areaId = "") {
+  function addAreaAndRename() {
+    if (state.deliveryAreas.length >= MAX_AREAS) return;
+    const label = nextDefaultAreaLabel();
+    const id = makeAreaId(label);
+    state.deliveryAreas.push({ id, label });
+    state.quantities[id] = new Map();
+    state.otherMaterials[id] = [];
+    floorLabels[id] = label;
+    state.activeFloor = id;
+    renderAreaWorkspace();
+    scheduleDraft();
+    window.requestAnimationFrame(() => openAreaEditor(id, { selectText: true }));
+  }
+
+  function openAreaEditor(areaId, options = {}) {
     const tabs = document.getElementById("deliveryAreaTabs");
     if (!tabs) return;
     tabs.querySelector(".area-name-editor")?.remove();
     const existing = state.deliveryAreas.find((area) => area.id === areaId);
+    if (!existing) return;
+
     const editor = document.createElement("form");
     editor.className = "area-name-editor";
-    editor.innerHTML = `<input type="text" maxlength="40" autocomplete="off" aria-label="Delivery area name" placeholder="e.g. Unit 1 or Garage"><button type="submit">${existing ? "Rename" : "Add"}</button><button type="button" data-cancel-area>Cancel</button>`;
+    editor.innerHTML = `<input type="text" maxlength="40" autocomplete="off" aria-label="Delivery area name"><button type="submit">Save</button><button type="button" data-cancel-area>Cancel</button>`;
     const input = editor.querySelector("input");
-    input.value = existing?.label || "";
+    input.value = existing.label;
+
     editor.addEventListener("submit", (event) => {
       event.preventDefault();
-      const label = cleanAreaLabel(input.value);
-      if (!label) return input.focus();
+      const typed = cleanAreaLabel(input.value);
+      const label = typed || existing.label;
       if (state.deliveryAreas.some((area) => area.id !== areaId && area.label.toLowerCase() === label.toLowerCase())) {
         input.setCustomValidity("Use a different area name.");
         input.reportValidity();
         return;
       }
-      if (existing) {
-        existing.label = label;
-        floorLabels[existing.id] = label;
-      } else {
-        const id = makeAreaId(label);
-        state.deliveryAreas.push({ id, label });
-        state.quantities[id] = new Map();
-        state.otherMaterials[id] = [];
-        floorLabels[id] = label;
-        state.activeFloor = id;
-      }
+      input.setCustomValidity("");
+      existing.label = label;
+      floorLabels[existing.id] = label;
       renderAreaWorkspace();
       scheduleDraft();
     });
-    editor.querySelector("[data-cancel-area]").addEventListener("click", () => editor.remove());
-    tabs.append(editor);
+
+    editor.querySelector("[data-cancel-area]").addEventListener("click", () => {
+      editor.remove();
+      document.querySelector(`[data-floor-tab="${CSS.escape(areaId)}"]`)?.focus();
+    });
+
+    input.addEventListener("input", () => input.setCustomValidity(""));
+
+    const shell = tabs.querySelector(`.area-tab-shell[data-area-id="${CSS.escape(areaId)}"]`);
+    if (shell) shell.insertAdjacentElement("afterend", editor);
+    else tabs.append(editor);
+
     input.focus();
-    input.select();
+    if (options.selectText !== false) input.select();
+  }
+
+  function reorderArea(sourceId, targetId, before) {
+    const sourceIndex = state.deliveryAreas.findIndex((area) => area.id === sourceId);
+    const targetIndex = state.deliveryAreas.findIndex((area) => area.id === targetId);
+    if (sourceIndex < 0 || targetIndex < 0) return;
+
+    const [moved] = state.deliveryAreas.splice(sourceIndex, 1);
+    let insertIndex = state.deliveryAreas.findIndex((area) => area.id === targetId);
+    if (!before) insertIndex += 1;
+    state.deliveryAreas.splice(insertIndex, 0, moved);
+    draggedAreaId = "";
+    renderAreaWorkspace();
+    scheduleDraft();
+  }
+
+  function clearDropIndicators(tabs) {
+    tabs.querySelectorAll(".drop-before, .drop-after").forEach((shell) => {
+      shell.classList.remove("drop-before", "drop-after");
+    });
+  }
+
+  function nextDefaultAreaLabel() {
+    let number = state.deliveryAreas.length + 1;
+    let label = `Tab ${number}`;
+    const labels = new Set(state.deliveryAreas.map((area) => area.label.toLowerCase()));
+    while (labels.has(label.toLowerCase())) {
+      number += 1;
+      label = `Tab ${number}`;
+    }
+    return label;
   }
 
   function deleteArea(areaId) {
