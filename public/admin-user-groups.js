@@ -1,8 +1,8 @@
 (() => {
-  if (document.querySelector('script[data-admin-user-management-v2="true"]')) return;
+  if (document.querySelector('script[data-admin-user-management="true"]')) return;
   const script = document.createElement("script");
-  script.src = "/admin-user-management-v2.js?v=20260730-1";
+  script.src = "/admin-user-management.js?v=20260730-2";
   script.defer = true;
-  script.dataset.adminUserManagementV2 = "true";
+  script.dataset.adminUserManagement = "true";
   document.body.append(script);
 })();
