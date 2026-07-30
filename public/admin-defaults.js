@@ -1,6 +1,4 @@
 (() => {
-  let accountPlacesPromise = null;
-
   const clone = (value) => {
     if (typeof structuredClone === "function") return structuredClone(value);
     return JSON.parse(JSON.stringify(value || {}));
@@ -28,99 +26,6 @@
     const payload = await response.json().catch(() => ({}));
     if (!response.ok || payload.ok === false) throw new Error(payload.error || `Request failed (${response.status}).`);
     return payload;
-  }
-
-  function loadAccountGooglePlaces(apiKey) {
-    if (window.google?.maps?.places) return Promise.resolve();
-    if (accountPlacesPromise) return accountPlacesPromise;
-
-    accountPlacesPromise = new Promise((resolve, reject) => {
-      const existing = document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]');
-      if (existing) {
-        if (window.google?.maps?.places) return resolve();
-        existing.addEventListener("load", resolve, { once: true });
-        existing.addEventListener("error", () => reject(new Error("Google address search failed to load.")), { once: true });
-        return;
-      }
-
-      const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places&v=weekly`;
-      script.async = true;
-      script.defer = true;
-      script.onload = resolve;
-      script.onerror = () => reject(new Error("Google address search failed to load."));
-      document.head.append(script);
-    });
-
-    return accountPlacesPromise;
-  }
-
-  function parseAccountAddress(components = []) {
-    const get = (type, short = false) => {
-      const component = components.find((item) => item.types?.includes(type));
-      return component ? component[short ? "short_name" : "long_name"] : "";
-    };
-
-    const streetNumber = get("street_number");
-    const route = get("route");
-    const unit = get("subpremise");
-    const street = [streetNumber, route].filter(Boolean).join(" ");
-
-    return {
-      street: unit && street ? `${unit}/${street}` : street,
-      suburb: get("locality") || get("postal_town") || get("sublocality") || get("sublocality_level_1"),
-      state: get("administrative_area_level_1", true).toUpperCase(),
-      postcode: get("postal_code"),
-    };
-  }
-
-  async function initialiseAccountAddressAutocomplete() {
-    if (!document.body.classList.contains("account-page")) return;
-
-    const street = document.getElementById("defaultStreet");
-    const suburb = document.getElementById("defaultSuburb");
-    const postcode = document.getElementById("defaultPostcode");
-    if (!street || !suburb || !postcode || street.dataset.placesBound === "true") return;
-
-    street.dataset.placesBound = "true";
-    street.setAttribute("autocomplete", "off");
-    suburb.setAttribute("autocomplete", "off");
-    postcode.setAttribute("autocomplete", "off");
-
-    try {
-      const config = await fetchJsonSafe("/api/address-config");
-      if (!config?.configured || !config?.apiKey) return;
-      await loadAccountGooglePlaces(config.apiKey);
-      if (!window.google?.maps?.places) return;
-
-      const autocomplete = new google.maps.places.Autocomplete(street, {
-        componentRestrictions: { country: "au" },
-        fields: ["address_components", "formatted_address"],
-        types: ["address"],
-      });
-
-      autocomplete.addListener("place_changed", () => {
-        const place = autocomplete.getPlace();
-        if (!place?.address_components) return;
-        const address = parseAccountAddress(place.address_components);
-
-        if (address.state && address.state !== "VIC") {
-          showAccountMessage("Choose a Victorian address.", "error");
-          return;
-        }
-
-        if (address.street) street.value = address.street;
-        if (address.suburb) suburb.value = address.suburb;
-        if (address.postcode) postcode.value = address.postcode;
-
-        [street, suburb, postcode].forEach((field) => {
-          field.dispatchEvent(new Event("input", { bubbles: true }));
-          field.dispatchEvent(new Event("change", { bubbles: true }));
-        });
-      });
-    } catch (error) {
-      console.warn("Account address autocomplete unavailable:", error);
-    }
   }
 
   function ensureAnyTimeSlotOption() {
@@ -151,6 +56,7 @@
   }
 
   function collectDefaultsFromAccountPage() {
+    window.formatOrderDetailFields?.();
     return {
       reference: document.getElementById("defaultReference")?.value || "",
       requiredDate: document.getElementById("defaultRequiredDate")?.value || "",
@@ -229,12 +135,15 @@
       const field = document.getElementById(id);
       if (field) field.value = value;
     });
+    window.initialiseOrderDetailFields?.();
+    window.formatOrderDetailFields?.();
 
     if (form.dataset.adminDefaultsBound === "true") return;
     form.dataset.adminDefaultsBound = "true";
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       event.stopImmediatePropagation();
+      window.formatOrderDetailFields?.();
       const button = form.querySelector('button[type="submit"], button:not([type])');
       if (button) button.disabled = true;
       try {
@@ -306,6 +215,8 @@
         window.setTimeout(() => {
           resetOrder();
           ensureAnyTimeSlotOption();
+          window.initialiseOrderDetailFields?.();
+          window.formatOrderDetailFields?.();
         }, 0);
         window.clearInterval(timer);
       } else if (attempts >= 80) {
@@ -345,7 +256,6 @@
 
   const start = () => {
     installExtrasBorderRepair();
-    initialiseAccountAddressAutocomplete();
     ensureAnyTimeSlotOption();
     initialiseAdminAccountDefaults();
     initialiseAdminOrderDefaults();
