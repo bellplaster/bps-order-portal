@@ -11,19 +11,8 @@ database_id = "fa68bf94-f2fb-4f22-946e-eec21b3ed5d4"
 binding = "ORDER_FILES"
 bucket_name = "bps-order-files"
 
-[[send_email]]
-name = "ORDER_EMAIL"
-allowed_sender_addresses = [
-  "portal@orders.bellplaster.com.au"
-]
-allowed_destination_addresses = [
-  "info@bellplaster.com.au",
-  "zac@bellplaster.com.au",
-  "maria@bellplaster.com.au",
-  "marketing@bellplaster.com.au"
-]
-
 [vars]
+CLOUDFLARE_ACCOUNT_ID = "04c258cc46908ca4df613ce563c1df55"
 ORDER_EMAIL_FROM = "portal@orders.bellplaster.com.au"
 ORDER_EMAIL_TO = "info@bellplaster.com.au"
 ORDER_EMAIL_CC = "zac@bellplaster.com.au,maria@bellplaster.com.au,marketing@bellplaster.com.au"
