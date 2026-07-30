@@ -69,6 +69,8 @@
     }, true);
 
     form.addEventListener("submit", (event) => {
+      if (event.target instanceof HTMLFormElement && event.target.classList.contains("area-name-editor")) return;
+
       const submitter = event.submitter;
       const intentionalSubmit = submitter instanceof HTMLButtonElement
         && submitter.id === "submitButton"
