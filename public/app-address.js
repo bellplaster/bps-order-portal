@@ -1,59 +1,10 @@
 async function initialiseGoogleAddress() {
-  try {
-    const config = await fetchJson("/api/address-config");
-    if (!config.configured || !config.apiKey) return;
-    await loadScript(`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(config.apiKey)}&libraries=places&v=weekly`);
-    const input = document.getElementById("deliveryAddressSearch");
-    state.addressAutocomplete = new google.maps.places.Autocomplete(input, {
-      componentRestrictions: { country: "au" },
-      fields: ["address_components", "formatted_address"],
-      types: ["address"],
-    });
-    state.addressAutocomplete.addListener("place_changed", () => {
-      const place = state.addressAutocomplete.getPlace();
-      if (!place?.address_components) return;
-      const parsed = parseGoogleAddress(place.address_components);
-      setValue("deliveryAddressSearch", place.formatted_address || [parsed.line1, parsed.line2].filter(Boolean).join(", "));
-      setValue("deliveryAddress", value("deliveryAddressSearch"));
-      setValue("deliveryAddressLine1", parsed.line1);
-      setValue("deliveryAddressLine2", parsed.line2);
-      document.getElementById("clearAddressButton").hidden = false;
-      scheduleDraft();
-    });
-    input.addEventListener("input", () => {
-      setValue("deliveryAddress", input.value);
-      setValue("deliveryAddressLine1", "");
-      setValue("deliveryAddressLine2", "");
-      document.getElementById("clearAddressButton").hidden = !input.value;
-      scheduleDraft();
-    });
-    input.addEventListener("blur", parseAndStoreManualAddress);
-  } catch (error) {
-    console.warn("Google address suggestions are unavailable.", error);
-  }
-}
-
-function parseGoogleAddress(components) {
-  const get = (type, short = false) => {
-    const component = components.find((item) => item.types.includes(type));
-    return component ? component[short ? "short_name" : "long_name"] : "";
-  };
-  const streetNumber = get("street_number");
-  const route = get("route");
-  const unit = get("subpremise");
-  const suburb = get("locality") || get("postal_town") || get("sublocality");
-  const stateName = get("administrative_area_level_1", true).toUpperCase();
-  const postcode = get("postal_code");
-  const street = [streetNumber, route].filter(Boolean).join(" ");
-  return {
-    line1: unit ? `${unit}/${street}` : street,
-    line2: [suburb, stateName === "VIC" ? "VIC" : stateName, postcode].filter(Boolean).join(" "),
-  };
+  window.initialiseOrderDetailFields?.();
 }
 
 function parseAndStoreManualAddress() {
   const input = document.getElementById("deliveryAddressSearch");
-  if (input.disabled) return;
+  if (!input || input.disabled) return;
   const text = input.value.trim().replace(/\s+/g, " ");
   setValue("deliveryAddress", text);
   if (!text || (value("deliveryAddressLine1") && value("deliveryAddressLine2"))) return;
@@ -182,19 +133,6 @@ async function fetchJson(url, options = {}) {
   const result = await response.json().catch(() => ({ ok: false, error: "The server returned an unreadable response." }));
   if (!response.ok || result.ok === false) throw new Error(result.error || "The request failed.");
   return result;
-}
-
-function loadScript(src) {
-  return new Promise((resolve, reject) => {
-    if (window.google?.maps?.places) return resolve();
-    const script = document.createElement("script");
-    script.src = src;
-    script.async = true;
-    script.defer = true;
-    script.onload = resolve;
-    script.onerror = () => reject(new Error("Google Maps could not be loaded."));
-    document.head.append(script);
-  });
 }
 
 function syncQuantityInputs(floor) {
