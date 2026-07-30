@@ -142,7 +142,7 @@
   async function loadRefinements() {
     loadStyles();
     await loadScriptOnce("/tab-consolidation.js?v=20260730-2", "tab-consolidation");
-    await loadScriptOnce("/manager-hotfix.js?v=20260730-1", "manager-hotfix");
+    await loadScriptOnce("/manager-hotfix.js?v=20260731-1", "manager-hotfix");
     await loadScriptOnce("/manager-refinement.js?v=20260730-1", "manager-refinement");
     await loadScriptOnce("/tab-order-override.js?v=20260730-1", "tab-order-override");
     await loadScriptOnce("/tab-drag-indicator-fix.js?v=20260730-4", "tab-drag-indicator-fix");
