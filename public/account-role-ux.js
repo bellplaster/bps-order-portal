@@ -53,9 +53,16 @@
   }
 
   function loadSavedContactManager() {
+    if (!document.querySelector('link[data-account-contacts-management="true"]')) {
+      const stylesheet = document.createElement("link");
+      stylesheet.rel = "stylesheet";
+      stylesheet.href = "/account-contacts-management.css?v=20260801-1";
+      stylesheet.dataset.accountContactsManagement = "true";
+      document.head.append(stylesheet);
+    }
     if (document.querySelector('script[data-account-contacts-management="true"]')) return;
     const script = document.createElement("script");
-    script.src = "/account-contacts-management.js?v=20260801-2";
+    script.src = "/account-contacts-management.js?v=20260801-3";
     script.defer = true;
     script.dataset.accountContactsManagement = "true";
     document.body.append(script);
