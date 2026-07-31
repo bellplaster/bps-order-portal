@@ -9,7 +9,6 @@
   ];
 
   let originalSelectedRadio = null;
-  let originalBuildPayload = null;
 
   function findTimeSlotSelect() {
     for (const selector of TIME_SLOT_SELECTORS) {
@@ -29,10 +28,8 @@
   }
 
   function canonicalTimeSlot() {
-    const select = findTimeSlotSelect();
-    const selected = normaliseTimeSlot(select?.value);
+    const selected = normaliseTimeSlot(findTimeSlotSelect()?.value);
     if (selected) return selected;
-
     return normaliseTimeSlot(document.querySelector('input[name="timeSlot"]:checked')?.value);
   }
 
@@ -40,8 +37,7 @@
     if (!value) return;
     let radio = document.querySelector(`input[name="timeSlot"][value="${CSS.escape(value)}"]`);
     if (!radio) {
-      const source = document.querySelector('input[name="timeSlot"]');
-      const host = source?.parentElement || document.querySelector(".time-slot-field") || document.body;
+      const host = document.querySelector(".time-slot-field") || document.body;
       radio = document.createElement("input");
       radio.type = "radio";
       radio.name = "timeSlot";
@@ -50,7 +46,6 @@
       radio.tabIndex = -1;
       host.append(radio);
     }
-
     document.querySelectorAll('input[name="timeSlot"]').forEach((input) => {
       input.checked = input === radio;
     });
@@ -78,27 +73,8 @@
     return true;
   }
 
-  function installPayloadAuthority() {
-    const current = typeof buildPayload === "function" ? buildPayload : window.buildPayload;
-    if (typeof current !== "function") return false;
-    if (current.__canonicalTimeSlotSource) return true;
-
-    originalBuildPayload ||= current;
-    const authoritative = function buildPayloadFromCanonicalTimeSlot(...args) {
-      const timeSlot = syncTimeSlot();
-      const payload = originalBuildPayload.apply(this, args);
-      payload.timeSlot = timeSlot || "ANY";
-      return payload;
-    };
-    authoritative.__canonicalTimeSlotSource = true;
-    window.buildPayload = authoritative;
-    try { buildPayload = authoritative; } catch (_error) { }
-    return true;
-  }
-
-  function refreshAuthorities() {
+  function refreshAuthority() {
     installSelectedRadioAuthority();
-    installPayloadAuthority();
     syncTimeSlot();
   }
 
@@ -111,20 +87,18 @@
   }, true);
 
   document.addEventListener("click", (event) => {
-    if (event.target.closest("#continueToReviewButton, [data-step-target='review'], #submitButton")) {
-      refreshAuthorities();
-    }
+    if (event.target.closest("#continueToReviewButton, [data-step-target='review'], #submitButton")) refreshAuthority();
   }, true);
 
-  document.addEventListener("submit", refreshAuthorities, true);
+  document.addEventListener("submit", refreshAuthority, true);
 
-  const observer = new MutationObserver(refreshAuthorities);
+  const observer = new MutationObserver(refreshAuthority);
   observer.observe(document.documentElement, { childList: true, subtree: true });
 
   function initialise() {
-    refreshAuthorities();
-    [0, 100, 300, 700, 1500, 3000, 6000].forEach((delay) => window.setTimeout(refreshAuthorities, delay));
-    window.addEventListener("pageshow", refreshAuthorities);
+    refreshAuthority();
+    [0, 100, 300, 700, 1500, 3000, 6000].forEach((delay) => window.setTimeout(refreshAuthority, delay));
+    window.addEventListener("pageshow", refreshAuthority);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initialise, { once: true });
