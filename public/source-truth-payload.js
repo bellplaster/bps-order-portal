@@ -117,13 +117,33 @@
     const table = document.querySelector(`#${CSS.escape(floor)}OrderSheet .fasteners-table`);
     if (!table) return;
     [...table.querySelectorAll("tbody > tr")].forEach((row) => {
-      const firstText = normalise(row.cells[0]?.textContent);
-      if (firstText === "SCREWS") return row.remove();
-      if (firstText === "LOOSE") setMatrixHeader(row, "Loose Screws", ["25 mm", "32 mm"]);
-      if (firstText === "COLLATED") setMatrixHeader(row, "Collated Screws", ["25 mm", "32 mm"]);
+      const firstCell = row.cells[0];
+      const firstText = normalise(firstCell?.textContent);
+      if (firstText === "SCREWS") {
+        row.remove();
+        return;
+      }
+      if (firstText === "LOOSE") {
+        setMatrixHeader(row, "Loose Screws", ["25 mm", "32 mm"]);
+        return;
+      }
+      if (firstText === "COLLATED") {
+        setMatrixHeader(row, "Collated Screws", ["25 mm", "32 mm"]);
+        return;
+      }
+      if (!row.classList.contains("lower-subheader") && firstCell) {
+        firstCell.textContent = fastenerRowLabel(firstCell.textContent);
+      }
     });
     const nailHeader = [...table.querySelectorAll("tbody > tr")].find((row) => normalise(row.cells[0]?.textContent) === "NAILS");
     if (nailHeader) setMatrixHeader(nailHeader, "Nails", ["30 mm", "40 mm"]);
+  }
+
+  function fastenerRowLabel(value) {
+    return String(value || "")
+      .replace(/^\s*(?:Loose|Collated)(?:\s+Screws)?\s*(?:-\s*)?/i, "")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
   function setMatrixHeader(row, title, columns) {
