@@ -3,26 +3,38 @@
   refineInterface();
   refineValidationMessage();
 
-  // Keep standard matrix products and manually searched Additional Products
-  // in separate payload collections. The API applies different validation
-  // limits and catalogue handling to each collection.
-  buildFloorPayload = function buildSourceTruthFloorPayload(floor) {
+  function ensureAreaCollections(areaId) {
+    if (!state.quantities || typeof state.quantities !== "object") state.quantities = {};
+    if (!state.otherMaterials || typeof state.otherMaterials !== "object") state.otherMaterials = {};
+    if (!(state.quantities[areaId] instanceof Map)) state.quantities[areaId] = new Map();
+    if (!Array.isArray(state.otherMaterials[areaId])) state.otherMaterials[areaId] = [];
     return {
-      items: [...state.quantities[floor].entries()]
-        .filter(([, quantity]) => quantity > 0)
-        .map(([key, quantity]) => ({ key, quantity })),
-      otherMaterials: (state.otherMaterials[floor] || [])
-        .filter((item) => item.quantity > 0)
-        .map((item) => ({ sku: item.sku, quantity: item.quantity })),
+      quantities: state.quantities[areaId],
+      otherMaterials: state.otherMaterials[areaId],
+    };
+  }
+
+  // Canonical payload source for both fixed legacy floors and dynamic tabs.
+  // Every tab owns a Map of standard products and an array of Additional Products.
+  buildFloorPayload = function buildSourceTruthFloorPayload(areaId) {
+    const { quantities, otherMaterials } = ensureAreaCollections(areaId);
+    return {
+      items: [...quantities.entries()]
+        .filter(([, quantity]) => Number(quantity) > 0)
+        .map(([key, quantity]) => ({ key, quantity: Number(quantity) })),
+      otherMaterials: otherMaterials
+        .filter((item) => Number(item?.quantity) > 0)
+        .map((item) => ({ sku: item.sku, quantity: Number(item.quantity) })),
     };
   };
 
   const originalBuildPayload = buildPayload;
   buildPayload = function buildSourceTruthPayload(...args) {
-    const payload = originalBuildPayload.apply(this, args);
-    if (state.account?.role === "admin") {
-      payload.customerAccountId = state.adminOrderAccountId || null;
+    if (Array.isArray(state.deliveryAreas)) {
+      state.deliveryAreas.forEach((area) => ensureAreaCollections(area.id));
     }
+    const payload = originalBuildPayload.apply(this, args);
+    if (state.account?.role === "admin") payload.customerAccountId = state.adminOrderAccountId || null;
     return payload;
   };
 
@@ -49,6 +61,7 @@
 
   const previousRenderer = window.renderUnifiedFloorSheet;
   window.renderUnifiedFloorSheet = function renderSourceTruthOrder(floor, ...args) {
+    ensureAreaCollections(floor);
     const result = previousRenderer.call(this, floor, ...args);
     reorderPartiwall(floor);
     refineFasteners(floor);
@@ -62,7 +75,6 @@
 
   function refineInterface() {
     document.querySelector("#historyDrawer .drawer-header .eyebrow")?.remove();
-
     const dateShell = document.querySelector(".date-input-shell");
     const futureConfirmation = document.getElementById("futureDateConfirmation");
     if (dateShell && futureConfirmation && !dateShell.parentElement?.classList.contains("required-date-inline")) {
@@ -80,15 +92,9 @@
     const originalValidateForm = validateForm;
     const refinedValidateForm = function refinedValidateForm(...args) {
       try {
-        if (state.account?.role === "admin" && !state.adminOrderAccountId) {
-          document.getElementById("adminCustomerAccount")?.focus();
-          throw new Error("Choose the customer account that will own this order.");
-        }
         return originalValidateForm.apply(this, args);
       } catch (error) {
-        if (error && /Australian mobile number/i.test(String(error.message || ""))) {
-          error.message = "Enter a valid number.";
-        }
+        if (error && /Australian mobile number/i.test(String(error.message || ""))) error.message = "Enter a valid number.";
         throw error;
       }
     };
@@ -99,15 +105,7 @@
   function reorderPartiwall(floor) {
     const body = document.querySelector(`#${CSS.escape(floor)}OrderSheet .partiwall-table tbody`);
     if (!body) return;
-    const labels = [
-      "Aluminium Clips Angled (each)",
-      "Aluminium Clips Flat (each)",
-      "50mm Partiwall Batt (3 Pack)",
-      "16mm Small Head DP",
-      "25mm Coarse NP",
-      "32mm Coarse NP",
-      "38mm Laminating",
-    ];
+    const labels = ["Aluminium Clips Angled (each)", "Aluminium Clips Flat (each)", "50mm Partiwall Batt (3 Pack)", "16mm Small Head DP", "25mm Coarse NP", "32mm Coarse NP", "38mm Laminating"];
     const rows = [...body.querySelectorAll("tr")];
     labels.forEach((label) => {
       const row = rows.find((candidate) => candidate.textContent.includes(label));
@@ -118,19 +116,13 @@
   function refineFasteners(floor) {
     const table = document.querySelector(`#${CSS.escape(floor)}OrderSheet .fasteners-table`);
     if (!table) return;
-
     [...table.querySelectorAll("tbody > tr")].forEach((row) => {
       const firstText = normalise(row.cells[0]?.textContent);
-      if (firstText === "SCREWS") {
-        row.remove();
-        return;
-      }
+      if (firstText === "SCREWS") return row.remove();
       if (firstText === "LOOSE") setMatrixHeader(row, "Loose Screws", ["25 mm", "32 mm"]);
       if (firstText === "COLLATED") setMatrixHeader(row, "Collated Screws", ["25 mm", "32 mm"]);
     });
-
-    const nailHeader = [...table.querySelectorAll("tbody > tr")]
-      .find((row) => normalise(row.cells[0]?.textContent) === "NAILS");
+    const nailHeader = [...table.querySelectorAll("tbody > tr")].find((row) => normalise(row.cells[0]?.textContent) === "NAILS");
     if (nailHeader) setMatrixHeader(nailHeader, "Nails", ["30 mm", "40 mm"]);
   }
 
@@ -146,24 +138,16 @@
 
   function mergeAcousticWeights(floor) {
     const table = document.querySelector(`#${CSS.escape(floor)}OrderSheet .acoustics-table`);
-    if (!table) return;
-
-    const rows = [...table.querySelectorAll("tbody > tr:not(.lower-subheader)")];
-    mergeRepeatedFirstColumn(rows, "acoustic-weight-cell");
+    if (table) mergeRepeatedFirstColumn([...table.querySelectorAll("tbody > tr:not(.lower-subheader)")], "acoustic-weight-cell");
   }
 
   function mergeInsulationTypes(floor) {
     const table = document.querySelector(`#${CSS.escape(floor)}OrderSheet .insulation-table`);
-    if (!table) return;
-
-    const rows = [...table.querySelectorAll("tbody > tr:not(.lower-subheader)")];
-    mergeRepeatedFirstColumn(rows, "insulation-type-cell");
+    if (table) mergeRepeatedFirstColumn([...table.querySelectorAll("tbody > tr:not(.lower-subheader)")], "insulation-type-cell");
   }
 
   function formatInsulationRatings(floor) {
-    const table = document.querySelector(`#${CSS.escape(floor)}OrderSheet .insulation-table`);
-    if (!table) return;
-    table.querySelectorAll(".lower-item-detail").forEach((cell) => {
+    document.querySelectorAll(`#${CSS.escape(floor)}OrderSheet .insulation-table .lower-item-detail`).forEach((cell) => {
       cell.textContent = String(cell.textContent || "").replace(/90\s*mm/gi, "90 mm");
     });
   }
@@ -171,10 +155,7 @@
   function mergeRepeatedFirstColumn(rows, className) {
     for (let index = 0; index < rows.length;) {
       const firstCell = rows[index].querySelector(":scope > th:first-child");
-      if (!firstCell) {
-        index += 1;
-        continue;
-      }
+      if (!firstCell) { index += 1; continue; }
       const value = normalise(firstCell.textContent);
       let end = index + 1;
       while (end < rows.length) {
@@ -182,13 +163,10 @@
         if (!nextCell || normalise(nextCell.textContent) !== value) break;
         end += 1;
       }
-      const span = end - index;
-      if (span > 1) {
-        firstCell.rowSpan = span;
+      if (end - index > 1) {
+        firstCell.rowSpan = end - index;
         firstCell.classList.add(className);
-        for (let rowIndex = index + 1; rowIndex < end; rowIndex += 1) {
-          rows[rowIndex].querySelector(":scope > th:first-child")?.remove();
-        }
+        for (let rowIndex = index + 1; rowIndex < end; rowIndex += 1) rows[rowIndex].querySelector(":scope > th:first-child")?.remove();
       }
       index = end;
     }
@@ -197,8 +175,7 @@
   function removeEmptyRondo6100(floor) {
     const table = document.querySelector(`#${CSS.escape(floor)}OrderSheet .rondo-table`);
     if (!table) return;
-    const header = [...table.querySelectorAll("tbody > tr")]
-      .find((row) => [...row.cells].some((cell) => normalise(cell.textContent) === "6100"));
+    const header = [...table.querySelectorAll("tbody > tr")].find((row) => [...row.cells].some((cell) => normalise(cell.textContent) === "6100"));
     if (!header) return;
     const columnIndex = [...header.cells].findIndex((cell) => normalise(cell.textContent) === "6100");
     if (columnIndex < 0) return;
@@ -207,8 +184,7 @@
   }
 
   function renameRondoProductHeader(floor) {
-    const table = document.querySelector(`#${CSS.escape(floor)}OrderSheet .rondo-table`);
-    const heading = table?.querySelector(".lower-matrix-header th:first-child");
+    const heading = document.querySelector(`#${CSS.escape(floor)}OrderSheet .rondo-table .lower-matrix-header th:first-child`);
     if (heading) heading.textContent = "Product";
   }
 
@@ -216,34 +192,7 @@
     if (document.getElementById("catalogueFinalRefinementStyles")) return;
     const style = document.createElement("style");
     style.id = "catalogueFinalRefinementStyles";
-    style.textContent = `
-      .fasteners-table tbody>tr:first-child{display:table-row!important}
-      .fasteners-table .lower-group-heading th{font-size:11px!important;line-height:24px!important}
-      .fasteners-table .lower-group-heading th::before,.fasteners-table .lower-group-heading th::after,.fasteners-table tbody>tr:nth-child(2) th::before,.fasteners-table tbody>tr:nth-child(2) th::after,.fasteners-table tbody>tr:nth-child(6) th::before,.fasteners-table tbody>tr:nth-child(6) th::after{display:none!important;content:none!important}
-      .fasteners-table .lower-matrix-header th:first-child{text-align:left!important}
-      .fasteners-table .lower-matrix-header th:not(:first-child){text-align:center!important}
-      .fasteners-table th{overflow:visible!important;text-overflow:clip!important}
-      .lower-catalogue-table .lower-subheader>*{background:#c4cac8!important;border-bottom-color:#aab3b0!important}
-      .lower-catalogue-grid .unavailable-cell,.lower-catalogue-grid .quantity-cell.is-unavailable,.unified-board-table .unavailable-cell,.unified-board-table .quantity-cell.is-unavailable{background:#e1e5e4!important;background-image:none!important}
-      .insulation-table col:nth-child(1){width:32%!important}
-      .insulation-table col:nth-child(2){width:28%!important}
-      .insulation-table col:nth-child(3),.insulation-table col:nth-child(4){width:20%!important}
-      .insulation-table .lower-item-detail{overflow:visible!important;text-overflow:clip!important;white-space:nowrap!important;text-align:center!important}
-      .insulation-table .lower-matrix-header th:nth-child(2){text-align:center!important}
-      .insulation-table .insulation-type-cell{vertical-align:middle!important;text-align:left!important}
-      .acoustics-table .lower-item-detail{text-align:center!important}
-      .acoustics-table .acoustic-weight-cell{vertical-align:middle!important;text-align:left!important}
-      .rondo-table col:first-child{width:36%!important}
-      .rondo-table .lower-matrix-header th:not(:first-child),.rondo-table td{text-align:center!important}
-      .required-date-inline{display:flex;align-items:stretch;min-width:0;height:39px;background:#fff}
-      .required-date-inline>.date-input-shell{flex:1 1 210px;min-width:190px}
-      .future-confirmation[hidden]{display:none!important}
-      .future-confirmation:not([hidden]){flex:0 0 auto;display:inline-flex!important;align-items:center;gap:6px;max-width:230px;margin:0!important;padding:0 8px!important;color:#795600;background:#fff8df!important;border:0!important;border-left:1px solid #e5cf8b!important;border-radius:0!important;font-size:10px!important;font-weight:600;line-height:1.2;white-space:normal}
-      .future-confirmation input[type="checkbox"]{flex:0 0 14px;width:14px!important;height:14px!important;min-height:14px!important;margin:0!important;padding:0!important;accent-color:var(--bell-maroon);box-shadow:none!important}
-      .history-controls label{display:inline-flex!important;align-items:center!important;gap:7px!important;font-size:12px}
-      .history-controls input[type="checkbox"]{flex:0 0 14px;width:14px!important;height:14px!important;min-height:14px!important;margin:0!important;padding:0!important;accent-color:var(--bell-maroon);box-shadow:none!important}
-      @media(max-width:900px){.required-date-inline{height:auto;min-height:39px;flex-wrap:wrap}.required-date-inline>.date-input-shell{flex-basis:100%}.future-confirmation:not([hidden]){min-height:30px;max-width:none;width:100%;border-left:0!important;border-top:1px solid #e5cf8b!important}}
-    `;
+    style.textContent = `.fasteners-table tbody>tr:first-child{display:table-row!important}.fasteners-table .lower-group-heading th{font-size:11px!important;line-height:24px!important}.fasteners-table .lower-matrix-header th:first-child{text-align:left!important}.fasteners-table .lower-matrix-header th:not(:first-child){text-align:center!important}.lower-catalogue-table .lower-subheader>*{background:#c4cac8!important;border-bottom-color:#aab3b0!important}.lower-catalogue-grid .unavailable-cell,.lower-catalogue-grid .quantity-cell.is-unavailable,.unified-board-table .unavailable-cell,.unified-board-table .quantity-cell.is-unavailable{background:#e1e5e4!important;background-image:none!important}.insulation-table col:nth-child(1){width:32%!important}.insulation-table col:nth-child(2){width:28%!important}.insulation-table col:nth-child(3),.insulation-table col:nth-child(4){width:20%!important}.insulation-table .lower-item-detail,.acoustics-table .lower-item-detail{text-align:center!important}.insulation-table .insulation-type-cell,.acoustics-table .acoustic-weight-cell{vertical-align:middle!important;text-align:left!important}.rondo-table col:first-child{width:36%!important}.rondo-table .lower-matrix-header th:not(:first-child),.rondo-table td{text-align:center!important}.required-date-inline{display:flex;align-items:stretch;min-width:0;height:39px;background:#fff}.required-date-inline>.date-input-shell{flex:1 1 210px;min-width:190px}.future-confirmation[hidden]{display:none!important}.future-confirmation:not([hidden]){flex:0 0 auto;display:inline-flex!important;align-items:center;gap:6px;max-width:230px;margin:0!important;padding:0 8px!important;color:#795600;background:#fff8df!important;border:0!important;border-left:1px solid #e5cf8b!important;border-radius:0!important;font-size:10px!important;font-weight:600;line-height:1.2}.future-confirmation input[type="checkbox"]{width:14px!important;height:14px!important;accent-color:var(--bell-maroon)}@media(max-width:900px){.required-date-inline{height:auto;min-height:39px;flex-wrap:wrap}.required-date-inline>.date-input-shell{flex-basis:100%}.future-confirmation:not([hidden]){max-width:none;width:100%;border-left:0!important;border-top:1px solid #e5cf8b!important}}`;
     document.head.append(style);
   }
 
