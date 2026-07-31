@@ -8,6 +8,7 @@ const CONFIG = Object.freeze({
   maxAreas: 20,
   maxItemsPerArea: 250,
   maxOtherMaterialsPerArea: 100,
+  maxQuantityPerProduct: 10000,
 });
 
 const LEGACY_AREAS = Object.freeze({
@@ -378,8 +379,8 @@ function normaliseItems(areaLabel, rawItems) {
     const product = PRODUCT_CATALOG[key];
     if (!product) throw new Error(`${areaLabel}: Unknown product key "${key}".`);
     const quantity = Number(item.quantity);
-    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) {
-      throw new Error(`${areaLabel}: ${product.label} requires a whole-number quantity from 1 to 999.`);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > CONFIG.maxQuantityPerProduct) {
+      throw new Error(`${areaLabel}: ${product.label} requires a whole-number quantity from 1 to ${CONFIG.maxQuantityPerProduct.toLocaleString("en-AU")}.`);
     }
     totals[key] = (totals[key] || 0) + quantity;
   });
@@ -393,8 +394,8 @@ async function normaliseOtherMaterials(env, areaLabel, rawItems) {
   rows.forEach((item, index) => {
     const sku = cleanRequiredText(item?.sku, `${areaLabel} Additional Products line ${index + 1} stock code`, 80).toUpperCase();
     const quantity = Number(item?.quantity);
-    if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) {
-      throw new Error(`${areaLabel}: ${sku} requires a quantity from 1 to 999.`);
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > CONFIG.maxQuantityPerProduct) {
+      throw new Error(`${areaLabel}: ${sku} requires a quantity from 1 to ${CONFIG.maxQuantityPerProduct.toLocaleString("en-AU")}.`);
     }
     totals.set(sku, (totals.get(sku) || 0) + quantity);
   });
@@ -500,7 +501,9 @@ function combineProductRows(items, areaLabel) {
     const key = sku.toUpperCase();
     const current = combined.get(key) || { sku, description: String(item?.description || "").trim(), quantity: 0 };
     current.quantity += Number(item?.quantity || 0);
-    if (current.quantity > 999) throw new Error(`${areaLabel}: combined quantity for ${sku} exceeds 999.`);
+    if (current.quantity > CONFIG.maxQuantityPerProduct) {
+      throw new Error(`${areaLabel}: combined quantity for ${sku} exceeds ${CONFIG.maxQuantityPerProduct.toLocaleString("en-AU")}.`);
+    }
     combined.set(key, current);
   }
   return [...combined.values()].map((item) => [item.sku, item.description, item.quantity]);
