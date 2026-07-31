@@ -84,8 +84,8 @@
   function register(sku, label, detail = "") {
     if (!sku) return null;
     const key = keyFor(sku);
-    const existing = state.catalog?.[key] || {};
     if (!state.catalog) state.catalog = {};
+    const existing = state.catalog[key] || {};
     state.catalog[key] = {
       ...existing,
       sku,
@@ -155,39 +155,57 @@
     });
   }
 
-  function appendAccessoryRows(tbody, floor, accessories, colspan) {
-    const heading = document.createElement("tr");
-    heading.className = "lower-subheader lower-group-heading";
-    const headingCell = document.createElement("th");
-    headingCell.colSpan = colspan;
-    headingCell.textContent = "Clips & Brackets";
-    heading.append(headingCell);
-    tbody.append(heading);
+  function appendAccessoryHeading(tbody, totalColumns) {
+    const row = document.createElement("tr");
+    row.className = "lower-subheader lower-group-heading";
+    const cell = document.createElement("th");
+    cell.colSpan = totalColumns;
+    cell.textContent = "Clips & Brackets";
+    row.append(cell);
+    tbody.append(row);
+  }
 
-    for (let index = 0; index < accessories.length; index += 2) {
+  function appendAccessoryRows(tbody, floor, accessories, totalColumns) {
+    appendAccessoryHeading(tbody, totalColumns);
+
+    if (totalColumns === 4) {
+      for (let index = 0; index < accessories.length; index += 2) {
+        const row = document.createElement("tr");
+        row.className = "rondo-accessory-row rondo-accessory-pair";
+        [accessories[index], accessories[index + 1]].forEach((entry) => {
+          if (entry) {
+            const name = document.createElement("th");
+            name.scope = "row";
+            name.textContent = entry[0];
+            row.append(name, createQuantityCell(floor, keyFor(entry[1])));
+          } else {
+            row.append(document.createElement("td"), document.createElement("td"));
+          }
+        });
+        tbody.append(row);
+      }
+      return;
+    }
+
+    accessories.forEach(([label, sku]) => {
       const row = document.createElement("tr");
       row.className = "rondo-accessory-row";
-      [accessories[index], accessories[index + 1]].forEach((entry) => {
-        if (entry) {
-          const name = document.createElement("th");
-          name.scope = "row";
-          name.textContent = entry[0];
-          row.append(name, createQuantityCell(floor, keyFor(entry[1])));
-        } else {
-          row.append(document.createElement("td"), document.createElement("td"));
-        }
-      });
+      const name = document.createElement("th");
+      name.scope = "row";
+      name.colSpan = totalColumns - 1;
+      name.textContent = label;
+      row.append(name, createQuantityCell(floor, keyFor(sku)));
       tbody.append(row);
-    }
+    });
   }
 
   function renderRondoGridTable(floor, definition, className) {
-    const accessoryColumns = 4;
-    const table = makeTable(className, definition.columns.length === 3 ? [55, 15, 15, 15] : [58, 21, 21]);
+    const totalColumns = definition.columns.length + 1;
+    const table = makeTable(className, totalColumns === 4 ? [55, 15, 15, 15] : [58, 21, 21]);
     const tbody = document.createElement("tbody");
     appendHeader(tbody, definition.title, definition.columns);
     appendMatrixRows(tbody, floor, definition);
-    appendAccessoryRows(tbody, floor, definition.accessories, accessoryColumns);
+    appendAccessoryRows(tbody, floor, definition.accessories, totalColumns);
     table.append(tbody);
     return table;
   }
@@ -252,5 +270,14 @@
     return table;
   }
 
+  function refreshExistingSheets() {
+    if (!document.querySelector(".floor-panels .pdf-form-sheet")) return;
+    const areas = Array.isArray(state?.deliveryAreas) ? state.deliveryAreas : [];
+    areas.forEach((area) => {
+      if (area?.id) window.renderUnifiedFloorSheet(area.id);
+    });
+  }
+
   globalThis.BpsRondoHebelCatalogue = Object.freeze({ RONDO, HEBEL, keyFor });
+  queueMicrotask(refreshExistingSheets);
 })();
