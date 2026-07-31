@@ -7,7 +7,8 @@
     ["linked-contact-picker", "/linked-contact-picker.js?v=20260730-1"],
     ["order-form-enhancements", "/order-form-enhancements.js?v=20260731-3"],
     ["product-quantity-authority", "/product-quantity-authority.js?v=20260731-1"],
-    ["admin-testing", "/admin-testing.js?v=20260731-3"],
+    ["order-selection-source", "/order-selection-source.js?v=20260731-1"],
+    ["admin-testing", "/admin-testing.js?v=20260731-4"],
   ];
 
   controllers.forEach(([marker, src]) => {
@@ -29,13 +30,10 @@
   const initialiseRequiredDateState = () => {
     const input = document.getElementById("requiredDate");
     if (!(input instanceof HTMLInputElement)) return false;
-
     syncRequiredDateState();
     if (input.dataset.dateValueState !== "true") {
       input.dataset.dateValueState = "true";
-      ["input", "change", "blur"].forEach((eventName) => {
-        input.addEventListener(eventName, syncRequiredDateState);
-      });
+      ["input", "change", "blur"].forEach((eventName) => input.addEventListener(eventName, syncRequiredDateState));
     }
     return true;
   };
@@ -49,8 +47,7 @@
       if (event.key !== "Enter" || event.isComposing) return;
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
-      if (target.closest(".area-name-editor")) return;
-      if (target instanceof HTMLTextAreaElement) return;
+      if (target.closest(".area-name-editor") || target instanceof HTMLTextAreaElement) return;
       if (target instanceof HTMLButtonElement && target.id === "submitButton") return;
       event.preventDefault();
       event.stopPropagation();
@@ -58,7 +55,6 @@
 
     form.addEventListener("submit", (event) => {
       if (event.target instanceof HTMLFormElement && event.target.classList.contains("area-name-editor")) return;
-
       const submitter = event.submitter;
       const intentionalSubmit = submitter instanceof HTMLButtonElement
         && submitter.id === "submitButton"
@@ -75,7 +71,6 @@
   const start = () => {
     initialiseRequiredDateState();
     initialiseSafeOrderSubmission();
-
     let attempts = 0;
     const timer = window.setInterval(() => {
       attempts += 1;
