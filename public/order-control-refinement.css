@@ -42,8 +42,6 @@
   margin: 0 !important;
 }
 
-/* The final Extras grid cell carries its own right border. Cover that seam so
-   the summary and open menu provide the single visible right edge. */
 .order-form-page .extras-dropdown-field {
   overflow: visible !important;
   border-right: 0 !important;
@@ -66,129 +64,155 @@
   display: none !important;
 }
 
-.order-form-page .admin-order-tools {
-  display: grid;
-  grid-template-columns: minmax(190px, .8fr) minmax(330px, 1.35fr) auto;
-  align-items: stretch;
+.order-form-page .admin-testing-toolbar {
+  display: grid !important;
+  grid-template-columns: minmax(210px, auto) minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 20px;
+  row-gap: 6px;
+  box-sizing: border-box;
+  min-height: 68px;
   margin: 0 0 12px;
+  padding: 10px 12px;
   color: #17211f;
   background: #fff;
   border: 1px solid #d2d9d6;
 }
 
-.order-form-page .admin-order-copy,
-.order-form-page .admin-order-account,
-.order-form-page .admin-order-actions {
-  min-width: 0;
-  padding: 9px 11px;
-}
-
-.order-form-page .admin-order-copy {
+.order-form-page .admin-testing-heading {
+  grid-column: 1;
+  grid-row: 1 / 3;
   display: grid;
-  align-content: center;
-  gap: 2px;
-  background: #f3f6f5;
+  grid-template-columns: auto auto;
+  align-items: baseline;
+  justify-content: start;
+  gap: 2px 8px;
+  min-width: 0;
 }
 
-.order-form-page .admin-order-copy strong,
-.order-form-page .admin-order-account > span,
-.order-form-page .admin-test-quantity > span {
-  font-size: 10px;
+.order-form-page .admin-testing-heading > span {
+  grid-column: 1 / -1;
+  color: #6b7774;
+  font-size: 9px;
   font-weight: 700;
   line-height: 1.2;
+  letter-spacing: .05em;
   text-transform: uppercase;
-  letter-spacing: .02em;
 }
 
-.order-form-page .admin-order-copy span {
-  color: #697570;
-  font-size: 10px;
-  line-height: 1.35;
-}
-
-.order-form-page .admin-order-account {
-  display: grid;
-  gap: 5px;
-  border-left: 1px solid #d2d9d6;
-  border-right: 1px solid #d2d9d6;
-}
-
-.order-form-page .admin-order-account select {
-  box-sizing: border-box;
-  width: 100%;
-  height: 34px;
-  margin: 0;
-  padding: 0 30px 0 9px;
+.order-form-page .admin-testing-heading > strong {
   color: #17211f;
-  background-color: #fff;
-  border: 1px solid #c8d1ce;
-  border-radius: 0;
-  font: 11px/1 Inter, system-ui, sans-serif;
-}
-
-.order-form-page .admin-order-account select:focus {
-  outline: 0;
-  box-shadow: inset 0 0 0 1px var(--bell-green);
-}
-
-.order-form-page .admin-order-actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
   white-space: nowrap;
 }
 
-.order-form-page .admin-test-quantity {
+.order-form-page .admin-testing-heading > small {
+  color: #6b7774;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.order-form-page .admin-testing-controls {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  align-items: end;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.order-form-page .admin-testing-quantity {
   display: grid;
-  grid-template-columns: auto 74px;
+  grid-template-columns: auto 78px;
   align-items: center;
-  gap: 6px;
-}
-
-.order-form-page .admin-test-quantity input {
-  box-sizing: border-box;
-  width: 74px;
-  height: 34px;
+  gap: 7px;
   margin: 0;
-  padding: 0 8px;
+}
+
+.order-form-page .admin-testing-quantity > span {
   color: #17211f;
-  background: #fff;
-  border: 1px solid #c8d1ce;
-  border-radius: 0;
-  font: 600 11px/1 Inter, system-ui, sans-serif;
-  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
-.order-form-page .admin-test-quantity input:focus {
-  outline: 0;
-  box-shadow: inset 0 0 0 1px var(--bell-green);
+.order-form-page .admin-testing-quantity input {
+  box-sizing: border-box;
+  width: 78px !important;
+  min-width: 78px !important;
+  max-width: 78px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  margin: 0 !important;
+  padding: 0 8px !important;
+  color: #17211f !important;
+  background: #fff !important;
+  border: 1px solid #c8d1ce !important;
+  border-radius: 0 !important;
+  font: 600 11px/34px Inter, system-ui, sans-serif !important;
+  text-align: center !important;
 }
 
-.order-form-page .admin-order-actions .button {
+.order-form-page .admin-testing-quantity input:focus {
+  outline: 0 !important;
+  box-shadow: inset 0 0 0 1px var(--bell-green) !important;
+}
+
+.order-form-page .admin-testing-controls .button {
+  box-sizing: border-box;
   min-height: 34px;
+  margin: 0;
   padding: 0 12px;
   font-size: 10px;
+  white-space: nowrap;
 }
 
-.order-form-page .admin-order-actions .button:disabled,
-.order-form-page .admin-test-quantity input:disabled {
-  cursor: not-allowed;
-  opacity: .45;
+.order-form-page .admin-testing-message {
+  grid-column: 2;
+  grid-row: 2;
+  justify-self: end;
+  min-width: 0;
+  margin: 0;
+  color: var(--bell-green);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: right;
+}
+
+.order-form-page .admin-testing-message.is-error {
+  color: var(--bell-maroon);
 }
 
 @media (max-width: 900px) {
-  .order-form-page .admin-order-tools {
+  .order-form-page .admin-testing-toolbar {
     grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    align-items: stretch;
+    gap: 8px;
   }
 
-  .order-form-page .admin-order-account {
-    border-right: 0;
-    border-bottom: 1px solid #d2d9d6;
+  .order-form-page .admin-testing-heading,
+  .order-form-page .admin-testing-controls,
+  .order-form-page .admin-testing-message {
+    grid-column: 1;
+    grid-row: auto;
   }
 
-  .order-form-page .admin-order-actions {
+  .order-form-page .admin-testing-controls {
     justify-content: flex-start;
     flex-wrap: wrap;
+  }
+
+  .order-form-page .admin-testing-message {
+    justify-self: start;
+    text-align: left;
   }
 }
