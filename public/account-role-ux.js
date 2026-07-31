@@ -1,16 +1,16 @@
 (() => {
-  const replacements = new Map([
+  const replacements = [
     ["Primary user", "Account supervisor"],
     ["Standard user", "Order user"],
     ["Primary", "Supervisor"],
-  ]);
+  ];
 
   function replaceTextNode(node) {
     if (!(node instanceof Text)) return;
     const value = node.nodeValue || "";
     let next = value;
-    replacements.forEach((replacement, source) => {
-      next = next.replace(new RegExp(`\\b${source.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&")}\\b`, "g"), replacement);
+    replacements.forEach(([source, replacement]) => {
+      next = next.split(source).join(replacement);
     });
     if (next !== value) node.nodeValue = next;
   }
@@ -30,7 +30,7 @@
     patchSelectOptions(root);
 
     const note = document.getElementById("managePortalUserNote");
-    if (note && !note.dataset.roleAccessNote) {
+    if (note) {
       note.dataset.roleAccessNote = "true";
       note.textContent = "Account supervisors can view every order submitted under this debtor account. Order users can view only orders submitted with their own login. Submitted orders are permanent and read-only.";
     }
