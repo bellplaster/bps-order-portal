@@ -27,8 +27,8 @@
   }
 
   function editorWidth(label, measuredWidth = 0) {
-    const textWidth = Math.ceil(String(label || "").length * 7.2 + 28);
-    return Math.max(72, Math.min(190, Math.max(measuredWidth, textWidth)));
+    const textWidth = Math.ceil(String(label || "").length * 7.2 + 24);
+    return Math.max(64, Math.min(190, Math.max(measuredWidth, textWidth)));
   }
 
   function finish(save) {
@@ -78,9 +78,8 @@
 
     document.querySelector(".area-name-editor")?.remove();
 
-    const measuredWidth = Math.ceil(tab.getBoundingClientRect().width || shell.getBoundingClientRect().width || 0);
-    const width = editorWidth(area.label, measuredWidth);
-    shell.style.setProperty("--inline-tab-editor-width", `${width}px`);
+    const measuredWidth = Math.ceil(tab.getBoundingClientRect().width || 0);
+    shell.style.setProperty("--inline-tab-editor-width", `${editorWidth(area.label, measuredWidth)}px`);
 
     const input = document.createElement("input");
     input.type = "text";
@@ -89,10 +88,11 @@
     input.autocomplete = "off";
     input.value = area.label;
     input.setAttribute("aria-label", "Tab name");
+    input.setAttribute("spellcheck", "false");
 
     editing = { areaId, area, shell, tab, input, originalLabel: area.label };
 
-    shell.classList.add("is-renaming");
+    shell.classList.add("is-renaming", "is-active");
     shell.draggable = false;
     tab.hidden = true;
     shell.insertBefore(input, shell.firstChild);
@@ -104,9 +104,11 @@
     input.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
         event.preventDefault();
+        event.stopPropagation();
         finish(true);
       } else if (event.key === "Escape") {
         event.preventDefault();
+        event.stopPropagation();
         finish(false);
       }
     });
@@ -182,43 +184,57 @@
       width:auto!important;
       min-width:0!important;
       max-width:none!important;
-      background:#fff!important;
-      border-color:#006557!important;
-      box-shadow:inset 0 0 0 1px #006557!important;
+      height:32px!important;
+      background:#a62b45!important;
+      border:1px solid #a62b45!important;
+      box-shadow:none!important;
       overflow:hidden!important;
     }
     #deliveryAreaTabs .area-tab-shell.is-renaming>.area-tab-inline-input{
+      appearance:none!important;
+      -webkit-appearance:none!important;
       box-sizing:border-box!important;
       display:block!important;
       flex:0 0 var(--inline-tab-editor-width,88px)!important;
       width:var(--inline-tab-editor-width,88px)!important;
       min-width:var(--inline-tab-editor-width,88px)!important;
       max-width:var(--inline-tab-editor-width,88px)!important;
-      height:32px!important;
-      min-height:32px!important;
+      height:30px!important;
+      min-height:30px!important;
       margin:0!important;
-      padding:0 10px!important;
+      padding:0 9px!important;
       border:0!important;
       border-radius:0!important;
-      background:#fff!important;
-      color:#17211f!important;
+      background:transparent!important;
+      color:#fff!important;
+      caret-color:#fff!important;
       outline:0!important;
       box-shadow:none!important;
       font:inherit!important;
       font-size:11px!important;
       font-weight:600!important;
-      line-height:32px!important;
+      line-height:30px!important;
       text-align:left!important;
     }
-    #deliveryAreaTabs .area-tab-shell.is-renaming>.area-tab-inline-input:focus{
+    #deliveryAreaTabs .area-tab-shell.is-renaming>.area-tab-inline-input:focus,
+    #deliveryAreaTabs .area-tab-shell.is-renaming>.area-tab-inline-input:focus-visible{
       border:0!important;
-      box-shadow:none!important;
+      background:transparent!important;
+      box-shadow:inset 0 0 0 1px rgba(255,255,255,.72)!important;
       outline:0!important;
     }
+    #deliveryAreaTabs .area-tab-shell.is-renaming>.area-tab-inline-input::selection{
+      background:rgba(255,255,255,.9);
+      color:#a62b45;
+    }
     #deliveryAreaTabs .area-tab-shell.is-renaming .area-tab-delete{
-      flex:0 0 32px!important;
-      width:32px!important;
-      min-width:32px!important;
+      flex:0 0 30px!important;
+      width:30px!important;
+      min-width:30px!important;
+      height:30px!important;
+      border-left:1px solid rgba(255,255,255,.3)!important;
+      background:#a62b45!important;
+      color:#fff!important;
     }
     #deliveryAreaTabs>.area-name-editor{display:none!important}
   `;
