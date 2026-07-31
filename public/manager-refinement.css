@@ -204,3 +204,10 @@
     grid-template-columns:minmax(175px,175px) minmax(0,1fr) 58px 28px!important;
   }
 }
+
+/* The consolidated tab controller owns the single drag indicator. */
+#deliveryAreaTabs>.area-tab-shell.drop-before::before,
+#deliveryAreaTabs>.area-tab-shell.drop-after::after{
+  display:none!important;
+  content:none!important;
+}
