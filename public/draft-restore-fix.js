@@ -1,4 +1,12 @@
 (() => {
+  if (!document.querySelector('link[data-address-autocomplete-layout="true"]')) {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "/address-autocomplete-layout.css?v=20260731-1";
+    link.dataset.addressAutocompleteLayout = "true";
+    document.head.append(link);
+  }
+
   const controllers = [
     ["order-defaults", "/order-defaults.js?v=20260729-1"],
     ["order-product-payload", "/order-product-payload.js?v=20260729-1"],
