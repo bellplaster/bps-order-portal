@@ -8,7 +8,6 @@
     ["order-form-enhancements", "/order-form-enhancements.js?v=20260731-3"],
     ["product-quantity-authority", "/product-quantity-authority.js?v=20260731-1"],
     ["admin-testing", "/admin-testing.js?v=20260731-3"],
-    ["review-metrics-authority", "/review-metrics-refinement.js?v=20260731-7"],
   ];
 
   controllers.forEach(([marker, src]) => {
