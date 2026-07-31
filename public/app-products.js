@@ -1,3 +1,12 @@
+const MAX_PRODUCT_QUANTITY = 10000;
+const PRODUCT_QUANTITY_DIGITS = String(MAX_PRODUCT_QUANTITY).length;
+
+function normaliseProductQuantity(value, fallback = 0) {
+  const digits = String(value ?? "").replace(/\D/g, "").slice(0, PRODUCT_QUANTITY_DIGITS);
+  if (!digits) return fallback;
+  return Math.min(MAX_PRODUCT_QUANTITY, Number(digits));
+}
+
 function renderFloorSheet(floor) {
   const root = document.getElementById(`${floor}OrderSheet`);
   root.replaceChildren();
@@ -293,7 +302,7 @@ function createQuantityInput(floor, key) {
   input.type = "text";
   input.inputMode = "numeric";
   input.pattern = "[0-9]*";
-  input.maxLength = 3;
+  input.maxLength = PRODUCT_QUANTITY_DIGITS;
   input.className = "quantity-input";
   input.dataset.floor = floor;
   input.dataset.productKey = key;
@@ -303,8 +312,8 @@ function createQuantityInput(floor, key) {
   input.setAttribute("aria-label", `${product?.label || key} quantity for ${floorLabels[floor]}`);
   input.addEventListener("focus", () => input.select());
   input.addEventListener("input", () => {
-    input.value = input.value.replace(/\D/g, "").slice(0, 3);
-    const quantity = Math.min(999, Number(input.value || 0));
+    const quantity = normaliseProductQuantity(input.value);
+    input.value = quantity > 0 ? String(quantity) : "";
     if (quantity > 0) state.quantities[floor].set(key, quantity);
     else state.quantities[floor].delete(key);
     input.classList.toggle("has-value", quantity > 0);
@@ -355,7 +364,7 @@ async function searchAdditionalProducts(floor, query) {
 
 function addAdditionalProduct(floor, product) {
   const existing = state.otherMaterials[floor].find((item) => item.sku.toLowerCase() === product.sku.toLowerCase());
-  if (existing) existing.quantity = Math.min(999, existing.quantity + 1);
+  if (existing) existing.quantity = Math.min(MAX_PRODUCT_QUANTITY, existing.quantity + 1);
   else state.otherMaterials[floor].push({ sku: product.sku, description: product.description, quantity: 1 });
 
   renderSelectedAdditional(floor);
@@ -397,13 +406,14 @@ function renderSelectedAdditional(floor, suppliedContainer = null) {
     const quantity = document.createElement("input");
     quantity.type = "text";
     quantity.inputMode = "numeric";
-    quantity.maxLength = 3;
+    quantity.maxLength = PRODUCT_QUANTITY_DIGITS;
     quantity.className = "quantity-input has-value";
     quantity.value = item.quantity;
     quantity.setAttribute("aria-label", `${item.sku} quantity`);
     quantity.addEventListener("input", () => {
-      quantity.value = quantity.value.replace(/\D/g, "").slice(0, 3);
-      item.quantity = Math.max(1, Math.min(999, Number(quantity.value || 1)));
+      const parsed = normaliseProductQuantity(quantity.value, 1);
+      item.quantity = Math.max(1, parsed);
+      quantity.value = String(item.quantity);
       renderCounts();
       scheduleDraft();
     });
