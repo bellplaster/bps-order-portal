@@ -9,23 +9,26 @@ export async function onRequestGet(context) {
   const auth = context.data?.auth;
   if (!auth?.userId) return Response.json({ ok: false, error: "Authentication required." }, { status: 401 });
 
-  const user = await context.env.DB.prepare(
-    `SELECT u.account_id
-     FROM users u
-     INNER JOIN customer_accounts a ON a.id = u.account_id
-     WHERE u.id = ? AND u.active = 1 AND a.active = 1
-     LIMIT 1`,
+  await ensureOrderTrackingSchema(context.env.DB);
+  const viewer = await context.env.DB.prepare(
+    `SELECT id, account_id, role, active, is_primary FROM users WHERE id = ? AND active = 1 LIMIT 1`,
   ).bind(auth.userId).first();
-  const accountId = Number(user?.account_id || 0);
-  if (!accountId) return Response.json({ ok: false, error: "Your portal user is not assigned to a customer account." }, { status: 403 });
+  const accountId = Number(viewer?.account_id || 0);
+  if (!viewer || !accountId) return Response.json({ ok: false, error: "File record not found." }, { status: 404 });
 
   const file = await context.env.DB.prepare(
-    `SELECT f.filename, f.r2_key, o.account_id
+    `SELECT f.filename, f.r2_key, o.account_id, o.created_by_user_id
      FROM order_files f
      INNER JOIN orders o ON o.submission_id = f.submission_id
-     WHERE f.id = ? AND o.account_id = ? LIMIT 1`,
-  ).bind(fileId, accountId).first();
-  if (!file) return Response.json({ ok: false, error: "File record not found." }, { status: 404 });
+     WHERE f.id = ? LIMIT 1`,
+  ).bind(fileId).first();
+
+  const canViewAccountOrders = viewer.role === "admin" || Number(viewer.is_primary) === 1;
+  const ownsFile = Number(file?.account_id || 0) === accountId
+    && (canViewAccountOrders || Number(file?.created_by_user_id || 0) === Number(viewer.id));
+  if (!file || !ownsFile) {
+    return Response.json({ ok: false, error: "File record not found." }, { status: 404 });
+  }
 
   const object = await context.env.ORDER_FILES.get(file.r2_key);
   if (!object) return Response.json({ ok: false, error: "The XLSX file is missing from R2." }, { status: 404 });
@@ -36,4 +39,17 @@ export async function onRequestGet(context) {
   headers.set("Cache-Control", "private, no-store");
   headers.set("ETag", object.httpEtag);
   return new Response(object.body, { headers });
+}
+
+async function ensureOrderTrackingSchema(db) {
+  const columns = await db.prepare(`PRAGMA table_info(orders)`).all();
+  const names = new Set((columns.results || []).map((row) => String(row.name)));
+  const additions = {
+    created_by_user_id: "INTEGER",
+    created_by_username_snapshot: "TEXT NOT NULL DEFAULT ''",
+    created_by_name_snapshot: "TEXT NOT NULL DEFAULT ''",
+  };
+  for (const [name, definition] of Object.entries(additions)) {
+    if (!names.has(name)) await db.prepare(`ALTER TABLE orders ADD COLUMN ${name} ${definition}`).run();
+  }
 }
