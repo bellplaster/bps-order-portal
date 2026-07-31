@@ -7,7 +7,7 @@
     ["linked-contact-picker", "/linked-contact-picker.js?v=20260730-1"],
     ["order-form-enhancements", "/order-form-enhancements.js?v=20260731-3"],
     ["product-quantity-authority", "/product-quantity-authority.js?v=20260731-1"],
-    ["order-selection-source", "/order-selection-source.js?v=20260731-1"],
+    ["order-selection-source", "/order-selection-source.js?v=20260731-2"],
     ["admin-testing", "/admin-testing.js?v=20260731-4"],
   ];
 
