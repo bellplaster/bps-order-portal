@@ -20,7 +20,7 @@
     ["calendar-control", "/calendar-control.js?v=20260731-4"],
     ["portal-identity-ux", "/portal-identity-ux.js?v=20260731-2"],
     ["inline-tab-rename", "/inline-tab-rename.js?v=20260801-4"],
-    ["board-area-summary", "/board-area-summary.js?v=20260801-1"],
+    ["board-area-summary", "/board-area-summary.js?v=20260801-2"],
   ];
 
   controllers.forEach(([marker, src]) => {
