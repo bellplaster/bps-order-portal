@@ -1,0 +1,24 @@
+/* Shared address suggestion positioning for order details and account defaults. */
+.order-detail-autocomplete-host {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+.structured-address-cell .address-control.order-detail-autocomplete-host > .order-detail-suggestions {
+  left: -8px !important;
+  right: -8px !important;
+  width: auto !important;
+  max-width: none !important;
+}
+
+.account-field.order-detail-autocomplete-host > .order-detail-suggestions {
+  left: 0 !important;
+  right: 0 !important;
+  width: auto !important;
+  max-width: none !important;
+}
+
+.order-detail-suggestions,
+.order-detail-suggestion {
+  box-sizing: border-box !important;
+}
