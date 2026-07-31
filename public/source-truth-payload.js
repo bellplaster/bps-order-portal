@@ -14,8 +14,6 @@
     };
   }
 
-  // Canonical payload source for both fixed legacy floors and dynamic tabs.
-  // Every tab owns a Map of standard products and an array of Additional Products.
   buildFloorPayload = function buildSourceTruthFloorPayload(areaId) {
     const { quantities, otherMaterials } = ensureAreaCollections(areaId);
     return {
@@ -64,7 +62,7 @@
     ensureAreaCollections(floor);
     const result = previousRenderer.call(this, floor, ...args);
     reorderPartiwall(floor);
-    refineFasteners(floor);
+    rebuildFastenerRows(floor);
     mergeAcousticWeights(floor);
     mergeInsulationTypes(floor);
     formatInsulationRatings(floor);
@@ -113,48 +111,69 @@
     });
   }
 
-  function refineFasteners(floor) {
-    const table = document.querySelector(`#${CSS.escape(floor)}OrderSheet .fasteners-table`);
-    if (!table) return;
-    [...table.querySelectorAll("tbody > tr")].forEach((row) => {
-      const firstCell = row.cells[0];
-      const firstText = normalise(firstCell?.textContent);
-      if (firstText === "SCREWS") {
-        row.remove();
-        return;
-      }
-      if (firstText === "LOOSE") {
-        setMatrixHeader(row, "Loose Screws", ["25 mm", "32 mm"]);
-        return;
-      }
-      if (firstText === "COLLATED") {
-        setMatrixHeader(row, "Collated Screws", ["25 mm", "32 mm"]);
-        return;
-      }
-      if (!row.classList.contains("lower-subheader") && firstCell) {
-        firstCell.textContent = fastenerRowLabel(firstCell.textContent);
-      }
-    });
-    const nailHeader = [...table.querySelectorAll("tbody > tr")].find((row) => normalise(row.cells[0]?.textContent) === "NAILS");
-    if (nailHeader) setMatrixHeader(nailHeader, "Nails", ["30 mm", "40 mm"]);
-  }
-
-  function fastenerRowLabel(value) {
+  function fastenerMatrixLabel(value) {
     return String(value || "")
-      .replace(/^\s*(?:Loose|Collated)(?:\s+Screws)?\s*(?:-\s*)?/i, "")
-      .replace(/\s+/g, " ")
+      .replace(/^(?:Loose|Collated)\s+Screws?\s*/i, "")
+      .replace(/^(?:Loose|Collated)\s*-\s*/i, "")
+      .replace(/^(?:Loose|Collated)(?=(?:Needle|Coarse))/i, "")
+      .replace(/\s*(25|32)\s*mm\s*$/i, "")
       .trim();
   }
 
-  function setMatrixHeader(row, title, columns) {
-    row.replaceChildren();
+  function createMatrixHeader(title, columns) {
+    const row = document.createElement("tr");
     row.className = "lower-subheader lower-matrix-header";
     [title, ...columns].forEach((text) => {
-      const th = document.createElement("th");
-      th.textContent = text;
-      row.append(th);
+      const cell = document.createElement("th");
+      cell.textContent = text;
+      row.append(cell);
     });
+    return row;
   }
+
+  function rebuildFastenerRows(floor) {
+    const tbody = document.querySelector(`#${CSS.escape(floor)}OrderSheet .fasteners-table tbody`);
+    if (!tbody) return;
+
+    const output = [];
+    let section = "";
+
+    [...tbody.rows].forEach((row) => {
+      const firstCell = row.cells[0];
+      const firstText = normalise(firstCell?.textContent);
+
+      if (firstText === "SCREWS") return;
+
+      if (firstText === "LOOSE" || firstText === "LOOSE SCREWS") {
+        section = "LOOSE";
+        output.push(createMatrixHeader("Loose Screws", ["25 mm", "32 mm"]));
+        return;
+      }
+
+      if (firstText === "COLLATED" || firstText === "COLLATED SCREWS") {
+        section = "COLLATED";
+        output.push(createMatrixHeader("Collated Screws", ["25 mm", "32 mm"]));
+        return;
+      }
+
+      if (firstText === "NAILS") {
+        section = "NAILS";
+        output.push(createMatrixHeader("Nails", ["30 mm", "40 mm"]));
+        return;
+      }
+
+      if (section === "LOOSE" || section === "COLLATED") {
+        const labelCell = row.querySelector(":scope > th:first-child");
+        if (labelCell) labelCell.textContent = fastenerMatrixLabel(labelCell.textContent);
+      }
+
+      output.push(row);
+    });
+
+    tbody.replaceChildren(...output);
+  }
+
+  globalThis.BpsFastenerMatrixLabels = Object.freeze({ fastenerMatrixLabel });
 
   function mergeAcousticWeights(floor) {
     const table = document.querySelector(`#${CSS.escape(floor)}OrderSheet .acoustics-table`);
@@ -212,7 +231,7 @@
     if (document.getElementById("catalogueFinalRefinementStyles")) return;
     const style = document.createElement("style");
     style.id = "catalogueFinalRefinementStyles";
-    style.textContent = `.fasteners-table tbody>tr:first-child{display:table-row!important}.fasteners-table .lower-group-heading th{font-size:11px!important;line-height:24px!important}.fasteners-table .lower-matrix-header th:first-child{text-align:left!important}.fasteners-table .lower-matrix-header th:not(:first-child){text-align:center!important}.lower-catalogue-table .lower-subheader>*{background:#c4cac8!important;border-bottom-color:#aab3b0!important}.lower-catalogue-grid .unavailable-cell,.lower-catalogue-grid .quantity-cell.is-unavailable,.unified-board-table .unavailable-cell,.unified-board-table .quantity-cell.is-unavailable{background:#e1e5e4!important;background-image:none!important}.insulation-table col:nth-child(1){width:32%!important}.insulation-table col:nth-child(2){width:28%!important}.insulation-table col:nth-child(3),.insulation-table col:nth-child(4){width:20%!important}.insulation-table .lower-item-detail,.acoustics-table .lower-item-detail{text-align:center!important}.insulation-table .insulation-type-cell,.acoustics-table .acoustic-weight-cell{vertical-align:middle!important;text-align:left!important}.rondo-table col:first-child{width:36%!important}.rondo-table .lower-matrix-header th:not(:first-child),.rondo-table td{text-align:center!important}.required-date-inline{display:flex;align-items:stretch;min-width:0;height:39px;background:#fff}.required-date-inline>.date-input-shell{flex:1 1 210px;min-width:190px}.future-confirmation[hidden]{display:none!important}.future-confirmation:not([hidden]){flex:0 0 auto;display:inline-flex!important;align-items:center;gap:6px;max-width:230px;margin:0!important;padding:0 8px!important;color:#795600;background:#fff8df!important;border:0!important;border-left:1px solid #e5cf8b!important;border-radius:0!important;font-size:10px!important;font-weight:600;line-height:1.2}.future-confirmation input[type="checkbox"]{width:14px!important;height:14px!important;accent-color:var(--bell-maroon)}@media(max-width:900px){.required-date-inline{height:auto;min-height:39px;flex-wrap:wrap}.required-date-inline>.date-input-shell{flex-basis:100%}.future-confirmation:not([hidden]){max-width:none;width:100%;border-left:0!important;border-top:1px solid #e5cf8b!important}}`;
+    style.textContent = `.fasteners-table tbody>tr:first-child{display:table-row!important}.fasteners-table .lower-matrix-header th:first-child{text-align:left!important}.fasteners-table .lower-matrix-header th:not(:first-child){text-align:center!important}.lower-catalogue-table .lower-subheader>*{background:#c4cac8!important;border-bottom-color:#aab3b0!important}.lower-catalogue-grid .unavailable-cell,.lower-catalogue-grid .quantity-cell.is-unavailable,.unified-board-table .unavailable-cell,.unified-board-table .quantity-cell.is-unavailable{background:#e1e5e4!important;background-image:none!important}.insulation-table col:nth-child(1){width:32%!important}.insulation-table col:nth-child(2){width:28%!important}.insulation-table col:nth-child(3),.insulation-table col:nth-child(4){width:20%!important}.insulation-table .lower-item-detail,.acoustics-table .lower-item-detail{text-align:center!important}.insulation-table .insulation-type-cell,.acoustics-table .acoustic-weight-cell{vertical-align:middle!important;text-align:left!important}.rondo-table col:first-child{width:36%!important}.rondo-table .lower-matrix-header th:not(:first-child),.rondo-table td{text-align:center!important}.required-date-inline{display:flex;align-items:stretch;min-width:0;height:39px;background:#fff}.required-date-inline>.date-input-shell{flex:1 1 210px;min-width:190px}.future-confirmation[hidden]{display:none!important}.future-confirmation:not([hidden]){flex:0 0 auto;display:inline-flex!important;align-items:center;gap:6px;max-width:230px;margin:0!important;padding:0 8px!important;color:#795600;background:#fff8df!important;border:0!important;border-left:1px solid #e5cf8b!important;border-radius:0!important;font-size:10px!important;font-weight:600;line-height:1.2}.future-confirmation input[type="checkbox"]{width:14px!important;height:14px!important;accent-color:var(--bell-maroon)}@media(max-width:900px){.required-date-inline{height:auto;min-height:39px;flex-wrap:wrap}.required-date-inline>.date-input-shell{flex-basis:100%}.future-confirmation:not([hidden]){max-width:none;width:100%;border-left:0!important;border-top:1px solid #e5cf8b!important}}`;
     document.head.append(style);
   }
 
