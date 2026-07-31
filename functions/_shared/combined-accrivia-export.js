@@ -1,6 +1,8 @@
 import { PRODUCT_CATALOG } from "./catalog.js";
 import { createAccriviaXlsx } from "./xlsx.js";
 
+const MAX_PRODUCT_QUANTITY = 99999;
+
 export async function replaceAreaExportsWithCombined(env, payload, result, auth) {
   if (!result?.ok || result?.duplicate || !Array.isArray(result.generatedFiles) || !result.generatedFiles.length) {
     return result;
@@ -24,8 +26,6 @@ export async function replaceAreaExportsWithCombined(env, payload, result, auth)
   for (const [areaKey, area] of areaEntries) {
     const label = upper(area.label || areaKey || "AREA");
 
-    // Every visible tab becomes its own Accrivia stock-code marker, even when the
-    // tab does not contain products. The description is deliberately blank.
     productRows.push([label, "", 1]);
 
     const rows = [];
@@ -45,8 +45,6 @@ export async function replaceAreaExportsWithCombined(env, payload, result, auth)
 
   if (!productRows.length) throw new Error("The combined Accrivia export contains no products.");
 
-  // NOTES is the only line below the heading row that keeps a description,
-  // because Accrivia uses it as the complete delivery note.
   productRows.push(["NOTES", buildDeliveryNotesDescription(payload), 1]);
 
   const pickup = isPickup(payload?.deliveryType);
@@ -124,7 +122,9 @@ function combineRows(items, areaLabel) {
     const key = item.sku.toUpperCase();
     const current = combined.get(key) || { sku: item.sku, quantity: 0 };
     current.quantity += item.quantity;
-    if (current.quantity > 10000) throw new Error(`${areaLabel}: combined quantity for ${item.sku} exceeds 10000.`);
+    if (current.quantity > MAX_PRODUCT_QUANTITY) {
+      throw new Error(`${areaLabel}: combined quantity for ${item.sku} exceeds ${MAX_PRODUCT_QUANTITY.toLocaleString("en-AU")}.`);
+    }
     combined.set(key, current);
   }
   return [...combined.values()].map((item) => [upper(item.sku), "", item.quantity]);
