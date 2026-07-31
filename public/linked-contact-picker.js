@@ -12,6 +12,7 @@
     removeObsoletePickers(contactInput);
     applyFieldPresentation(contactInput, phoneInput);
     installStyles();
+    installDuplicateGuard(contactInput);
 
     try {
       const response = await fetch("/api/account-contacts", {
@@ -45,6 +46,26 @@
     document.getElementById("linked-contact-picker-styles")?.remove();
   }
 
+  function installDuplicateGuard(contactInput) {
+    if (document.documentElement.dataset.contactPickerGuard === "true") return;
+    document.documentElement.dataset.contactPickerGuard = "true";
+    const clean = () => {
+      document.querySelectorAll(".linked-contact-control:not([data-authoritative-contact-picker='true'])").forEach((wrapper) => {
+        if (wrapper.contains(contactInput)) {
+          const authoritative = document.querySelector(".linked-contact-control[data-authoritative-contact-picker='true']");
+          if (!authoritative) wrapper.parentNode?.insertBefore(contactInput, wrapper);
+        }
+        wrapper.remove();
+      });
+      document.querySelectorAll("#linkedContactSelect").forEach((select) => select.remove());
+    };
+    const observer = new MutationObserver(clean);
+    observer.observe(document.body, { childList: true, subtree: true });
+    window.setTimeout(clean, 0);
+    window.setTimeout(clean, 500);
+    window.setTimeout(clean, 1500);
+  }
+
   function applyFieldPresentation(contactInput, phoneInput) {
     contactInput.placeholder = "Name";
     phoneInput.placeholder = "Phone";
@@ -60,10 +81,11 @@
   }
 
   function installPicker(contactInput, phoneInput) {
-    if (document.getElementById("linkedContactButton")) return;
+    if (document.querySelector(".linked-contact-control[data-authoritative-contact-picker='true']")) return;
 
     const wrapper = document.createElement("div");
     wrapper.className = "linked-contact-control";
+    wrapper.dataset.authoritativeContactPicker = "true";
     contactInput.parentNode.insertBefore(wrapper, contactInput);
     wrapper.append(contactInput);
 
