@@ -13,8 +13,8 @@ export async function onRequestGet(context) {
                                     a.company_name, a.debtor_code
                              FROM users u
                              LEFT JOIN customer_accounts a ON a.id = u.account_id
-                             ORDER BY CASE WHEN u.role = 'admin' THEN 0 ELSE 1 END,
-                                      COALESCE(a.company_name, 'Bell Plaster') COLLATE NOCASE,
+                             ORDER BY COALESCE(a.company_name, '') COLLATE NOCASE,
+                                      CASE WHEN u.role = 'admin' THEN 0 ELSE 1 END,
                                       u.is_primary DESC,
                                       u.username COLLATE NOCASE`).all(),
     ]);
@@ -56,8 +56,8 @@ export async function onRequestPost(context) {
     await assertUniqueUsername(context.env.DB, username, userId);
 
     const role = existing.role === "admin" ? "admin" : "customer";
-    const accountId = role === "admin" ? null : Number(body.accountId || existing.account_id || 0);
-    if (role === "customer") await assertCustomerAccount(context.env.DB, accountId, false);
+    const accountId = Number(body.accountId || existing.account_id || 0);
+    await assertCustomerAccount(context.env.DB, accountId, false);
 
     const contactName = cleanOptional(body.contactName, 100);
     const mobile = normaliseAustralianPhone(body.mobile, {
@@ -93,8 +93,8 @@ async function createUser(db, body) {
   await assertUniqueUsername(db, username, 0);
 
   const role = body.role === "admin" ? "admin" : "customer";
-  const accountId = role === "admin" ? null : Number(body.accountId || 0);
-  if (role === "customer") await assertCustomerAccount(db, accountId, true);
+  const accountId = Number(body.accountId || 0);
+  await assertCustomerAccount(db, accountId, true);
 
   const passwordValue = String(body.password || "");
   if (passwordValue.length < 8) throw badRequest("Password must contain at least 8 characters.");
