@@ -47,23 +47,7 @@
   <div id="globalMessage" class="portal-message" hidden role="alert"></div>
 
   <main class="order-shell">
-    <section id="adminOrderTools" class="admin-order-tools" aria-label="Administrator order testing" hidden>
-      <div class="admin-order-copy">
-        <strong>Admin testing</strong>
-        <span>Choose the debtor account that will own this test order.</span>
-      </div>
-      <label class="admin-order-account" for="adminCustomerAccount">
-        <span>Order as customer</span>
-        <select id="adminCustomerAccount">
-          <option value="">Select customer account</option>
-        </select>
-      </label>
-      <div class="admin-order-actions">
-        <label class="admin-test-quantity" for="adminFillQuantity"><span>Qty</span><input id="adminFillQuantity" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="5" value="1" aria-label="Test quantity from 1 to 99999"></label>
-        <button id="fillActiveAreaButton" class="button button-secondary" type="button" disabled>Set active tab</button>
-        <button id="clearActiveAreaTestButton" class="button button-secondary" type="button" disabled>Clear active tab</button>
-      </div>
-    </section>
+    <section id="adminOrderTools" class="admin-order-tools" aria-label="Administrator order testing" hidden></section>
 
     <form id="orderForm" novalidate>
       <div id="editModeBanner" class="edit-banner" hidden></div>
@@ -214,7 +198,7 @@
   </aside>
 
   <script src="/app.js?v=20260731-1" defer></script>
-  <script src="/app-products.js?v=20260731-2" defer></script>
+  <script src="/app-products.js?v=20260731-3" defer></script>
   <script src="/app-order.js?v=20260724-2" defer></script>
   <script src="/app-address.js?v=20260731-1" defer></script>
   <script src="/order-detail-fields.js?v=20260731-2" defer></script>
@@ -227,8 +211,8 @@
   <script src="/payload-sku-bridge.js?v=20260729-1" defer></script>
   <script src="/phone-date-refinement.js?v=20260730-1" defer></script>
   <script src="/additional-products-refinement.js?v=20260729-2" defer></script>
-  <script src="/review-metrics-refinement.js?v=20260731-5" defer></script>
-  <script src="/order-form-enhancements.js?v=20260731-2" defer data-order-form-enhancements="true"></script>
-  <script src="/draft-restore-fix.js?v=20260731-4" defer></script>
+  <script src="/review-metrics-refinement.js?v=20260731-7" defer></script>
+  <script src="/order-form-enhancements.js?v=20260731-3" defer data-order-form-enhancements="true"></script>
+  <script src="/draft-restore-fix.js?v=20260731-5" defer></script>
 </body>
 </html>
