@@ -1,23 +1,40 @@
 (() => {
   // The live review catalogue is the source of truth for SKU identity and
-  // description. Include both with every standard matrix line so the backend
-  // can build a complete Accrivia XLSX without depending on the old catalogue.
-  buildFloorPayload = function buildSkuAwareFloorPayload(floor) {
+  // description. Dynamic tabs may be created or restored before their state
+  // containers exist, so normalise the tab state before reading it.
+  function ensureFloorState(floor) {
+    if (!state.quantities || typeof state.quantities !== "object") state.quantities = {};
+    if (!(state.quantities[floor] instanceof Map)) state.quantities[floor] = new Map();
+
+    if (!state.otherMaterials || typeof state.otherMaterials !== "object") state.otherMaterials = {};
+    if (!Array.isArray(state.otherMaterials[floor])) state.otherMaterials[floor] = [];
+
     return {
-      items: [...state.quantities[floor].entries()]
-        .filter(([, quantity]) => quantity > 0)
+      quantities: state.quantities[floor],
+      otherMaterials: state.otherMaterials[floor],
+    };
+  }
+
+  buildFloorPayload = function buildSkuAwareFloorPayload(floor) {
+    const floorState = ensureFloorState(floor);
+    return {
+      items: [...floorState.quantities.entries()]
+        .filter(([, quantity]) => Number(quantity) > 0)
         .map(([key, quantity]) => {
           const product = state.catalog?.[key] || {};
           return {
             key,
             sku: String(product.sku || "").trim(),
             description: String(product.description || product.descriptionRaw || product.label || product.name || "").trim(),
-            quantity,
+            quantity: Number(quantity),
           };
         }),
-      otherMaterials: (state.otherMaterials[floor] || [])
-        .filter((item) => item.quantity > 0)
-        .map((item) => ({ sku: item.sku, quantity: item.quantity })),
+      otherMaterials: floorState.otherMaterials
+        .filter((item) => Number(item?.quantity) > 0)
+        .map((item) => ({
+          sku: String(item?.sku || "").trim(),
+          quantity: Number(item?.quantity),
+        })),
     };
   };
 })();
