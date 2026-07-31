@@ -1,4 +1,45 @@
 (() => {
+  function numeric(value) {
+    const parsed = Number(String(value ?? "").replace(/,/g, "").trim());
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  function formatArea(value) {
+    const rounded = Math.round((numeric(value) + Number.EPSILON) * 100) / 100;
+    return rounded.toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1");
+  }
+
+  function calculateBoardColumnArea(widthMm, rows) {
+    const width = numeric(widthMm);
+    if (width <= 0 || !Array.isArray(rows)) return 0;
+    return rows.reduce((total, row) => {
+      const length = numeric(row?.lengthMm);
+      const quantity = numeric(row?.quantity);
+      if (length <= 0 || quantity <= 0) return total;
+      return total + ((width * length * quantity) / 1_000_000);
+    }, 0);
+  }
+
+  function calculateBoardSummary(widthsMm, rows) {
+    const widths = Array.isArray(widthsMm) ? widthsMm : [];
+    const sourceRows = Array.isArray(rows) ? rows : [];
+    const columnTotals = widths.map((widthMm, columnIndex) => calculateBoardColumnArea(
+      widthMm,
+      sourceRows.map((row) => ({
+        lengthMm: row?.lengthMm,
+        quantity: Array.isArray(row?.quantities) ? row.quantities[columnIndex] : 0,
+      })),
+    ));
+    return {
+      columnTotals,
+      grandTotal: columnTotals.reduce((total, value) => total + value, 0),
+    };
+  }
+
+  const boardAreaMath = Object.freeze({ numeric, formatArea, calculateBoardColumnArea, calculateBoardSummary });
+  globalThis.BpsBoardAreaMath = boardAreaMath;
+  if (typeof document === "undefined") return;
+
   const BOARD_TABLE_SELECTOR = ".unified-board-table";
   const RONDO_OLD_LABEL = /^Battens\s+Nail\s+Up$/i;
   const RONDO_NEW_LABEL = "301 Nail Up Batten";
@@ -81,15 +122,11 @@
 
     const spacer = totalRow.querySelector(".board-area-total-spacer");
     if (spacer) spacer.colSpan = Math.max(1, widthRow.cells.length - 2);
-
     updateBoardSummary(table);
   }
 
   function updateBoardSummary(table) {
     if (!(table instanceof HTMLTableElement) || !table.tHead || !table.tBodies.length) return;
-    const math = globalThis.BpsBoardAreaMath;
-    if (!math) throw new Error("Board area calculation module is not loaded.");
-
     const widthRow = table.tHead.rows[2];
     const tbody = table.tBodies[0];
     const summaryRow = tbody.querySelector(":scope > .board-area-summary-row");
@@ -110,13 +147,13 @@
       }),
     }));
 
-    const result = math.calculateBoardSummary(widthsMm, rows);
+    const result = boardAreaMath.calculateBoardSummary(widthsMm, rows);
     result.columnTotals.forEach((columnTotal, columnOffset) => {
-      const next = math.formatArea(columnTotal);
+      const next = boardAreaMath.formatArea(columnTotal);
       setMetricValue(summaryRow.cells[columnOffset + 1], next, `${next} square metres`);
     });
 
-    const nextTotal = math.formatArea(result.grandTotal);
+    const nextTotal = boardAreaMath.formatArea(result.grandTotal);
     setMetricValue(totalValue, nextTotal, `${nextTotal} total square metres`);
   }
 
@@ -149,7 +186,6 @@
         try { renderCounts = wrapped; } catch (_error) { }
       }
     } catch (_error) { }
-
     if (renderCountsAttempts < 30) window.setTimeout(patchRenderCounts, 200);
   }
 
@@ -157,12 +193,9 @@
     try {
       if (typeof state === "undefined") return;
       const rows = state.layout?.sections?.rondo?.rows;
-      if (Array.isArray(rows)) {
-        rows.forEach((row) => {
-          if (RONDO_OLD_LABEL.test(String(row?.label || "").trim())) row.label = RONDO_NEW_LABEL;
-        });
-      }
-
+      if (Array.isArray(rows)) rows.forEach((row) => {
+        if (RONDO_OLD_LABEL.test(String(row?.label || "").trim())) row.label = RONDO_NEW_LABEL;
+      });
       const product = state.catalog?.pdf_rondo_battens_nail_up_6000;
       if (product) {
         product.label = `${RONDO_NEW_LABEL} - 6000 mm`;
@@ -203,73 +236,21 @@
     }
     style.textContent = `
       .unified-board-table .board-area-summary-row,
-      .unified-board-table .board-area-total-row {
-        height: 26px !important;
-      }
-      .unified-board-table .board-area-summary-row > th,
-      .unified-board-table .board-area-summary-row > td,
-      .unified-board-table .board-area-total-row > th,
-      .unified-board-table .board-area-total-row > td {
-        box-sizing: border-box !important;
-        height: 26px !important;
-        min-height: 26px !important;
-        max-height: 26px !important;
-        padding: 0 2px !important;
-        line-height: 26px !important;
-        vertical-align: middle !important;
-      }
-      .unified-board-table .board-area-summary-row > th,
-      .unified-board-table .board-area-summary-row > td {
-        background: #eef3f1 !important;
-        border-top: 1px solid #bcc8c4 !important;
-        border-bottom: 1px solid #d7dfdc !important;
-        font-weight: 600 !important;
-      }
-      .unified-board-table .board-area-summary-label {
-        padding-left: 5px !important;
-        text-align: left !important;
-        white-space: nowrap !important;
-        font-size: 11px !important;
-      }
-      .unified-board-table .board-area-summary-value {
-        min-width: 0 !important;
-        padding-inline: 1px !important;
-        color: #40504b !important;
-        font-size: var(--board-metric-font-size, 11px) !important;
-        font-variant-numeric: tabular-nums !important;
-        letter-spacing: -0.01em !important;
-        text-align: center !important;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-      }
-      .unified-board-table tfoot {
-        border-top: 0 !important;
-      }
-      .unified-board-table .board-area-total-row > td,
-      .unified-board-table .board-area-total-row > th {
-        background: #eef3f1 !important;
-        border-bottom: 1px solid #d7dfdc !important;
-        font-weight: 700 !important;
-      }
-      .unified-board-table .board-area-total-spacer {
-        padding: 0 !important;
-      }
-      .unified-board-table .board-area-total-label {
-        text-align: center !important;
-        white-space: nowrap !important;
-        font-size: 11px !important;
-      }
-      .unified-board-table .board-area-total-value {
-        min-width: 0 !important;
-        padding-inline: 1px !important;
-        color: var(--bell-green, #006557) !important;
-        font-size: var(--board-metric-font-size, 11px) !important;
-        font-variant-numeric: tabular-nums !important;
-        letter-spacing: -0.01em !important;
-        text-align: center !important;
-        white-space: nowrap !important;
-        overflow: hidden !important;
-      }
+      .unified-board-table .board-area-total-row { height:26px!important; }
+      .unified-board-table .board-area-summary-row>th,
+      .unified-board-table .board-area-summary-row>td,
+      .unified-board-table .board-area-total-row>th,
+      .unified-board-table .board-area-total-row>td { box-sizing:border-box!important;height:26px!important;min-height:26px!important;max-height:26px!important;padding:0 2px!important;line-height:26px!important;vertical-align:middle!important; }
+      .unified-board-table .board-area-summary-row>th,
+      .unified-board-table .board-area-summary-row>td { background:#eef3f1!important;border-top:1px solid #bcc8c4!important;border-bottom:1px solid #d7dfdc!important;font-weight:600!important; }
+      .unified-board-table .board-area-summary-label { padding-left:5px!important;text-align:left!important;white-space:nowrap!important;font-size:11px!important; }
+      .unified-board-table .board-area-summary-value { min-width:0!important;padding-inline:1px!important;color:#40504b!important;font-size:var(--board-metric-font-size,11px)!important;font-variant-numeric:tabular-nums!important;letter-spacing:-.01em!important;text-align:center!important;white-space:nowrap!important;overflow:hidden!important; }
+      .unified-board-table tfoot { border-top:0!important; }
+      .unified-board-table .board-area-total-row>td,
+      .unified-board-table .board-area-total-row>th { background:#eef3f1!important;border-bottom:1px solid #d7dfdc!important;font-weight:700!important; }
+      .unified-board-table .board-area-total-spacer { padding:0!important; }
+      .unified-board-table .board-area-total-label { text-align:center!important;white-space:nowrap!important;font-size:11px!important; }
+      .unified-board-table .board-area-total-value { min-width:0!important;padding-inline:1px!important;color:var(--bell-green,#006557)!important;font-size:var(--board-metric-font-size,11px)!important;font-variant-numeric:tabular-nums!important;letter-spacing:-.01em!important;text-align:center!important;white-space:nowrap!important;overflow:hidden!important; }
     `;
   }
 
@@ -281,15 +262,11 @@
     patchRondoSource();
     renameRenderedRondoRows();
     updateAllBoardSummaries();
-
-    [0, 100, 300, 700, 1500, 3000].forEach((delay) => {
-      window.setTimeout(() => {
-        patchRondoSource();
-        renameRenderedRondoRows();
-        updateAllBoardSummaries();
-      }, delay);
-    });
-
+    [0, 100, 300, 700, 1500, 3000].forEach((delay) => window.setTimeout(() => {
+      patchRondoSource();
+      renameRenderedRondoRows();
+      updateAllBoardSummaries();
+    }, delay));
     window.addEventListener("pageshow", scheduleBoardUpdate);
   }
 
