@@ -196,9 +196,9 @@
       .linked-contact-button img{display:block;width:15px;height:15px}
       .linked-contact-button:hover{background:#f5f8f7}
       .linked-contact-button:focus-visible,.linked-contact-control.is-open .linked-contact-button{box-shadow:inset 0 0 0 1px var(--bell-green,#006557)}
-      .linked-contact-menu{position:absolute;z-index:100003;top:calc(100% + 4px);right:0;width:240px;max-height:280px;overflow:auto;padding:6px;border:1px solid #cfd7d4;border-radius:4px;background:#fff;box-shadow:0 10px 24px rgba(23,33,31,.16);box-sizing:border-box}
+      .linked-contact-menu{position:absolute;z-index:100003;top:100%;right:0;width:240px;max-height:280px;overflow:auto;margin:0;padding:6px;border:1px solid #cfd7d4;border-radius:0 0 4px 4px;background:#fff;box-shadow:0 10px 24px rgba(23,33,31,.16);box-sizing:border-box}
       .linked-contact-menu[hidden]{display:none!important}
-      .linked-contact-menu::before{content:"";position:absolute;top:-6px;right:13px;width:10px;height:10px;border-left:1px solid #cfd7d4;border-top:1px solid #cfd7d4;background:#fff;transform:rotate(45deg)}
+      .linked-contact-menu::before,.linked-contact-menu::after{display:none!important;content:none!important}
       .linked-contact-option{position:relative;z-index:1;display:grid;gap:2px;width:100%;margin:0;padding:9px 10px;border:0;border-radius:3px;background:#fff;color:#17211f;text-align:left;cursor:pointer;font-family:inherit;box-sizing:border-box}
       .linked-contact-option:hover,.linked-contact-option:focus{outline:0;background:#eef6f3}
       .linked-contact-option strong{font-size:11px;font-weight:600;line-height:1.3}
