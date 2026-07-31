@@ -6,6 +6,8 @@
   let syncFrame = 0;
   let draggedAreaId = "";
   let operationPending = false;
+  let legacyNormalised = false;
+  let resetPatched = false;
 
   installStyles();
   initialise();
@@ -96,6 +98,8 @@
   }, true);
 
   function initialise() {
+    patchResetOrder();
+    normaliseLegacyDefaults();
     const nextTabs = document.querySelector(TAB_ROW_SELECTOR);
     if (!nextTabs) return window.setTimeout(initialise, 80);
     if (tabs !== nextTabs) {
@@ -122,7 +126,6 @@
       return;
     }
     const areas = currentAreas();
-    tabs.querySelectorAll(":scope > .area-tabs-duplicate, :scope > .area-tabs-reset").forEach((node) => node.remove());
     const add = tabs.querySelector(":scope > [data-add-area]");
     if (add) {
       add.textContent = "+";
@@ -130,20 +133,76 @@
       add.title = "Add tab";
       add.disabled = operationPending || areas.length >= MAX_AREAS;
     }
-    const copy = makeControl("area-tabs-duplicate", "Duplicate active tab", "duplicate");
-    copy.dataset.duplicateArea = "true";
+    let copy = tabs.querySelector(":scope > .area-tabs-duplicate");
+    if (!copy) {
+      copy = makeControl("area-tabs-duplicate", "Duplicate active tab", "duplicate");
+      copy.dataset.duplicateArea = "true";
+      copy.append(makeCopyIcon());
+    }
     copy.disabled = operationPending || areas.length >= MAX_AREAS || !activeArea();
-    copy.append(makeCopyIcon());
-    const reset = makeControl("area-tabs-reset", "Delete all tabs", "reset");
-    reset.dataset.resetAreas = "true";
-    reset.append(makeTrashIcon());
-    if (add) add.after(copy, reset);
-    else tabs.append(copy, reset);
+    let reset = tabs.querySelector(":scope > .area-tabs-reset");
+    if (!reset) {
+      reset = makeControl("area-tabs-reset", "Delete all tabs", "reset");
+      reset.dataset.resetAreas = "true";
+      reset.append(makeTrashIcon());
+    }
+    if (add) {
+      if (add.nextElementSibling !== copy) add.after(copy);
+      if (copy.nextElementSibling !== reset) copy.after(reset);
+    } else {
+      if (!copy.isConnected) tabs.append(copy);
+      if (!reset.isConnected) tabs.append(reset);
+    }
     tabs.querySelectorAll(":scope > .area-tab-shell[data-area-id]").forEach((shell) => {
       shell.draggable = true;
       shell.querySelector("[data-floor-tab]")?.setAttribute("title", "Double-click to rename. Drag to reorder.");
     });
     tabs.querySelector(":scope > .area-tab-summary")?.remove();
+  }
+
+  function patchResetOrder() {
+    if (resetPatched || typeof resetOrder !== "function") return;
+    const original = resetOrder;
+    if (original.__rootTabReset) {
+      resetPatched = true;
+      return;
+    }
+    const wrapped = function resetOrderWithRootTab(...args) {
+      const result = original.apply(this, args);
+      legacyNormalised = false;
+      normaliseLegacyDefaults(true);
+      return result;
+    };
+    wrapped.__rootTabReset = true;
+    window.resetOrder = wrapped;
+    try { resetOrder = wrapped; } catch (_error) { }
+    resetPatched = true;
+  }
+
+  function normaliseLegacyDefaults(force = false) {
+    if (legacyNormalised && !force) return false;
+    const areas = currentAreas();
+    const legacy = areas.length > 0 && areas.every((area) => ["ground", "first"].includes(String(area.id)));
+    const hasProducts = areas.some((area) => {
+      const quantities = state.quantities?.[area.id];
+      const matrixProducts = quantities instanceof Map && [...quantities.values()].some((quantity) => Number(quantity) > 0);
+      const additional = Array.isArray(state.otherMaterials?.[area.id])
+        && state.otherMaterials[area.id].some((item) => Number(item.quantity) > 0);
+      return matrixProducts || additional;
+    });
+    legacyNormalised = true;
+    if (!legacy || hasProducts) return false;
+    const id = "tab-1";
+    state.deliveryAreas = [{ id, label: "Tab 1" }];
+    state.activeFloor = id;
+    state.quantities = { [id]: new Map() };
+    state.otherMaterials = { [id]: [] };
+    Object.keys(floorLabels).forEach((key) => delete floorLabels[key]);
+    floorLabels[id] = "Tab 1";
+    if (state.layout && typeof loadCatalog === "function") {
+      window.setTimeout(() => void rerender(), 0);
+    }
+    return true;
   }
 
   function makeControl(className, label, action) {
