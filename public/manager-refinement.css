@@ -1,4 +1,4 @@
-/* Manager-requested delivery, address and tab refinements. */
+/* Delivery, structured address and Additional Products refinements. */
 .structured-address-field{
   display:grid!important;
   grid-template-columns:112px minmax(0,1fr)!important;
@@ -66,7 +66,6 @@
   margin:0!important;
   padding:0!important;
   border:0!important;
-  border-bottom:0!important;
   border-radius:0!important;
   outline:0!important;
   background:#fff!important;
@@ -75,19 +74,19 @@
   box-shadow:none!important;
 }
 .structured-address-cell>input:focus,
-.structured-address-cell .address-control>input:focus,
-.order-details-section .structured-address-cell>input:focus,
-.order-details-section .structured-address-cell .address-control>input:focus{
+.structured-address-cell .address-control>input:focus{
   border:0!important;
-  border-bottom:0!important;
   outline:0!important;
   box-shadow:none!important;
 }
-.structured-address-cell .address-control,
-.structured-address-cell .address-control::before,
-.structured-address-cell .address-control::after{
+.structured-address-cell .address-control{
+  position:relative!important;
+  display:block!important;
+  height:29px!important;
+  min-height:29px!important;
+  margin:0!important;
+  padding:0!important;
   border:0!important;
-  border-bottom:0!important;
   box-shadow:none!important;
 }
 .structured-address-cell .address-control::before,
@@ -112,103 +111,75 @@
   cursor:text!important;
 }
 .structured-address-postcode input[readonly]{color:var(--ink)!important}
-.structured-address-cell .address-control{
-  position:relative!important;
-  display:block!important;
-  height:29px!important;
-  min-height:29px!important;
-  margin:0!important;
-  padding:0!important;
-}
 .structured-address-cell .clear-input{
   z-index:4!important;
   top:50%!important;
   right:0!important;
   transform:translateY(-50%)!important;
 }
-.pac-container{z-index:100000!important;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important}
-.pac-item,.pac-item-query{text-transform:none!important}
 
-.floor-tabs{
-  display:flex!important;
+/* Additional Products: keep long Accrivia stock codes readable and columns aligned. */
+.additional-search-results .additional-result-header,
+.additional-search-results .additional-result-row,
+.additional-results .additional-result-header,
+.additional-results .additional-result-row,
+.additional-products-panel .additional-result-header,
+.additional-products-panel .additional-result-row{
+  display:grid!important;
+  grid-template-columns:minmax(205px,205px) minmax(0,1fr) 68px!important;
   width:100%!important;
-  min-height:30px!important;
-  align-items:flex-end!important;
-  gap:4px!important;
-}
-.floor-tabs>.area-tab-shell{order:1!important}
-.floor-tabs>[data-add-area]{order:2!important}
-.floor-tabs>.area-tabs-reset{order:3!important}
-.floor-tabs>.area-tab-summary{order:4!important;margin-left:auto!important}
-.floor-tabs>[data-add-area],
-.area-tabs-reset{
   box-sizing:border-box!important;
-  height:30px!important;
-  min-height:30px!important;
-  margin:0!important;
-  border:1px solid var(--line)!important;
-  border-radius:0!important;
-  background:#fff!important;
-  color:var(--bell-maroon)!important;
-  font:650 10px/28px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
-  white-space:nowrap!important;
-  cursor:pointer!important;
-  vertical-align:bottom!important;
 }
-.floor-tabs>[data-add-area]{
-  display:inline-flex!important;
-  flex:0 0 30px!important;
+.additional-products-panel .selected-additional-header,
+.additional-products-panel .selected-additional-row{
+  display:grid!important;
+  grid-template-columns:minmax(205px,205px) minmax(0,1fr) 68px 30px!important;
+  width:100%!important;
+  box-sizing:border-box!important;
+  align-items:stretch!important;
+}
+.additional-products-panel .selected-additional-header{height:30px!important}
+.additional-products-panel .selected-additional-row{height:32px!important;max-height:32px!important}
+.additional-products-panel .selected-additional-row>*{
+  display:flex!important;
+  box-sizing:border-box!important;
+  height:32px!important;
+  min-height:32px!important;
+  margin:0!important;
+  padding-top:0!important;
+  padding-bottom:0!important;
+  align-items:center!important;
+}
+.additional-products-panel .selected-additional-row>:last-child{
   width:30px!important;
   min-width:30px!important;
-  max-width:30px!important;
-  overflow:hidden!important;
-  padding:0!important;
-  align-items:center!important;
   justify-content:center!important;
-  font-size:20px!important;
-  line-height:1!important;
-  text-indent:0!important;
 }
-.area-tabs-reset{
-  min-width:76px!important;
-  padding:0 10px!important;
+.additional-search-results .additional-result-header>*,
+.additional-search-results .additional-result-row>*,
+.additional-results .additional-result-header>*,
+.additional-results .additional-result-row>*,
+.additional-products-panel .additional-result-header>*,
+.additional-products-panel .additional-result-row>*,
+.additional-products-panel .selected-additional-header>*,
+.additional-products-panel .selected-additional-row>*{
+  min-width:0!important;
+  box-sizing:border-box!important;
 }
-.area-tabs-reset:hover,.floor-tabs>[data-add-area]:hover{background:#f8f4f5!important}
-.area-tab-summary{
-  align-self:flex-end!important;
-  display:flex!important;
-  height:30px!important;
-  min-height:30px!important;
-  align-items:center!important;
-  justify-content:flex-end!important;
-  gap:7px!important;
-  padding:0 0 0 12px!important;
-  color:#53615e!important;
-  font-size:10px!important;
-  line-height:30px!important;
-  white-space:nowrap!important;
-}
-.area-summary-metric{font-weight:650!important}
-.area-summary-separator{color:#a3adaa!important}
-
-/* Keep the longest Accrivia stock codes fully visible in Additional Products. */
-.additional-search-results .additional-result-row,
-.additional-results .additional-result-row,
-.additional-products-panel .additional-result-row{
-  grid-template-columns:minmax(205px,205px) minmax(0,1fr) 68px!important;
-}
-.additional-search-results .additional-result-row> :first-child,
-.additional-results .additional-result-row> :first-child,
-.additional-products-panel .additional-result-row> :first-child{
+.additional-search-results .additional-result-header>:first-child,
+.additional-search-results .additional-result-row>:first-child,
+.additional-results .additional-result-header>:first-child,
+.additional-results .additional-result-row>:first-child,
+.additional-products-panel .additional-result-header>:first-child,
+.additional-products-panel .additional-result-row>:first-child,
+.additional-products-panel .selected-additional-header>:first-child,
+.additional-products-panel .selected-additional-row>:first-child{
+  width:205px!important;
   min-width:205px!important;
+  max-width:205px!important;
   overflow:visible!important;
   text-overflow:clip!important;
   white-space:nowrap!important;
-}
-.additional-search-results .additional-results-header,
-.additional-results .additional-results-header,
-.additional-products-panel .additional-results-header{
-  grid-template-columns:minmax(205px,205px) minmax(0,1fr) 68px!important;
 }
 
 @media(max-width:1100px){
@@ -220,14 +191,16 @@
   .structured-address-grid{grid-template-columns:1fr 1fr!important}
   .structured-address-cell:nth-child(2){border-right:0!important}
   .structured-address-cell:nth-child(-n+2){border-bottom:1px solid var(--line)!important}
-  .floor-tabs{flex-wrap:wrap!important}
-  .area-tab-summary{width:100%!important;margin-left:0!important;justify-content:flex-end!important;border-top:1px solid var(--line)!important}
+  .additional-search-results .additional-result-header,
   .additional-search-results .additional-result-row,
+  .additional-results .additional-result-header,
   .additional-results .additional-result-row,
-  .additional-products-panel .additional-result-row,
-  .additional-search-results .additional-results-header,
-  .additional-results .additional-results-header,
-  .additional-products-panel .additional-results-header{
+  .additional-products-panel .additional-result-header,
+  .additional-products-panel .additional-result-row{
     grid-template-columns:minmax(175px,175px) minmax(0,1fr) 58px!important;
+  }
+  .additional-products-panel .selected-additional-header,
+  .additional-products-panel .selected-additional-row{
+    grid-template-columns:minmax(175px,175px) minmax(0,1fr) 58px 28px!important;
   }
 }
