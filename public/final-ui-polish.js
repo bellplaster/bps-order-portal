@@ -6,6 +6,7 @@
 
   normaliseFreshDefaultArea();
   simplifyStepNavigation();
+  polishOrdersNavigation();
   patchBoardRenderer();
   patchTimeSlotValidation();
   patchUnifiedDeliverySync();
@@ -52,6 +53,7 @@
     polishDeliveryControls();
     polishDeliveryAreaTabs();
     polishAreaEditor();
+    polishOrdersNavigation();
 
     const controlsReady = Boolean(
       document.querySelector(".delivery-select-timeSlot .delivery-select")
@@ -60,7 +62,8 @@
     );
     const layoutReady = typeof state !== "undefined" && Boolean(state.layout);
     const tabsReady = Boolean(document.querySelector(".area-tab-shell"));
-    if ((controlsReady && layoutReady && tabsReady) || attempts >= 50) window.clearInterval(retryTimer);
+    const ordersReady = Boolean(document.querySelector("#openHistoryButton svg") && document.querySelector("#historySearch"));
+    if ((controlsReady && layoutReady && tabsReady && ordersReady) || attempts >= 50) window.clearInterval(retryTimer);
   }, 100);
 
   document.getElementById("orderForm")?.addEventListener("reset", () => {
@@ -110,6 +113,63 @@
     const reviewStep = document.querySelector('[data-step-target="review"] .step-copy');
     if (orderStep) orderStep.replaceChildren(makeStrong("Order"));
     if (reviewStep) reviewStep.replaceChildren(makeStrong("Review"));
+  }
+
+  function polishOrdersNavigation() {
+    const button = document.getElementById("openHistoryButton");
+    if (button && button.dataset.ordersPolished !== "true") {
+      button.dataset.ordersPolished = "true";
+      button.setAttribute("aria-label", "Orders");
+      button.innerHTML = `
+        <svg class="orders-header-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true">
+          <path fill-rule="evenodd" d="M4.976 1.5a2.75 2.75 0 0 0-2.72 2.347l-.662 4.46a9 9 0 0 0-.094 1.282v1.661a3.25 3.25 0 0 0 3.25 3.25h6.5a3.25 3.25 0 0 0 3.25-3.25v-1.66q0-.645-.095-1.283l-.66-4.46a2.75 2.75 0 0 0-2.72-2.347h-6.05Zm-1.237 2.567a1.25 1.25 0 0 1 1.237-1.067h6.048c.62 0 1.146.454 1.237 1.067l.583 3.933h-2.484c-.538 0-1.015.344-1.185.855l-.159.474a.25.25 0 0 1-.237.171h-1.558a.25.25 0 0 1-.237-.17l-.159-.475a1.25 1.25 0 0 0-1.185-.855h-2.484zm-.738 5.433-.001.09v1.66c0 .966.784 1.75 1.75 1.75h6.5a1.75 1.75 0 0 0 1.75-1.75v-1.75h-2.46l-.1.303a1.75 1.75 0 0 1-1.66 1.197h-1.56a1.75 1.75 0 0 1-1.66-1.197l-.1-.303h-2.46Z"></path>
+        </svg>
+        <span>Orders</span>`;
+    }
+
+    const drawer = document.getElementById("historyDrawer");
+    const heading = drawer?.querySelector(".drawer-header h1, .drawer-header h2, .drawer-header h3");
+    if (heading && heading.textContent !== "Orders") heading.textContent = "Orders";
+    drawer?.setAttribute("aria-label", "Orders");
+    document.getElementById("closeHistoryButton")?.setAttribute("aria-label", "Close orders");
+
+    if (!document.getElementById("orders-navigation-polish")) {
+      const style = document.createElement("style");
+      style.id = "orders-navigation-polish";
+      style.textContent = `
+        #openHistoryButton[data-orders-polished="true"] {
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 7px !important;
+        }
+        #openHistoryButton .orders-header-icon {
+          width: 16px !important;
+          height: 16px !important;
+          flex: 0 0 16px !important;
+          fill: currentColor !important;
+        }
+        #historyDrawer .history-search-shell input,
+        #historyDrawer .history-search-shell input:focus,
+        #historyDrawer .history-search-shell input:focus-visible {
+          -webkit-appearance: none !important;
+          appearance: none !important;
+          border: 0 !important;
+          outline: 0 !important;
+          box-shadow: none !important;
+          background: transparent !important;
+        }
+        #historyDrawer .history-search-shell input::-webkit-search-decoration,
+        #historyDrawer .history-search-shell input::-webkit-search-cancel-button,
+        #historyDrawer .history-search-shell input::-webkit-search-results-button,
+        #historyDrawer .history-search-shell input::-webkit-search-results-decoration {
+          -webkit-appearance: none !important;
+          appearance: none !important;
+          display: none !important;
+        }
+      `;
+      document.head.append(style);
+    }
   }
 
   function makeStrong(text) {
