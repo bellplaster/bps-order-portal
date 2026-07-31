@@ -2,6 +2,7 @@
   const replacements = [
     ["Primary user", "Account supervisor"],
     ["Standard user", "Order user"],
+    ["No saved contact", "No contact details"],
     ["Primary", "Supervisor"],
   ];
 
@@ -9,10 +10,14 @@
     if (!(node instanceof Text)) return;
     const value = node.nodeValue || "";
     let next = value;
-    replacements.forEach(([source, replacement]) => {
-      next = next.split(source).join(replacement);
-    });
+    replacements.forEach(([source, replacement]) => { next = next.split(source).join(replacement); });
     if (next !== value) node.nodeValue = next;
+  }
+
+  function relabelField(id, text) {
+    const field = document.getElementById(id);
+    const label = field?.closest("label")?.querySelector("span");
+    if (label) label.textContent = text;
   }
 
   function patchRoleLabels(root = document) {
@@ -27,15 +32,14 @@
     });
 
     const note = document.getElementById("managePortalUserNote");
-    if (note) note.textContent = "Account supervisors can view every order submitted under this debtor account. Order users can view only orders submitted with their own login. Submitted orders are permanent and read-only.";
+    if (note) note.textContent = "Account supervisors can view every order under this debtor account. Order users see only their own submissions. These user contact details are separate from the account's shared saved contacts.";
 
-    const primarySelect = document.getElementById("managePrimary");
-    const primaryLabel = primarySelect?.closest("label")?.querySelector("span");
-    if (primaryLabel) primaryLabel.textContent = "Order visibility";
-
-    const createPrimary = document.getElementById("newUserPrimary");
-    const createLabel = createPrimary?.closest("label")?.querySelector("span");
-    if (createLabel) createLabel.textContent = "Order visibility";
+    relabelField("managePrimary", "Order visibility");
+    relabelField("newUserPrimary", "Order visibility");
+    relabelField("manageContactName", "User contact name");
+    relabelField("manageMobile", "User phone");
+    relabelField("newUserContactName", "User contact name");
+    relabelField("newUserMobile", "User phone");
   }
 
   function installHelp() {
@@ -44,14 +48,14 @@
     const help = document.createElement("p");
     help.id = "portal-role-help";
     help.className = "portal-role-help";
-    help.textContent = "Account supervisors see all orders for their debtor account. Order users see only their own submissions.";
+    help.textContent = "Account supervisors see all account orders and manage the shared contact book from their Account page. Portal-user contact details remain separate.";
     panel.append(help);
   }
 
   function loadSavedContactManager() {
     if (document.querySelector('script[data-account-contacts-management="true"]')) return;
     const script = document.createElement("script");
-    script.src = "/account-contacts-management.js?v=20260801-1";
+    script.src = "/account-contacts-management.js?v=20260801-2";
     script.defer = true;
     script.dataset.accountContactsManagement = "true";
     document.body.append(script);
@@ -72,19 +76,14 @@
     try {
       const response = await fetch("/api/account", { credentials: "same-origin", headers: { Accept: "application/json" } });
       result = await response.json();
-    } catch (_error) {
-      return;
-    }
+    } catch (_error) { return; }
 
     const profile = result?.profile;
     if (!profile || profile.role === "admin") return;
 
     document.getElementById("customerAccountCard")?.setAttribute("hidden", "");
     const companyInput = document.getElementById("companyName");
-    if (companyInput) {
-      companyInput.readOnly = true;
-      companyInput.disabled = true;
-    }
+    if (companyInput) { companyInput.readOnly = true; companyInput.disabled = true; }
 
     const heading = document.querySelector(".account-heading h1");
     const copy = document.querySelector(".account-heading p");
@@ -101,11 +100,7 @@
     if (document.getElementById("account-role-ux-styles")) return;
     const style = document.createElement("style");
     style.id = "account-role-ux-styles";
-    style.textContent = `
-      .portal-role-help{margin:4px 0 0;max-width:680px;color:#687471;font-size:10px;line-height:1.45}
-      .portal-user-role{font-weight:500}
-      #customerAccountCard[hidden]{display:none!important}
-    `;
+    style.textContent = `.portal-role-help{margin:4px 0 0;max-width:760px;color:#687471;font-size:10px;line-height:1.45}.portal-user-role{font-weight:500}#customerAccountCard[hidden]{display:none!important}`;
     document.head.append(style);
   }
 
@@ -118,8 +113,7 @@
 
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => mutation.addedNodes.forEach((node) => {
-        if (node instanceof Element) patchRoleLabels(node);
-        else replaceTextNode(node);
+        if (node instanceof Element) patchRoleLabels(node); else replaceTextNode(node);
       }));
       installHelp();
       clearAdminOnlyMessage();
@@ -127,6 +121,5 @@
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", install, { once: true });
-  else install();
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", install, { once: true }); else install();
 })();
