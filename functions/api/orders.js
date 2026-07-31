@@ -7,16 +7,17 @@ export async function onRequestGet(context) {
     const auth = context.data?.auth;
     if (!auth?.userId) return Response.json({ ok: false, error: "Authentication required.", requestId }, { status: 401 });
 
-    const where = auth.role === "admin" ? "" : "WHERE o.account_id = ?";
-    const sql = `SELECT
+    const accountId = await resolveAssignedAccountId(context.env.DB, auth.userId);
+    if (!accountId) {
+      return Response.json({ ok: false, error: "Your portal user is not assigned to a customer account.", requestId }, { status: 403 });
+    }
+
+    const ordersResult = await context.env.DB.prepare(`SELECT
        o.submission_id, o.customer_reference, o.status, o.created_at, o.updated_at,
        o.payload_json, o.account_id, o.company_name_snapshot, o.debtor_code_snapshot
-     FROM orders o ${where}
-     ORDER BY o.created_at DESC LIMIT 100`;
-    const query = context.env.DB.prepare(sql);
-    const ordersResult = auth.role === "admin"
-      ? await query.all()
-      : await query.bind(auth.accountId).all();
+     FROM orders o
+     WHERE o.account_id = ?
+     ORDER BY o.created_at DESC LIMIT 100`).bind(accountId).all();
 
     const orders = [];
     for (const order of ordersResult.results || []) {
@@ -49,11 +50,7 @@ export async function onRequestGet(context) {
           if (!product || String(product.sku || "").trim()) return null;
           return { key: item.key, label: product.label, quantity: Number(item.quantity || 0) };
         }).filter(Boolean);
-        if (pendingItems.length) pendingMapping.push({
-          floor,
-          floor_label: areaLabel(floor, details),
-          items: pendingItems,
-        });
+        if (pendingItems.length) pendingMapping.push({ floor, floor_label: areaLabel(floor, details), items: pendingItems });
       });
       orders.push({
         submission_id: order.submission_id,
@@ -94,6 +91,17 @@ export async function onRequestGet(context) {
       headers: { "X-Request-ID": requestId },
     });
   }
+}
+
+async function resolveAssignedAccountId(db, userId) {
+  const user = await db.prepare(
+    `SELECT u.account_id
+     FROM users u
+     INNER JOIN customer_accounts a ON a.id = u.account_id
+     WHERE u.id = ? AND u.active = 1 AND a.active = 1
+     LIMIT 1`,
+  ).bind(userId).first();
+  return Number(user?.account_id || 0);
 }
 
 function inferRevision(filename) {
