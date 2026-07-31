@@ -20,6 +20,76 @@
       : number.toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1");
   }
 
+  function metricFontSize(value) {
+    const length = String(value || "0").length;
+    if (length >= 12) return "8px";
+    if (length >= 10) return "9px";
+    if (length >= 8) return "10px";
+    return "11px";
+  }
+
+  function renderReviewFooter(lineCount, totalBoardArea, unitCount) {
+    const lineRoot = document.getElementById("reviewLineTotal");
+    const totalsRoot = document.getElementById("reviewUnitTotal");
+    const footer = lineRoot?.closest(".review-total");
+    if (!lineRoot || !totalsRoot || !footer) return;
+
+    const areaText = formatMetric(totalBoardArea);
+    const unitText = String(unitCount);
+
+    footer.style.setProperty("grid-template-columns", "180px minmax(0,1fr) auto minmax(72px,112px) auto minmax(68px,96px)", "important");
+    footer.style.setProperty("column-gap", "0", "important");
+
+    lineRoot.innerHTML = `<span>Product lines</span><strong>${lineCount}</strong>`;
+    lineRoot.style.setProperty("grid-column", "1", "important");
+
+    totalsRoot.innerHTML = `
+      <small class="review-footer-label review-footer-area-label">Total m²</small>
+      <strong class="review-footer-value review-footer-area-value">${areaText}</strong>
+      <small class="review-footer-label review-footer-unit-label">Total Units</small>
+      <strong class="review-footer-value review-footer-unit-value">${unitText}</strong>
+    `;
+    totalsRoot.style.setProperty("grid-column", "3 / 7", "important");
+    totalsRoot.style.setProperty("display", "grid", "important");
+    totalsRoot.style.setProperty("grid-template-columns", "subgrid", "important");
+    totalsRoot.style.setProperty("width", "100%", "important");
+    totalsRoot.style.setProperty("height", "26px", "important");
+    totalsRoot.style.setProperty("min-width", "0", "important");
+    totalsRoot.style.setProperty("margin", "0", "important");
+    totalsRoot.style.setProperty("padding", "0", "important");
+
+    const cells = [...totalsRoot.children];
+    cells.forEach((cell) => {
+      cell.style.setProperty("display", "flex", "important");
+      cell.style.setProperty("align-items", "center", "important");
+      cell.style.setProperty("height", "26px", "important");
+      cell.style.setProperty("min-width", "0", "important");
+      cell.style.setProperty("margin", "0", "important");
+      cell.style.setProperty("padding", "0 6px", "important");
+      cell.style.setProperty("box-sizing", "border-box", "important");
+      cell.style.setProperty("white-space", "nowrap", "important");
+      cell.style.setProperty("overflow", "hidden", "important");
+      cell.style.setProperty("line-height", "26px", "important");
+    });
+
+    totalsRoot.querySelectorAll(".review-footer-label").forEach((label) => {
+      label.style.setProperty("justify-content", "flex-end", "important");
+      label.style.setProperty("font-size", "11px", "important");
+      label.style.setProperty("font-weight", "500", "important");
+    });
+
+    const areaValue = totalsRoot.querySelector(".review-footer-area-value");
+    const unitValue = totalsRoot.querySelector(".review-footer-unit-value");
+    [areaValue, unitValue].forEach((value) => {
+      value?.style.setProperty("justify-content", "flex-end", "important");
+      value?.style.setProperty("font-weight", "700", "important");
+      value?.style.setProperty("font-variant-numeric", "tabular-nums", "important");
+      value?.style.setProperty("text-overflow", "clip", "important");
+    });
+    areaValue?.style.setProperty("font-size", metricFontSize(areaText), "important");
+    unitValue?.style.setProperty("font-size", metricFontSize(unitText), "important");
+  }
+
   function refinedRenderReview() {
     const payload = buildPayload();
     const details = [
@@ -82,11 +152,7 @@
       linesRoot.append(group);
     });
 
-    document.getElementById("reviewLineTotal").innerHTML = `<span>Product lines</span><strong>${lineCount}</strong>`;
-    document.getElementById("reviewUnitTotal").innerHTML = `
-      <span class="review-footer-metric"><small>Total m²</small><strong>${formatMetric(totalBoardArea)}</strong></span>
-      <span class="review-footer-metric"><small>Total Units</small><strong>${unitCount}</strong></span>
-    `;
+    renderReviewFooter(lineCount, totalBoardArea, unitCount);
   }
 
   function enableEditablePostcode() {
