@@ -1,59 +1,24 @@
 (() => {
-  if (!document.querySelector('script[data-order-defaults="true"]')) {
-    const script = document.createElement("script");
-    script.src = "/order-defaults.js?v=20260729-1";
-    script.defer = true;
-    script.dataset.orderDefaults = "true";
-    document.body.append(script);
-  }
+  const controllers = [
+    ["order-defaults", "/order-defaults.js?v=20260729-1"],
+    ["order-product-payload", "/order-product-payload.js?v=20260729-1"],
+    ["admin-defaults", "/admin-defaults.js?v=20260731-1"],
+    ["board-width-order", "/board-width-order.js?v=20260729-1"],
+    ["linked-contact-picker", "/linked-contact-picker.js?v=20260730-1"],
+    ["order-form-enhancements", "/order-form-enhancements.js?v=20260731-3"],
+    ["product-quantity-authority", "/product-quantity-authority.js?v=20260731-1"],
+    ["admin-testing", "/admin-testing.js?v=20260731-3"],
+    ["review-metrics-authority", "/review-metrics-refinement.js?v=20260731-7"],
+  ];
 
-  if (!document.querySelector('script[data-order-product-payload="true"]')) {
+  controllers.forEach(([marker, src]) => {
+    if (document.querySelector(`script[data-${marker}="true"]`)) return;
     const script = document.createElement("script");
-    script.src = "/order-product-payload.js?v=20260729-1";
+    script.src = src;
     script.defer = true;
-    script.dataset.orderProductPayload = "true";
+    script.dataset[marker.replace(/-([a-z])/g, (_match, letter) => letter.toUpperCase())] = "true";
     document.body.append(script);
-  }
-
-  if (!document.querySelector('script[data-admin-defaults="true"]')) {
-    const script = document.createElement("script");
-    script.src = "/admin-defaults.js?v=20260731-1";
-    script.defer = true;
-    script.dataset.adminDefaults = "true";
-    document.body.append(script);
-  }
-
-  if (!document.querySelector('script[data-board-width-order="true"]')) {
-    const script = document.createElement("script");
-    script.src = "/board-width-order.js?v=20260729-1";
-    script.defer = true;
-    script.dataset.boardWidthOrder = "true";
-    document.body.append(script);
-  }
-
-  if (!document.querySelector('script[data-linked-contact-picker="true"]')) {
-    const script = document.createElement("script");
-    script.src = "/linked-contact-picker.js?v=20260730-1";
-    script.defer = true;
-    script.dataset.linkedContactPicker = "true";
-    document.body.append(script);
-  }
-
-  if (!document.querySelector('script[data-order-form-enhancements="true"]')) {
-    const script = document.createElement("script");
-    script.src = "/order-form-enhancements.js?v=20260731-1";
-    script.defer = true;
-    script.dataset.orderFormEnhancements = "true";
-    document.body.append(script);
-  }
-
-  if (!document.querySelector('script[data-admin-testing="true"]')) {
-    const script = document.createElement("script");
-    script.src = "/admin-testing.js?v=20260731-1";
-    script.defer = true;
-    script.dataset.adminTesting = "true";
-    document.body.append(script);
-  }
+  });
 
   const syncRequiredDateState = () => {
     const input = document.getElementById("requiredDate");
@@ -121,11 +86,8 @@
     }, 100);
   };
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", start, { once: true });
-  } else {
-    start();
-  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
+  else start();
 
   window.addEventListener("pageshow", () => {
     syncRequiredDateState();
