@@ -7,6 +7,7 @@ import { replaceAreaExportsWithCombined } from "../_shared/combined-accrivia-exp
 export async function onRequestPost(context) {
   const requestId = crypto.randomUUID();
   let payload = null;
+  let actor = null;
   try {
     const contentLength = Number(context.request.headers.get("Content-Length") || 0);
     if (contentLength > 200_000) {
@@ -19,21 +20,19 @@ export async function onRequestPost(context) {
     }
 
     const auth = context.data?.auth || {};
-    let accountId = Number(auth.accountId || 0);
-
-    if (auth.role === "admin") {
-      const currentAdmin = await context.env.DB.prepare(
-        `SELECT account_id FROM users WHERE id = ? AND role = 'admin' AND active = 1 LIMIT 1`,
-      ).bind(auth.userId).first();
-      accountId = Number(currentAdmin?.account_id || 0);
-      if (!accountId) {
-        return Response.json(
-          { ok: false, error: "Your administrator login is not assigned to a customer account.", requestId },
-          { status: 400, headers: { "Cache-Control": "no-store", "X-Request-ID": requestId } },
-        );
-      }
-      payload.customerAccountId = accountId;
+    await ensureOrderTrackingSchema(context.env.DB);
+    actor = await context.env.DB.prepare(
+      `SELECT id, account_id, username, role, active, default_contact_name
+       FROM users WHERE id = ? AND active = 1 LIMIT 1`,
+    ).bind(auth.userId).first();
+    const accountId = Number(actor?.account_id || 0);
+    if (!actor || !accountId) {
+      return Response.json(
+        { ok: false, error: "Your login is not assigned to a customer account.", requestId },
+        { status: 400, headers: { "Cache-Control": "no-store", "X-Request-ID": requestId } },
+      );
     }
+    payload.customerAccountId = accountId;
 
     const reference = String(payload.reference || payload.customerReference || "").trim();
     const submissionId = String(payload.submissionId || "").trim();
@@ -46,22 +45,20 @@ export async function onRequestPost(context) {
 
     await removeFailedSubmission(context.env, { accountId, reference, submissionId });
 
-    if (accountId && context.env.DB) {
-      const duplicate = await context.env.DB.prepare(
-        `SELECT submission_id
-         FROM orders
-         WHERE account_id = ?
-           AND customer_reference = ? COLLATE NOCASE
-           AND submission_id <> ?
-           AND status <> 'failed'
-         LIMIT 1`,
-      ).bind(accountId, reference, submissionId).first();
-      if (duplicate) {
-        return Response.json(
-          { ok: false, error: `PO number "${reference}" has already been used for this customer.`, requestId },
-          { status: 400, headers: { "Cache-Control": "no-store", "X-Request-ID": requestId } },
-        );
-      }
+    const duplicate = await context.env.DB.prepare(
+      `SELECT submission_id
+       FROM orders
+       WHERE account_id = ?
+         AND customer_reference = ? COLLATE NOCASE
+         AND submission_id <> ?
+         AND status <> 'failed'
+       LIMIT 1`,
+    ).bind(accountId, reference, submissionId).first();
+    if (duplicate) {
+      return Response.json(
+        { ok: false, error: `PO number "${reference}" has already been used for this customer.`, requestId },
+        { status: 400, headers: { "Cache-Control": "no-store", "X-Request-ID": requestId } },
+      );
     }
 
     assertPayloadHasProducts(payload);
@@ -73,18 +70,16 @@ export async function onRequestPost(context) {
       DB: createMatrixAwareDb(context.env.DB, payload),
     };
 
-    const result = await processOrderSubmission(submissionEnv, payload, auth);
-    await replaceAreaExportsWithCombined(context.env, payload, result, {
-      ...auth,
-      accountId: Number(payload.customerAccountId || auth.accountId || accountId || 0),
-    });
+    const result = await processOrderSubmission(submissionEnv, payload, { ...auth, accountId });
+    await stampOrderCreator(context.env.DB, result.submissionId || submissionId, actor);
+    await replaceAreaExportsWithCombined(context.env, payload, result, { ...auth, accountId });
     await preservePickupSiteReference(context.env, payload, result).catch((error) => {
       console.warn("Pickup site reference could not be stored.", error);
     });
 
     let email = { sent: false, reason: "not_attempted" };
     try {
-      email = await sendOrderFilesEmail(context.env, payload, result, auth);
+      email = await sendOrderFilesEmail(context.env, payload, result, { ...auth, accountId });
     } catch (error) {
       email = { sent: false, reason: "send_failed", error: error?.message || String(error) };
       console.error("Order email could not be sent.", error);
@@ -99,7 +94,7 @@ export async function onRequestPost(context) {
     }, { headers: { "Cache-Control": "no-store", "X-Request-ID": requestId } });
   } catch (error) {
     await removeFailedSubmission(context.env, {
-      accountId: Number(payload?.customerAccountId || context.data?.auth?.accountId || 0),
+      accountId: Number(actor?.account_id || payload?.customerAccountId || context.data?.auth?.accountId || 0),
       reference: String(payload?.reference || payload?.customerReference || "").trim(),
       submissionId: String(payload?.submissionId || "").trim(),
     }).catch(() => null);
@@ -125,6 +120,30 @@ function assertPayloadHasProducts(payload) {
   });
 
   if (!hasProducts) throw clientError("Submission failed: the order payload contains no products. Return to the order and try again.");
+}
+
+async function ensureOrderTrackingSchema(db) {
+  const columns = await db.prepare(`PRAGMA table_info(orders)`).all();
+  const names = new Set((columns.results || []).map((row) => String(row.name)));
+  const additions = {
+    created_by_user_id: "INTEGER",
+    created_by_username_snapshot: "TEXT NOT NULL DEFAULT ''",
+    created_by_name_snapshot: "TEXT NOT NULL DEFAULT ''",
+  };
+  for (const [name, definition] of Object.entries(additions)) {
+    if (!names.has(name)) await db.prepare(`ALTER TABLE orders ADD COLUMN ${name} ${definition}`).run();
+  }
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_orders_account_creator_created ON orders(account_id, created_by_user_id, created_at DESC)`).run();
+}
+
+async function stampOrderCreator(db, submissionId, actor) {
+  const username = String(actor?.username || "").trim();
+  const name = String(actor?.default_contact_name || username).trim();
+  await db.prepare(
+    `UPDATE orders
+     SET created_by_user_id = ?, created_by_username_snapshot = ?, created_by_name_snapshot = ?
+     WHERE submission_id = ?`,
+  ).bind(Number(actor.id), username, name, submissionId).run();
 }
 
 async function removeFailedSubmission(env, { accountId, reference, submissionId }) {
