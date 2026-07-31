@@ -37,8 +37,9 @@
     const areaText = formatMetric(totalBoardArea);
     const unitText = String(unitCount);
 
-    footer.style.setProperty("grid-template-columns", "180px minmax(0,1fr) auto minmax(72px,112px) auto minmax(68px,96px)", "important");
+    footer.style.setProperty("grid-template-columns", "180px minmax(0,1fr) 72px 92px 78px 92px", "important");
     footer.style.setProperty("column-gap", "0", "important");
+    footer.style.setProperty("align-items", "center", "important");
 
     lineRoot.innerHTML = `<span>Product lines</span><strong>${lineCount}</strong>`;
     lineRoot.style.setProperty("grid-column", "1", "important");
@@ -51,29 +52,31 @@
     `;
     totalsRoot.style.setProperty("grid-column", "3 / 7", "important");
     totalsRoot.style.setProperty("display", "grid", "important");
-    totalsRoot.style.setProperty("grid-template-columns", "subgrid", "important");
+    totalsRoot.style.setProperty("grid-template-columns", "72px 92px 78px 92px", "important");
+    totalsRoot.style.setProperty("align-items", "center", "important");
     totalsRoot.style.setProperty("width", "100%", "important");
     totalsRoot.style.setProperty("height", "26px", "important");
     totalsRoot.style.setProperty("min-width", "0", "important");
     totalsRoot.style.setProperty("margin", "0", "important");
     totalsRoot.style.setProperty("padding", "0", "important");
 
-    const cells = [...totalsRoot.children];
-    cells.forEach((cell) => {
+    [...totalsRoot.children].forEach((cell) => {
       cell.style.setProperty("display", "flex", "important");
       cell.style.setProperty("align-items", "center", "important");
       cell.style.setProperty("height", "26px", "important");
       cell.style.setProperty("min-width", "0", "important");
       cell.style.setProperty("margin", "0", "important");
-      cell.style.setProperty("padding", "0 6px", "important");
+      cell.style.setProperty("padding", "0 5px", "important");
       cell.style.setProperty("box-sizing", "border-box", "important");
       cell.style.setProperty("white-space", "nowrap", "important");
       cell.style.setProperty("overflow", "hidden", "important");
-      cell.style.setProperty("line-height", "26px", "important");
+      cell.style.setProperty("line-height", "1", "important");
+      cell.style.setProperty("font-variant-numeric", "tabular-nums", "important");
     });
 
     totalsRoot.querySelectorAll(".review-footer-label").forEach((label) => {
       label.style.setProperty("justify-content", "flex-end", "important");
+      label.style.setProperty("padding-left", "12px", "important");
       label.style.setProperty("font-size", "11px", "important");
       label.style.setProperty("font-weight", "500", "important");
     });
@@ -83,7 +86,6 @@
     [areaValue, unitValue].forEach((value) => {
       value?.style.setProperty("justify-content", "flex-end", "important");
       value?.style.setProperty("font-weight", "700", "important");
-      value?.style.setProperty("font-variant-numeric", "tabular-nums", "important");
       value?.style.setProperty("text-overflow", "clip", "important");
     });
     areaValue?.style.setProperty("font-size", metricFontSize(areaText), "important");
