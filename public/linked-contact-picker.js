@@ -7,6 +7,8 @@
     if (!(contactInput instanceof HTMLInputElement) || !(phoneInput instanceof HTMLInputElement)) return;
     if (document.getElementById("linkedContactSelect")) return;
 
+    applyFieldPresentation(contactInput);
+
     try {
       const response = await fetch("/api/account-contacts", { headers: { Accept: "application/json" } });
       if (!response.ok) return;
@@ -28,6 +30,19 @@
     }
   };
 
+  function applyFieldPresentation(contactInput) {
+    contactInput.placeholder = "Name";
+    const placeholders = {
+      deliveryStreet: "Street",
+      deliveryAddressSearch: "Suburb",
+      deliveryInstructions: "Access, unloading or site notes",
+    };
+    Object.entries(placeholders).forEach(([id, placeholder]) => {
+      const field = document.getElementById(id);
+      if (field) field.placeholder = placeholder;
+    });
+  }
+
   function installPicker(contactInput, phoneInput) {
     const wrapper = document.createElement("div");
     wrapper.className = "linked-contact-control";
@@ -39,7 +54,7 @@
     select.className = "linked-contact-select";
     select.setAttribute("aria-label", "Choose a saved contact");
     select.title = "Choose a saved contact";
-    select.append(new Option("Saved contacts", ""));
+    select.append(new Option("Choose a saved contact", ""));
 
     contacts.forEach((contact, index) => {
       select.append(new Option(contact.contactName, String(index)));
@@ -69,7 +84,7 @@
     style.textContent = `
       .linked-contact-control {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 150px;
+        grid-template-columns: minmax(0, 1fr) 38px;
         width: 100%;
         min-width: 0;
         height: 100%;
@@ -80,28 +95,60 @@
         height: 100%;
         border-radius: 0 !important;
         border-right: 1px solid #d5dcda !important;
+        font-family: inherit !important;
+        font-size: 11px !important;
+        font-weight: 400 !important;
+        line-height: 1.2 !important;
+        letter-spacing: 0 !important;
+      }
+      .linked-contact-control > #contactName::placeholder,
+      #deliveryStreet::placeholder,
+      #deliveryAddressSearch::placeholder,
+      #deliveryInstructions::placeholder {
+        color: #9aa5a2 !important;
+        opacity: 1 !important;
+        text-transform: none !important;
+        font-family: inherit !important;
+        font-size: 11px !important;
+        font-weight: 400 !important;
+        letter-spacing: 0 !important;
       }
       .linked-contact-select {
-        width: 150px;
-        min-width: 150px;
+        width: 38px;
+        min-width: 38px;
         height: 100%;
         border: 0 !important;
         border-radius: 0 !important;
         background-color: #fff;
-        color: #42504d;
-        padding: 0 34px 0 14px;
+        background-image: url('/contact-notebook.svg?v=20260731-1');
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 14px 16px;
+        color: transparent;
+        padding: 0;
         font: inherit;
-        font-size: 11px;
+        font-size: 0;
         cursor: pointer;
         box-sizing: border-box;
+        appearance: none;
+        -webkit-appearance: none;
+      }
+      .linked-contact-select option {
+        color: #17211f;
+        background: #fff;
+        font-family: inherit;
+        font-size: 11px;
+      }
+      .linked-contact-select:hover {
+        background-color: #f5f8f7;
       }
       .linked-contact-select:focus {
         outline: 2px solid var(--bell-green, #006557);
         outline-offset: -2px;
       }
       @media (max-width: 760px) {
-        .linked-contact-control { grid-template-columns: minmax(0, 1fr) 128px; }
-        .linked-contact-select { width: 128px; min-width: 128px; padding-left: 10px; }
+        .linked-contact-control { grid-template-columns: minmax(0, 1fr) 38px; }
+        .linked-contact-select { width: 38px; min-width: 38px; }
       }
     `;
     document.head.append(style);
