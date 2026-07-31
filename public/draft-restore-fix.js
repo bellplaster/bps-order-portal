@@ -31,22 +31,6 @@
     document.body.append(script);
   }
 
-  if (!document.querySelector('script[data-tab-autosave="true"]')) {
-    const script = document.createElement("script");
-    script.src = "/tab-autosave.js?v=20260730-1";
-    script.defer = true;
-    script.dataset.tabAutosave = "true";
-    document.body.append(script);
-  }
-
-  if (!document.querySelector('script[data-tab-duplicate-refinement="true"]')) {
-    const script = document.createElement("script");
-    script.src = "/tab-duplicate-refinement.js?v=20260730-1";
-    script.defer = true;
-    script.dataset.tabDuplicateRefinement = "true";
-    document.body.append(script);
-  }
-
   if (!document.querySelector('script[data-linked-contact-picker="true"]')) {
     const script = document.createElement("script");
     script.src = "/linked-contact-picker.js?v=20260730-1";
