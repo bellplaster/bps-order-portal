@@ -5,7 +5,6 @@
   let observer = null;
   let syncFrame = 0;
   let draggedAreaId = "";
-  let editorTargetAreaId = "";
   let operationPending = false;
 
   installStyles();
@@ -14,33 +13,50 @@
   window.addEventListener("pageshow", initialise);
 
   document.addEventListener("click", (event) => {
-    const addButton = event.target.closest("[data-add-area]");
-    if (!addButton || addButton.disabled) return;
-
+    const add = event.target.closest("[data-add-area]");
+    const copy = event.target.closest("[data-duplicate-area]");
+    const reset = event.target.closest("[data-reset-areas]");
+    if (!add && !copy && !reset) return;
     event.preventDefault();
     event.stopPropagation();
     event.stopImmediatePropagation();
-    void addAreaAndOpenEditor();
+    if (add && !add.disabled) void addArea();
+    else if (copy && !copy.disabled) void duplicateArea();
+    else if (reset && !reset.disabled) void resetAreas();
   }, true);
 
   document.addEventListener("dblclick", (event) => {
     const tab = event.target.closest("[data-floor-tab]");
     if (!tab) return;
-
     event.preventDefault();
     event.stopPropagation();
     event.stopImmediatePropagation();
-    editorTargetAreaId = tab.dataset.floorTab || "";
-    openAreaEditor(editorTargetAreaId, { usePlaceholder: false });
+    commitEditor();
+    openEditor(tab.dataset.floorTab || "", false);
+  }, true);
+
+  document.addEventListener("pointerdown", (event) => {
+    const editor = currentEditor();
+    if (!editor || editor.contains(event.target)) return;
+    commitEditor();
+  }, true);
+
+  document.addEventListener("focusout", (event) => {
+    const editor = event.target.closest?.(".area-name-editor[data-root-tab-editor='true']");
+    if (!editor) return;
+    const next = event.relatedTarget;
+    if (next instanceof Element && editor.contains(next)) return;
+    window.setTimeout(() => {
+      if (editor.isConnected && !editor.contains(document.activeElement)) commitEditor(editor);
+    }, 0);
   }, true);
 
   document.addEventListener("dragstart", (event) => {
     const shell = event.target.closest(".area-tab-shell[data-area-id]");
     if (!shell || !shell.closest(TAB_ROW_SELECTOR)) return;
-
+    commitEditor();
     draggedAreaId = shell.dataset.areaId || "";
     if (!draggedAreaId) return;
-
     shell.classList.add("is-dragging");
     event.dataTransfer.effectAllowed = "move";
     event.dataTransfer.setData("text/plain", draggedAreaId);
@@ -52,14 +68,12 @@
     if (!draggedAreaId) return;
     const target = event.target.closest(".area-tab-shell[data-area-id]");
     if (!target || !target.closest(TAB_ROW_SELECTOR) || target.dataset.areaId === draggedAreaId) return;
-
     event.preventDefault();
     event.stopPropagation();
     event.stopImmediatePropagation();
-    const rect = target.getBoundingClientRect();
-    const before = event.clientX < rect.left + rect.width / 2;
     clearDropIndicators();
-    target.classList.add(before ? "drop-before" : "drop-after");
+    const rect = target.getBoundingClientRect();
+    target.classList.add(event.clientX < rect.left + rect.width / 2 ? "drop-before" : "drop-after");
     event.dataTransfer.dropEffect = "move";
   }, true);
 
@@ -67,17 +81,15 @@
     if (!draggedAreaId) return;
     const target = event.target.closest(".area-tab-shell[data-area-id]");
     if (!target || !target.closest(TAB_ROW_SELECTOR) || target.dataset.areaId === draggedAreaId) return;
-
     event.preventDefault();
     event.stopPropagation();
     event.stopImmediatePropagation();
     const rect = target.getBoundingClientRect();
-    const before = event.clientX < rect.left + rect.width / 2;
-    void reorderArea(draggedAreaId, target.dataset.areaId || "", before);
+    reorderArea(draggedAreaId, target.dataset.areaId || "", event.clientX < rect.left + rect.width / 2);
   }, true);
 
   document.addEventListener("dragend", (event) => {
-    if (!draggedAreaId && !event.target.closest(".area-tab-shell")) return;
+    if (!draggedAreaId && !event.target.closest?.(".area-tab-shell")) return;
     event.stopPropagation();
     event.stopImmediatePropagation();
     finishDragging();
@@ -85,224 +97,226 @@
 
   function initialise() {
     const nextTabs = document.querySelector(TAB_ROW_SELECTOR);
-    if (!nextTabs) {
-      window.setTimeout(initialise, 50);
-      return;
-    }
-
+    if (!nextTabs) return window.setTimeout(initialise, 80);
     if (tabs !== nextTabs) {
       observer?.disconnect();
       tabs = nextTabs;
-      tabs.dataset.tabController = "consolidated";
+      tabs.dataset.tabController = "root";
       observer = new MutationObserver(queueSync);
-      observer.observe(tabs, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ["class", "aria-selected", "hidden", "draggable"],
-      });
+      observer.observe(tabs, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "aria-selected", "hidden"] });
     }
-
     queueSync();
   }
 
   function queueSync() {
     window.cancelAnimationFrame(syncFrame);
-    syncFrame = window.requestAnimationFrame(syncTabRow);
+    syncFrame = window.requestAnimationFrame(syncControls);
   }
 
-  function syncTabRow() {
-    initialiseCurrentTabsReference();
-    if (!tabs) return;
-
-    const areas = currentAreas();
-    const orderById = new Map(areas.map((area, index) => [String(area.id), (index + 1) * 10]));
-    const shells = [...tabs.querySelectorAll(":scope > .area-tab-shell[data-area-id]")];
-
-    shells.forEach((shell, index) => {
-      const areaId = shell.dataset.areaId || "";
-      shell.draggable = true;
-      shell.style.setProperty("order", String(orderById.get(areaId) || (index + 1) * 10), "important");
-      shell.querySelector("[data-floor-tab]")?.setAttribute("title", "Double-click to rename. Drag to reorder.");
-    });
-
-    const editor = tabs.querySelector(":scope > .area-name-editor");
-    if (editor) {
-      const previousAreaId = editor.previousElementSibling?.matches?.(".area-tab-shell[data-area-id]")
-        ? editor.previousElementSibling.dataset.areaId || ""
-        : "";
-      const targetAreaId = editor.dataset.targetAreaId
-        || previousAreaId
-        || editorTargetAreaId
-        || currentActiveAreaId();
-      if (targetAreaId) editor.dataset.targetAreaId = targetAreaId;
-      editor.style.setProperty("order", String((orderById.get(targetAreaId) || 0) + 1), "important");
+  function syncControls() {
+    const currentTabs = document.querySelector(TAB_ROW_SELECTOR);
+    if (!currentTabs) return;
+    if (currentTabs !== tabs) {
+      tabs = currentTabs;
+      initialise();
+      return;
     }
-
+    const areas = currentAreas();
+    tabs.querySelectorAll(":scope > .area-tabs-duplicate, :scope > .area-tabs-reset").forEach((node) => node.remove());
     const add = tabs.querySelector(":scope > [data-add-area]");
     if (add) {
-      add.style.setProperty("order", "10000", "important");
       add.textContent = "+";
       add.setAttribute("aria-label", "Add tab");
-      add.setAttribute("title", "Add tab");
+      add.title = "Add tab";
       add.disabled = operationPending || areas.length >= MAX_AREAS;
     }
-
-    const reset = tabs.querySelector(":scope > .area-tabs-reset");
-    if (reset) {
-      reset.style.setProperty("order", "10010", "important");
-      reset.replaceChildren(makeBinIcon());
-      reset.setAttribute("aria-label", "Delete all tabs");
-      reset.setAttribute("title", "Delete all tabs");
-    }
-
-    const summary = tabs.querySelector(":scope > .area-tab-summary");
-    if (summary) summary.style.setProperty("order", "10020", "important");
+    const copy = makeControl("area-tabs-duplicate", "Duplicate active tab", "duplicate");
+    copy.dataset.duplicateArea = "true";
+    copy.disabled = operationPending || areas.length >= MAX_AREAS || !activeArea();
+    copy.append(makeCopyIcon());
+    const reset = makeControl("area-tabs-reset", "Delete all tabs", "reset");
+    reset.dataset.resetAreas = "true";
+    reset.append(makeTrashIcon());
+    if (add) add.after(copy, reset);
+    else tabs.append(copy, reset);
+    tabs.querySelectorAll(":scope > .area-tab-shell[data-area-id]").forEach((shell) => {
+      shell.draggable = true;
+      shell.querySelector("[data-floor-tab]")?.setAttribute("title", "Double-click to rename. Drag to reorder.");
+    });
+    tabs.querySelector(":scope > .area-tab-summary")?.remove();
   }
 
-  function initialiseCurrentTabsReference() {
-    const current = document.querySelector(TAB_ROW_SELECTOR);
-    if (current && current !== tabs) {
-      tabs = current;
-      initialise();
-    }
+  function makeControl(className, label, action) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = className;
+    button.dataset.tabAction = action;
+    button.setAttribute("aria-label", label);
+    button.title = label;
+    return button;
   }
 
-  async function addAreaAndOpenEditor() {
-    if (operationPending) return;
-    const areas = currentAreas();
-    if (areas.length >= MAX_AREAS) return;
-
+  async function addArea() {
+    if (operationPending || currentAreas().length >= MAX_AREAS) return;
+    commitEditor();
     operationPending = true;
     queueSync();
     try {
-      const label = nextDefaultAreaLabel(areas);
-      const id = makeAreaId(label, areas);
-      areas.push({ id, label });
+      const label = nextDefaultLabel();
+      const id = makeAreaId(label);
+      state.deliveryAreas.push({ id, label });
       state.quantities[id] = new Map();
       state.otherMaterials[id] = [];
-      if (typeof floorLabels !== "undefined") floorLabels[id] = label;
+      floorLabels[id] = label;
       state.activeFloor = id;
-      editorTargetAreaId = id;
-
-      await rerenderAreas();
-      openAreaEditor(id, { usePlaceholder: true });
+      await rerender();
+      openEditor(id, true);
     } finally {
       operationPending = false;
       queueSync();
     }
   }
 
-  function openAreaEditor(areaId, options = {}) {
-    initialiseCurrentTabsReference();
-    if (!tabs || !areaId) return;
-
-    const existing = currentAreas().find((area) => String(area.id) === String(areaId));
-    if (!existing) return;
-
-    tabs.querySelector(":scope > .area-name-editor")?.remove();
-    editorTargetAreaId = String(areaId);
-
-    const editor = document.createElement("form");
-    editor.className = "area-name-editor";
-    editor.dataset.targetAreaId = String(areaId);
-    editor.setAttribute("aria-label", "Tab name editor");
-    editor.innerHTML = '<input type="text" maxlength="40" autocomplete="off" aria-label="Tab name"><button type="submit">Save</button><button type="button" data-cancel-area>Cancel</button>';
-
-    const input = editor.querySelector("input");
-    const cancel = editor.querySelector("[data-cancel-area]");
-    const usePlaceholder = options.usePlaceholder === true;
-    input.value = usePlaceholder ? "" : existing.label;
-    input.placeholder = existing.label;
-
-    editor.addEventListener("submit", (event) => {
-      event.preventDefault();
-      void saveAreaName(existing, input);
-    });
-
-    cancel.addEventListener("click", () => {
-      editor.remove();
-      editorTargetAreaId = "";
-      document.querySelector(`[data-floor-tab="${CSS.escape(String(areaId))}"]`)?.focus();
-      queueSync();
-    });
-
-    input.addEventListener("input", () => input.setCustomValidity(""));
-    input.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") cancel.click();
-    });
-
-    const shell = tabs.querySelector(`:scope > .area-tab-shell[data-area-id="${CSS.escape(String(areaId))}"]`);
-    if (shell) shell.insertAdjacentElement("afterend", editor);
-    else tabs.append(editor);
-
+  async function duplicateArea() {
+    if (operationPending || currentAreas().length >= MAX_AREAS) return;
+    commitEditor();
+    const source = activeArea();
+    if (!source) return;
+    operationPending = true;
     queueSync();
-    window.requestAnimationFrame(() => {
-      input.focus({ preventScroll: true });
-      if (!usePlaceholder) input.select();
-    });
+    try {
+      const label = nextDuplicateLabel(source.label);
+      const id = makeAreaId(label);
+      const index = state.deliveryAreas.findIndex((area) => area.id === source.id);
+      state.deliveryAreas.splice(index + 1, 0, { id, label });
+      state.quantities[id] = new Map(state.quantities[source.id] instanceof Map ? state.quantities[source.id] : []);
+      state.otherMaterials[id] = cloneValue(Array.isArray(state.otherMaterials[source.id]) ? state.otherMaterials[source.id] : []);
+      floorLabels[id] = label;
+      state.activeFloor = id;
+      await rerender();
+      openEditor(id, true);
+    } finally {
+      operationPending = false;
+      queueSync();
+    }
   }
 
-  async function saveAreaName(area, input) {
+  async function resetAreas() {
     if (operationPending) return;
-    const typed = cleanAreaLabel(input.value);
-    const label = typed || area.label;
-    const duplicate = currentAreas().some((candidate) => (
-      candidate.id !== area.id && String(candidate.label || "").toLowerCase() === label.toLowerCase()
-    ));
-
-    if (duplicate) {
-      input.setCustomValidity("Use a different tab name.");
-      input.reportValidity();
-      return;
-    }
-
+    if (!window.confirm("Delete all tabs and quantities and return to one blank Tab 1?")) return;
+    commitEditor();
     operationPending = true;
-    input.setCustomValidity("");
+    queueSync();
     try {
-      area.label = label;
-      if (typeof floorLabels !== "undefined") floorLabels[area.id] = label;
-      editorTargetAreaId = "";
-      await rerenderAreas();
+      const id = "tab-1";
+      state.deliveryAreas = [{ id, label: "Tab 1" }];
+      state.activeFloor = id;
+      state.quantities = { [id]: new Map() };
+      state.otherMaterials = { [id]: [] };
+      Object.keys(floorLabels).forEach((key) => delete floorLabels[key]);
+      floorLabels[id] = "Tab 1";
+      await rerender();
     } finally {
       operationPending = false;
       queueSync();
     }
   }
 
-  async function reorderArea(sourceId, targetId, before) {
-    if (operationPending || !sourceId || !targetId || sourceId === targetId) {
-      finishDragging();
-      return;
-    }
-
-    const areas = currentAreas();
-    const sourceIndex = areas.findIndex((area) => String(area.id) === String(sourceId));
-    const targetIndex = areas.findIndex((area) => String(area.id) === String(targetId));
-    if (sourceIndex < 0 || targetIndex < 0) {
-      finishDragging();
-      return;
-    }
-
-    operationPending = true;
-    try {
-      const [moved] = areas.splice(sourceIndex, 1);
-      let insertIndex = areas.findIndex((area) => String(area.id) === String(targetId));
-      if (!before) insertIndex += 1;
-      areas.splice(insertIndex, 0, moved);
-      await rerenderAreas();
-    } finally {
-      operationPending = false;
-      finishDragging();
-      queueSync();
-    }
-  }
-
-  async function rerenderAreas() {
+  async function rerender() {
     if (typeof loadCatalog === "function") await loadCatalog();
     if (typeof renderCounts === "function") renderCounts();
     if (typeof scheduleDraft === "function") scheduleDraft();
     initialise();
+  }
+
+  function openEditor(areaId, placeholderOnly) {
+    initialise();
+    const area = currentAreas().find((candidate) => candidate.id === areaId);
+    if (!tabs || !area) return;
+    currentEditor()?.remove();
+    const editor = document.createElement("form");
+    editor.className = "area-name-editor";
+    editor.dataset.rootTabEditor = "true";
+    editor.dataset.polished = "true";
+    editor.dataset.targetAreaId = areaId;
+    editor.innerHTML = '<input type="text" maxlength="40" autocomplete="off" aria-label="Tab name"><button type="submit">Save</button><button type="button" data-cancel-area>Cancel</button>';
+    const input = editor.querySelector("input");
+    input.value = placeholderOnly ? "" : area.label;
+    input.placeholder = area.label;
+    editor.addEventListener("submit", (event) => {
+      event.preventDefault();
+      commitEditor(editor, true);
+    });
+    editor.querySelector("[data-cancel-area]").addEventListener("click", () => {
+      editor.remove();
+      document.querySelector(`[data-floor-tab="${CSS.escape(areaId)}"]`)?.focus();
+    });
+    input.addEventListener("input", () => input.setCustomValidity(""));
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") editor.querySelector("[data-cancel-area]").click();
+    });
+    const shell = tabs.querySelector(`:scope > .area-tab-shell[data-area-id="${CSS.escape(areaId)}"]`);
+    if (shell) shell.after(editor);
+    else tabs.prepend(editor);
+    window.requestAnimationFrame(() => {
+      input.focus({ preventScroll: true });
+      if (!placeholderOnly) input.select();
+    });
+  }
+
+  function currentEditor() {
+    return document.querySelector("#deliveryAreaTabs > .area-name-editor[data-root-tab-editor='true']");
+  }
+
+  function commitEditor(editor = currentEditor(), report = false) {
+    if (!(editor instanceof HTMLFormElement) || !editor.isConnected) return true;
+    const area = currentAreas().find((candidate) => candidate.id === editor.dataset.targetAreaId);
+    const input = editor.querySelector("input");
+    if (!area || !(input instanceof HTMLInputElement)) {
+      editor.remove();
+      return true;
+    }
+    const label = cleanLabel(input.value) || area.label;
+    if (currentAreas().some((candidate) => candidate.id !== area.id && candidate.label.toLowerCase() === label.toLowerCase())) {
+      if (report) {
+        input.setCustomValidity("Use a different tab name.");
+        input.reportValidity();
+      }
+      return false;
+    }
+    area.label = label;
+    floorLabels[area.id] = label;
+    const tab = document.querySelector(`[data-floor-tab="${CSS.escape(area.id)}"]`);
+    const labelNode = tab?.querySelector(".area-tab-label");
+    if (labelNode) labelNode.textContent = label;
+    else if (tab) tab.textContent = label;
+    const remove = document.querySelector(`[data-delete-area="${CSS.escape(area.id)}"]`);
+    if (remove) remove.setAttribute("aria-label", `Delete ${label}`);
+    editor.remove();
+    if (typeof scheduleDraft === "function") scheduleDraft();
+    queueSync();
+    return true;
+  }
+
+  function reorderArea(sourceId, targetId, before) {
+    const areas = currentAreas();
+    const sourceIndex = areas.findIndex((area) => area.id === sourceId);
+    const targetIndex = areas.findIndex((area) => area.id === targetId);
+    if (sourceIndex < 0 || targetIndex < 0) return finishDragging();
+    const [moved] = areas.splice(sourceIndex, 1);
+    let insertIndex = areas.findIndex((area) => area.id === targetId);
+    if (!before) insertIndex += 1;
+    areas.splice(insertIndex, 0, moved);
+    const sourceShell = tabs?.querySelector(`:scope > .area-tab-shell[data-area-id="${CSS.escape(sourceId)}"]`);
+    const targetShell = tabs?.querySelector(`:scope > .area-tab-shell[data-area-id="${CSS.escape(targetId)}"]`);
+    if (sourceShell && targetShell) tabs.insertBefore(sourceShell, before ? targetShell : targetShell.nextSibling);
+    const panels = document.querySelector(".products-area > .floor-panels");
+    areas.forEach((area) => {
+      const panel = panels?.querySelector(`[data-floor-panel="${CSS.escape(area.id)}"]`);
+      if (panel) panels.append(panel);
+    });
+    if (typeof scheduleDraft === "function") scheduleDraft();
+    finishDragging();
   }
 
   function finishDragging() {
@@ -312,111 +326,86 @@
   }
 
   function clearDropIndicators() {
-    document.querySelectorAll(".area-tab-shell.drop-before, .area-tab-shell.drop-after").forEach((shell) => {
-      shell.classList.remove("drop-before", "drop-after");
-    });
+    document.querySelectorAll(".area-tab-shell.drop-before, .area-tab-shell.drop-after").forEach((shell) => shell.classList.remove("drop-before", "drop-after"));
   }
 
   function currentAreas() {
     return typeof state !== "undefined" && Array.isArray(state.deliveryAreas) ? state.deliveryAreas : [];
   }
 
-  function currentActiveAreaId() {
-    return typeof state !== "undefined" ? String(state.activeFloor || "") : "";
+  function activeArea() {
+    return currentAreas().find((area) => area.id === state.activeFloor) || null;
   }
 
-  function nextDefaultAreaLabel(areas) {
-    const used = new Set(areas.map((area) => String(area.label || "").toLowerCase()));
-    let number = areas.length + 1;
-    let label = `Tab ${number}`;
-    while (used.has(label.toLowerCase())) {
-      number += 1;
-      label = `Tab ${number}`;
+  function nextDefaultLabel() {
+    const used = new Set(currentAreas().map((area) => area.label.toLowerCase()));
+    let number = currentAreas().length + 1;
+    while (used.has(`tab ${number}`)) number += 1;
+    return `Tab ${number}`;
+  }
+
+  function nextDuplicateLabel(sourceLabel) {
+    const source = cleanLabel(sourceLabel) || "Tab";
+    const used = new Set(currentAreas().map((area) => area.label.toLowerCase()));
+    const numbered = source.match(/^(.*?)(\d+)$/);
+    if (numbered) {
+      let number = Number(numbered[2]) + 1;
+      let label = `${numbered[1]}${number}`.trim();
+      while (used.has(label.toLowerCase())) label = `${numbered[1]}${++number}`.trim();
+      return label;
     }
+    let label = `${source} Copy`;
+    let suffix = 2;
+    while (used.has(label.toLowerCase())) label = `${source} Copy ${suffix++}`;
     return label;
   }
 
-  function makeAreaId(label, areas) {
-    const base = String(label || "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 28) || "tab";
+  function makeAreaId(label) {
+    const base = cleanLabel(label).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 28) || "tab";
     let id = `area-${base}`;
     let suffix = 2;
-    while (areas.some((area) => String(area.id) === id)) id = `area-${base}-${suffix++}`;
+    while (currentAreas().some((area) => area.id === id)) id = `area-${base}-${suffix++}`;
     return id;
   }
 
-  function cleanAreaLabel(value) {
+  function cleanLabel(value) {
     return String(value || "").trim().replace(/\s+/g, " ").slice(0, 40);
   }
 
-  function makeBinIcon() {
+  function cloneValue(value) {
+    if (typeof structuredClone === "function") return structuredClone(value);
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  function makeCopyIcon() {
     const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    icon.setAttribute("viewBox", "0 0 1000 1000");
-    icon.setAttribute("width", "15");
-    icon.setAttribute("height", "15");
+    icon.setAttribute("viewBox", "0 0 24 24");
     icon.setAttribute("aria-hidden", "true");
-    icon.setAttribute("focusable", "false");
-    icon.innerHTML = '<path d="M767 336H233q-12 0-21 9t-9 21l38 505q1 13 12 21.5t30 8.5h434q18 0 29-8.5t13-21.5l38-505q0-12-9-21t-21-9zM344 841q-10 0-18-9t-8-21l-26-386q0-12 9-20.5t21-8.5 21 8.5 9 20.5l18 386q0 12-7.5 21t-18.5 9zm182-31q0 13-7.5 22t-18.5 9-18.5-9-7.5-22l-4-385q0-12 9-20.5t21-8.5 21 8.5 9 20.5zm156 1q0 12-8 21t-18 9q-11 0-18.5-9t-7.5-21l18-386q0-12 9-20.5t21-8.5 21 8.5 9 20.5zm101-605l-179-30q-12-2-15-15l-8-33q-4-20-14-26-6-3-22-3h-90q-16 0-23 3-10 6-13 26l-8 33q-2 13-15 15l-179 30q-19 3-31.5 14.5T173 249v28q0 9 6.5 15t15.5 6h610q9 0 15.5-6t6.5-15v-28q0-17-12.5-28.5T783 206z" fill="currentColor"/>';
+    icon.innerHTML = '<path d="M20 4v12a2 2 0 0 1-2 2h-8a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2Zm-4 17a1 1 0 0 0-1-1H6V6a1 1 0 0 0-2 0v14a2 2 0 0 0 2 2h9a1 1 0 0 0 1-1Z" fill="currentColor"/>';
+    return icon;
+  }
+
+  function makeTrashIcon() {
+    const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    icon.setAttribute("viewBox", "0 0 48 48");
+    icon.setAttribute("aria-hidden", "true");
+    icon.innerHTML = '<path d="M43 8.8a2.3 2.3 0 0 1-.6 1.6A1.7 1.7 0 0 1 41 11H7.1A2.1 2.1 0 0 1 5 9.2a2.3 2.3 0 0 1 .6-1.6A1.7 1.7 0 0 1 7 7h10V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2h9.9A2.1 2.1 0 0 1 43 8.8ZM11.2 15a2 2 0 0 0-2 2.2l2.6 26a2 2 0 0 0 2 1.8h20.4a2 2 0 0 0 2-1.8l2.6-26a2 2 0 0 0-2-2.2h-25.6Z" fill="currentColor"/>';
     return icon;
   }
 
   function installStyles() {
-    if (document.getElementById("consolidated-tab-styles")) return;
+    if (document.getElementById("root-tab-controller-styles")) return;
     const style = document.createElement("style");
-    style.id = "consolidated-tab-styles";
+    style.id = "root-tab-controller-styles";
     style.textContent = `
-      #deliveryAreaTabs > .area-tab-summary,
-      .products-area > .floor-tabs > .area-tab-summary {
-        display: none !important;
-      }
-
-      #deliveryAreaTabs > .area-tab-shell,
-      .products-area > .floor-tabs > .area-tab-shell {
-        cursor: grab !important;
-        user-select: none;
-      }
-
-      #deliveryAreaTabs > .area-tab-shell:active,
-      .products-area > .floor-tabs > .area-tab-shell:active {
-        cursor: grabbing !important;
-      }
-
-      .area-tab-shell.is-dragging {
-        opacity: 0.45 !important;
-      }
-
-      .area-tab-shell.drop-before {
-        box-shadow: inset 3px 0 0 var(--bell-green, #006557) !important;
-      }
-
-      .area-tab-shell.drop-after {
-        box-shadow: inset -3px 0 0 var(--bell-green, #006557) !important;
-      }
-
-      #deliveryAreaTabs > .area-name-editor input::placeholder,
-      .products-area > .floor-tabs > .area-name-editor input::placeholder {
-        color: #9aa3a0 !important;
-        opacity: 1 !important;
-      }
-
-      #deliveryAreaTabs > .area-tabs-reset,
-      .products-area > .floor-tabs > .area-tabs-reset {
-        display: inline-grid !important;
-        place-items: center !important;
-        flex: 0 0 32px !important;
-        width: 32px !important;
-        min-width: 32px !important;
-        max-width: 32px !important;
-        padding: 0 !important;
-      }
-
-      #deliveryAreaTabs > .area-tabs-reset svg,
-      .products-area > .floor-tabs > .area-tabs-reset svg {
-        pointer-events: none;
-      }
+      #deliveryAreaTabs>.area-tabs-duplicate,#deliveryAreaTabs>.area-tabs-reset{box-sizing:border-box;display:inline-grid;place-items:center;flex:0 0 32px;width:32px;min-width:32px;height:32px;margin:0;padding:0;border:1px solid #bcc6c3;border-radius:0;background:#fff;color:var(--bell-maroon,#a62b47);cursor:pointer}
+      #deliveryAreaTabs>.area-tabs-duplicate:hover:not(:disabled),#deliveryAreaTabs>.area-tabs-reset:hover:not(:disabled){border-color:var(--bell-maroon,#a62b47);background:#fbf3f5}
+      #deliveryAreaTabs>.area-tabs-duplicate:disabled{opacity:.45;cursor:not-allowed}
+      #deliveryAreaTabs>.area-tabs-duplicate svg,#deliveryAreaTabs>.area-tabs-reset svg{width:15px;height:15px;pointer-events:none}
+      #deliveryAreaTabs>.area-tab-summary{display:none!important}
+      #deliveryAreaTabs>.area-tab-shell.is-dragging{opacity:.45;border-color:transparent!important;box-shadow:none!important}
+      #deliveryAreaTabs>.area-tab-shell.drop-before{border-left:3px solid var(--bell-green,#006557)!important}
+      #deliveryAreaTabs>.area-tab-shell.drop-after{border-right:3px solid var(--bell-green,#006557)!important}
     `;
     document.head.append(style);
   }
