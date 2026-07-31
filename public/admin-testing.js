@@ -11,11 +11,9 @@
     }
 
     const tools = document.getElementById("adminOrderTools");
-    if (!tools) return;
-
     const accountId = Number(state.account.accountId || 0);
-    if (!accountId) {
-      tools.hidden = true;
+    if (!tools || !accountId) {
+      if (tools) tools.hidden = true;
       return;
     }
 
@@ -26,14 +24,16 @@
     const debtor = String(state.account.debtorCode || "STAFF");
     tools.className = "admin-order-tools admin-testing-toolbar";
     tools.innerHTML = `
-      <div class="admin-testing-identity">
+      <div class="admin-testing-heading">
         <span>Admin testing</span>
         <strong>${escapeHtml(company)}</strong>
         <small>Debtor ${escapeHtml(debtor)}</small>
       </div>
       <div class="admin-testing-controls">
-        <label for="adminTestQuantity"><span>Fill active tab</span></label>
-        <input id="adminTestQuantity" type="text" inputmode="numeric" pattern="[0-9]{1,5}" maxlength="5" value="1" aria-label="Test quantity from 1 to 99999">
+        <label class="admin-testing-quantity" for="adminTestQuantity">
+          <span>Fill active tab</span>
+          <input id="adminTestQuantity" type="text" inputmode="numeric" pattern="[0-9]{1,5}" maxlength="5" value="1" aria-label="Test quantity from 1 to 99999">
+        </label>
         <button id="fillActiveAreaButton" class="button button-secondary" type="button">Apply</button>
         <button id="randomActiveAreaButton" class="button button-secondary" type="button">Random quantities</button>
         <button id="clearActiveAreaTestButton" class="button button-secondary" type="button">Clear tab</button>
@@ -65,19 +65,15 @@
 
   function syncVisibility() {
     const tools = document.getElementById("adminOrderTools");
-    if (!tools) return;
     const formPanel = document.querySelector('[data-step="form"]');
-    const formActive = state.activeStep === "form" && formPanel && !formPanel.hidden;
-    tools.hidden = !formActive;
+    if (!tools) return;
+    tools.hidden = !(state.activeStep === "form" && formPanel && !formPanel.hidden);
   }
 
   function activeInputs() {
     const areaId = state.activeFloor;
     const sheet = document.getElementById(`${areaId}OrderSheet`);
-    return {
-      areaId,
-      inputs: [...(sheet?.querySelectorAll(".quantity-input[data-product-key]") || [])],
-    };
+    return { areaId, inputs: [...(sheet?.querySelectorAll(".quantity-input[data-product-key]") || [])] };
   }
 
   function fillActiveTab() {
