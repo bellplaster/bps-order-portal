@@ -4,6 +4,15 @@
 
   const STYLE_ID = "authoritative-calendar-control-styles";
 
+  function openPicker(input) {
+    try {
+      if (typeof input.showPicker === "function") input.showPicker();
+      else input.focus({ preventScroll: true });
+    } catch (_error) {
+      input.focus({ preventScroll: true });
+    }
+  }
+
   function install() {
     const input = document.getElementById("requiredDate");
     if (!(input instanceof HTMLInputElement)) return false;
@@ -32,11 +41,7 @@
         height:38px!important;
         box-sizing:border-box!important;
         border-left:1px solid #d5dcda!important;
-        background-color:#fff!important;
-        background-image:url('/calendar.svg?v=20260731-3')!important;
-        background-repeat:no-repeat!important;
-        background-position:center!important;
-        background-size:15px 15px!important;
+        background:#fff url('/calendar.svg?v=20260731-4') center/15px 15px no-repeat!important;
         pointer-events:none!important;
         opacity:1!important;
         visibility:visible!important;
@@ -49,21 +54,35 @@
         min-height:38px!important;
         padding:0 44px 0 10px!important;
         background:#fff!important;
+        cursor:text!important;
       }
       .order-form-page .sheet-details-grid #requiredDate::-webkit-calendar-picker-indicator{
-        position:absolute!important;
-        z-index:4!important;
-        top:0!important;
-        right:0!important;
-        display:block!important;
-        width:38px!important;
-        height:38px!important;
+        display:none!important;
+        width:0!important;
+        height:0!important;
         margin:0!important;
         padding:0!important;
         opacity:0!important;
-        cursor:pointer!important;
+        pointer-events:none!important;
       }
     `;
+
+    if (input.dataset.calendarTriggerBound !== "true") {
+      input.dataset.calendarTriggerBound = "true";
+      input.addEventListener("pointerdown", (event) => {
+        const rect = input.getBoundingClientRect();
+        if (event.clientX < rect.right - 38) return;
+        event.preventDefault();
+        event.stopPropagation();
+        openPicker(input);
+      }, true);
+      input.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        if (document.activeElement !== input) return;
+        event.preventDefault();
+        openPicker(input);
+      });
+    }
 
     return true;
   }
