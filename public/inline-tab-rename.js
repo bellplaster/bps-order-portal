@@ -54,6 +54,7 @@
 
     tab.textContent = label;
     tab.hidden = false;
+    tab.style.removeProperty("display");
     tab.title = "Double-click to rename. Drag to reorder.";
     shell.classList.remove("is-renaming");
     shell.style.removeProperty("--inline-tab-editor-width");
@@ -95,6 +96,7 @@
     shell.classList.add("is-renaming", "is-active");
     shell.draggable = false;
     tab.hidden = true;
+    tab.style.setProperty("display", "none", "important");
     shell.insertBefore(input, shell.firstChild);
 
     input.addEventListener("input", () => {
@@ -185,10 +187,13 @@
       min-width:0!important;
       max-width:none!important;
       height:32px!important;
-      background:#a62b45!important;
+      background:#fff!important;
       border:1px solid #a62b45!important;
-      box-shadow:none!important;
+      box-shadow:inset 0 0 0 1px #a62b45!important;
       overflow:hidden!important;
+    }
+    #deliveryAreaTabs .area-tab-shell.is-renaming>[data-floor-tab]{
+      display:none!important;
     }
     #deliveryAreaTabs .area-tab-shell.is-renaming>.area-tab-inline-input{
       appearance:none!important;
@@ -205,9 +210,9 @@
       padding:0 9px!important;
       border:0!important;
       border-radius:0!important;
-      background:transparent!important;
-      color:#fff!important;
-      caret-color:#fff!important;
+      background:#fff!important;
+      color:#17211f!important;
+      caret-color:#a62b45!important;
       outline:0!important;
       box-shadow:none!important;
       font:inherit!important;
@@ -219,22 +224,25 @@
     #deliveryAreaTabs .area-tab-shell.is-renaming>.area-tab-inline-input:focus,
     #deliveryAreaTabs .area-tab-shell.is-renaming>.area-tab-inline-input:focus-visible{
       border:0!important;
-      background:transparent!important;
-      box-shadow:inset 0 0 0 1px rgba(255,255,255,.72)!important;
+      background:#fff!important;
+      box-shadow:none!important;
       outline:0!important;
     }
     #deliveryAreaTabs .area-tab-shell.is-renaming>.area-tab-inline-input::selection{
-      background:rgba(255,255,255,.9);
-      color:#a62b45;
+      background:rgba(166,43,69,.16);
+      color:#17211f;
     }
     #deliveryAreaTabs .area-tab-shell.is-renaming .area-tab-delete{
       flex:0 0 30px!important;
       width:30px!important;
       min-width:30px!important;
       height:30px!important;
-      border-left:1px solid rgba(255,255,255,.3)!important;
-      background:#a62b45!important;
-      color:#fff!important;
+      border-left:1px solid #e2c0c8!important;
+      background:#fff!important;
+      color:#a62b45!important;
+    }
+    #deliveryAreaTabs .area-tab-shell.is-renaming .area-tab-delete:hover{
+      background:#fbf2f4!important;
     }
     #deliveryAreaTabs>.area-name-editor{display:none!important}
   `;
