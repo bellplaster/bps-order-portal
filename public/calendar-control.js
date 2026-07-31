@@ -125,13 +125,13 @@
       #${PANEL_ID}{
         position:absolute!important;
         z-index:100004!important;
-        top:calc(100% + 4px)!important;
+        top:100%!important;
         right:0!important;
         width:258px!important;
         margin:0!important;
         padding:10px!important;
         border:1px solid #cfd7d4!important;
-        border-radius:4px!important;
+        border-radius:0 0 4px 4px!important;
         background:#fff!important;
         box-shadow:0 10px 24px rgba(23,33,31,.16)!important;
         box-sizing:border-box!important;
@@ -139,17 +139,10 @@
         font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
       }
       #${PANEL_ID}[hidden]{display:none!important}
-      #${PANEL_ID}::before{
-        content:""!important;
-        position:absolute!important;
-        top:-6px!important;
-        right:13px!important;
-        width:10px!important;
-        height:10px!important;
-        border-left:1px solid #cfd7d4!important;
-        border-top:1px solid #cfd7d4!important;
-        background:#fff!important;
-        transform:rotate(45deg)!important;
+      #${PANEL_ID}::before,
+      #${PANEL_ID}::after{
+        content:none!important;
+        display:none!important;
       }
       .portal-calendar-header{
         position:relative!important;
