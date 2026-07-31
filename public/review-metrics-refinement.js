@@ -12,6 +12,14 @@
     return (width * length * quantity) / 1_000_000;
   }
 
+  function formatMetric(value) {
+    const number = Number(value || 0);
+    if (!Number.isFinite(number)) return "0";
+    return Number.isInteger(number)
+      ? String(number)
+      : number.toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1");
+  }
+
   function refinedRenderReview() {
     const payload = buildPayload();
     const details = [
@@ -63,7 +71,7 @@
         row.innerHTML = `
           <span class="review-line-sku">${escapeHtml(line.sku || "—")}</span>
           <strong class="review-line-product">${escapeHtml(line.label)}</strong>
-          <em>${area === null ? "" : area.toFixed(2)}</em>
+          <em>${area === null ? "" : formatMetric(area)}</em>
           <b>${line.quantity}</b>
         `;
         group.append(row);
@@ -76,9 +84,8 @@
 
     document.getElementById("reviewLineTotal").innerHTML = `<span>Product lines</span><strong>${lineCount}</strong>`;
     document.getElementById("reviewUnitTotal").innerHTML = `
-      <span class="review-footer-labels"><small>Total m²</small><small>Total Units</small></span>
-      <strong class="review-footer-area-value">${totalBoardArea.toFixed(2)}</strong>
-      <strong class="review-footer-units-value">${unitCount}</strong>
+      <span class="review-footer-metric"><small>Total m²</small><strong>${formatMetric(totalBoardArea)}</strong></span>
+      <span class="review-footer-metric"><small>Total Units</small><strong>${unitCount}</strong></span>
     `;
   }
 
@@ -122,7 +129,7 @@
       link.dataset.orderFinal = "true";
       document.head.append(link);
     }
-    link.href = "/order-final.css?v=20260731-2";
+    link.href = "/order-final.css?v=20260731-3";
   }
 
   function loadScriptOnce(src, marker) {
