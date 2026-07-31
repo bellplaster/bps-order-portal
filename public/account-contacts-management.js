@@ -30,7 +30,6 @@
       const result = await api();
       if (result.canManage !== true) return;
       contacts = Array.isArray(result.contacts) ? result.contacts : [];
-      installStyles();
       installSection();
       installDialog();
       render();
@@ -48,7 +47,7 @@
     section.className = "account-section saved-contacts-section";
     section.innerHTML = `
       <header class="account-section-bar saved-contacts-bar">
-        <div><h2>Saved contacts</h2><p>Shared with every order user under this customer account.</p></div>
+        <h2>Saved contacts</h2>
         <button id="addSavedContact" type="button">Add contact</button>
       </header>
       <div class="saved-contacts-table" role="table" aria-label="Saved contacts">
@@ -156,19 +155,6 @@
 
   function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
-  }
-
-  function installStyles() {
-    if (document.getElementById("saved-contacts-management-styles")) return;
-    const style = document.createElement("style");
-    style.id = "saved-contacts-management-styles";
-    style.textContent = `
-      .saved-contacts-section{margin-top:12px!important}.saved-contacts-bar{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:16px!important;padding-right:10px!important}.saved-contacts-bar>div{display:flex!important;align-items:baseline!important;gap:10px!important;min-width:0!important}.saved-contacts-bar h2,.saved-contacts-bar p{margin:0!important}.saved-contacts-bar p{color:rgba(255,255,255,.76)!important;font-size:9px!important;font-weight:400!important}.saved-contacts-bar button{min-height:28px!important;padding:0 10px!important;border:1px solid rgba(255,255,255,.55)!important;border-radius:3px!important;background:transparent!important;color:#fff!important;cursor:pointer!important;font:600 10px/1 Inter,system-ui,sans-serif!important}.saved-contacts-bar button:hover{background:rgba(255,255,255,.12)!important}
-      .saved-contacts-table{border:1px solid #d5dcda!important;border-top:0!important;background:#fff!important}.saved-contacts-header,.saved-contact-row{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(150px,.55fr) 140px!important;align-items:center!important;min-height:38px!important}.saved-contacts-header{background:#eef1f0!important;font-size:9px!important;font-weight:700!important;text-transform:uppercase!important}.saved-contacts-header>span,.saved-contact-row>*{padding:0 10px!important;box-sizing:border-box!important}.saved-contact-row{border-top:1px solid #e1e6e4!important;font-size:11px!important}.saved-contact-row strong{font-weight:600!important}.saved-contact-row>span{color:#5f6b68!important;font-variant-numeric:tabular-nums!important}.saved-contact-actions{display:flex!important;justify-content:flex-end!important;gap:12px!important}.saved-contact-actions button{padding:0!important;border:0!important;background:transparent!important;color:var(--bell-green,#006557)!important;cursor:pointer!important;font:600 10px/1 Inter,system-ui,sans-serif!important}.saved-contact-actions .danger{color:#a62b45!important}.saved-contacts-empty{padding:18px!important;color:#687471!important;font-size:11px!important;text-align:center!important}
-      .saved-contact-dialog{width:min(440px,calc(100vw - 32px))!important;margin:auto!important;padding:0!important;border:0!important;border-radius:10px!important;background:#fff!important;box-shadow:0 24px 60px rgba(23,33,31,.24)!important}.saved-contact-dialog::backdrop{background:rgba(20,29,27,.38)!important;backdrop-filter:blur(2px)!important}.saved-contact-dialog-card{margin:0!important}.saved-contact-dialog-card header{display:flex!important;justify-content:space-between!important;gap:16px!important;padding:18px 18px 14px!important;border-bottom:1px solid #e1e6e4!important}.saved-contact-dialog-card h2{margin:0 0 4px!important;font-size:18px!important}.saved-contact-dialog-card p{margin:0!important;color:#687471!important;font-size:10px!important}.saved-contact-dialog-card header button{width:30px!important;height:30px!important;margin:-4px -4px 0 0!important;padding:0!important;border:0!important;border-radius:50%!important;background:transparent!important;font-size:20px!important;cursor:pointer!important}.saved-contact-fields{display:grid!important;grid-template-columns:1fr 1fr!important;gap:12px!important;padding:18px!important}.saved-contact-fields label{display:grid!important;gap:6px!important;font-size:10px!important;font-weight:600!important}.saved-contact-fields input{width:100%!important;height:38px!important;padding:0 10px!important;border:1px solid #cfd7d4!important;border-radius:4px!important;box-sizing:border-box!important;font:400 11px/1 Inter,system-ui,sans-serif!important}.saved-contact-fields input:focus{outline:0!important;border-color:var(--bell-green,#006557)!important;box-shadow:0 0 0 2px rgba(0,101,87,.1)!important}.saved-contact-dialog-card footer{display:flex!important;justify-content:flex-end!important;gap:8px!important;padding:14px 18px 18px!important}
-      @media(max-width:680px){.saved-contacts-bar>div{display:block!important}.saved-contacts-header,.saved-contact-row{grid-template-columns:minmax(0,1fr) 110px}.saved-contacts-header span:nth-child(2),.saved-contact-row>span{display:none!important}.saved-contact-actions{grid-column:2!important;grid-row:1!important}.saved-contact-fields{grid-template-columns:1fr!important}}
-    `;
-    document.head.append(style);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true }); else void start();
