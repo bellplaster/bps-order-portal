@@ -1,4 +1,12 @@
 (() => {
+  if (document.body.classList.contains("account-page") && !document.querySelector('script[data-account-role-ux="true"]')) {
+    const roleScript = document.createElement("script");
+    roleScript.src = "/account-role-ux.js?v=20260731-1";
+    roleScript.defer = true;
+    roleScript.dataset.accountRoleUx = "true";
+    document.body.append(roleScript);
+  }
+
   const clone = (value) => {
     if (typeof structuredClone === "function") return structuredClone(value);
     return JSON.parse(JSON.stringify(value || {}));
