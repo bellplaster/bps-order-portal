@@ -1,16 +1,20 @@
 (() => {
-  const TITLE_CASE_IDS = new Set([
+  const UPPERCASE_IDS = new Set([
+    "companyName",
     "contactName",
-    "defaultContactName",
     "deliveryStreet",
     "deliveryAddressSearch",
+    "deliveryInstructions",
+    "defaultContactName",
     "defaultStreet",
     "defaultSuburb",
-  ]);
-  const SENTENCE_CASE_IDS = new Set([
-    "deliveryInstructions",
     "defaultInstructions",
+    "newDebtorCode",
+    "newCompanyName",
+    "editDebtorCode",
+    "editCompanyName",
   ]);
+
   const ADDRESS_GROUPS = [
     {
       name: "order",
@@ -27,39 +31,21 @@
       stateId: null,
     },
   ];
+
   const formattedFields = new WeakSet();
   const addressFields = new WeakSet();
-
   let scanTimer = 0;
   let scanAttempts = 0;
 
-  function titleCaseWords(value) {
-    return String(value || "")
-      .toLowerCase()
-      .replace(/(^|[\s\-/,'’])([a-z])/g, (_match, prefix, letter) => `${prefix}${letter.toUpperCase()}`)
-      .replace(/\bPo\s+Box\b/g, "PO Box")
-      .replace(/\bVic\b/g, "VIC")
-      .replace(/\bNsw\b/g, "NSW")
-      .replace(/\bQld\b/g, "QLD")
-      .replace(/\bSa\b/g, "SA")
-      .replace(/\bWa\b/g, "WA")
-      .replace(/\bAct\b/g, "ACT")
-      .replace(/\bNt\b/g, "NT");
+  function uppercase(value) {
+    return String(value || "").toLocaleUpperCase("en-AU");
   }
 
-  function sentenceCase(value) {
-    const text = String(value || "");
-    const index = text.search(/[a-z]/i);
-    if (index < 0) return text;
-    return `${text.slice(0, index)}${text[index].toUpperCase()}${text.slice(index + 1)}`;
-  }
-
-  function replaceFieldValue(field, formatter) {
+  function replaceFieldValue(field) {
     if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) return false;
     const previous = field.value;
-    const next = formatter(previous);
+    const next = uppercase(previous);
     if (next === previous) return false;
-
     const start = field.selectionStart;
     const end = field.selectionEnd;
     field.value = next;
@@ -70,10 +56,7 @@
   }
 
   function formatField(field) {
-    if (!(field instanceof HTMLElement)) return false;
-    if (TITLE_CASE_IDS.has(field.id)) return replaceFieldValue(field, titleCaseWords);
-    if (SENTENCE_CASE_IDS.has(field.id)) return replaceFieldValue(field, sentenceCase);
-    return false;
+    return UPPERCASE_IDS.has(field?.id) ? replaceFieldValue(field) : false;
   }
 
   function emitFieldEvents(field) {
@@ -82,14 +65,12 @@
   }
 
   function bindFormatting(field) {
-    if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) return;
-    if (formattedFields.has(field)) return;
+    if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) || formattedFields.has(field)) return;
     formattedFields.add(field);
-    field.dataset.orderDetailFormatting = "true";
-
+    field.dataset.orderDetailFormatting = "uppercase";
+    field.style.textTransform = "uppercase";
     const apply = (event) => {
-      if (event?.isComposing) return;
-      formatField(field);
+      if (!event?.isComposing) formatField(field);
     };
     field.addEventListener("input", apply);
     field.addEventListener("change", apply);
@@ -98,7 +79,7 @@
   }
 
   function formatAllFields() {
-    [...TITLE_CASE_IDS, ...SENTENCE_CASE_IDS].forEach((id) => {
+    UPPERCASE_IDS.forEach((id) => {
       const field = document.getElementById(id);
       if (field) formatField(field);
     });
@@ -114,12 +95,10 @@
   }
 
   function bindAddressInput(input, mode, group) {
-    if (!(input instanceof HTMLInputElement)) return;
-    if (addressFields.has(input)) return;
-    addressFields.add(input);
-
+    if (!(input instanceof HTMLInputElement) || addressFields.has(input)) return;
     const host = addressHost(input);
     if (!host) return;
+    addressFields.add(input);
 
     input.dataset.serverAddressSearch = "true";
     input.dataset.placesBound = "true";
@@ -134,8 +113,8 @@
     panel.className = "order-detail-suggestions";
     panel.dataset.owner = input.id;
     panel.hidden = true;
-    panel.setAttribute("role", "listbox");
     panel.id = `${input.id}Suggestions`;
+    panel.setAttribute("role", "listbox");
     input.setAttribute("aria-controls", panel.id);
     host.append(panel);
 
@@ -183,8 +162,8 @@
         const postcode = document.getElementById(group.postcodeId);
         const state = group.stateId ? document.getElementById(group.stateId) : null;
 
-        if (mode === "street" && street && place.street) street.value = titleCaseWords(place.street);
-        if (suburb && place.suburb) suburb.value = titleCaseWords(place.suburb);
+        if (mode === "street" && street && place.street) street.value = uppercase(place.street);
+        if (suburb && place.suburb) suburb.value = uppercase(place.suburb);
         if (postcode) postcode.value = String(place.postcode || "").replace(/\D/g, "").slice(0, 4);
         if (state) state.value = "VIC";
 
@@ -196,8 +175,8 @@
         });
 
         if (group.name === "order") {
-          try { if (typeof parseAndStoreManualAddress === "function") parseAndStoreManualAddress(); } catch (_error) { }
-          try { if (typeof scheduleDraft === "function") scheduleDraft(); } catch (_error) { }
+          try { window.parseAndStoreManualAddress?.(); } catch (_error) { }
+          try { window.scheduleDraft?.(); } catch (_error) { }
           const clear = document.getElementById("clearAddressButton");
           if (clear) clear.hidden = false;
         }
@@ -212,24 +191,24 @@
 
     const render = () => {
       panel.replaceChildren();
-      if (!suggestions.length) {
-        close();
-        return;
-      }
+      if (!suggestions.length) return close();
       suggestions.forEach((suggestion, index) => {
         const button = document.createElement("button");
         button.type = "button";
         button.className = "order-detail-suggestion";
         button.setAttribute("role", "option");
         button.setAttribute("aria-selected", String(index === activeIndex));
+
         const main = document.createElement("strong");
-        main.textContent = suggestion.mainText || suggestion.text || "";
+        main.textContent = uppercase(suggestion.mainText || suggestion.text || "");
         button.append(main);
+
         if (suggestion.secondaryText) {
           const secondary = document.createElement("span");
-          secondary.textContent = suggestion.secondaryText;
+          secondary.textContent = uppercase(suggestion.secondaryText);
           button.append(secondary);
         }
+
         button.addEventListener("mousedown", (event) => event.preventDefault());
         button.addEventListener("click", () => void choose(suggestion));
         panel.append(button);
@@ -242,10 +221,7 @@
 
     const search = async () => {
       const query = input.value.trim();
-      if (query.length < 2 || selecting) {
-        close();
-        return;
-      }
+      if (query.length < 2 || selecting) return close();
       controller?.abort();
       controller = new AbortController();
       try {
@@ -255,10 +231,7 @@
           headers: { Accept: "application/json" },
         });
         const payload = await response.json().catch(() => ({}));
-        if (!response.ok || payload.ok === false) {
-          close();
-          return;
-        }
+        if (!response.ok || payload.ok === false) return close();
         suggestions = Array.isArray(payload.suggestions) ? payload.suggestions : [];
         activeIndex = suggestions.length ? 0 : -1;
         render();
@@ -270,12 +243,10 @@
 
     input.addEventListener("input", () => {
       if (input.dataset.addressSelectionInProgress === "true") return;
+      formatField(input);
       window.clearTimeout(searchTimer);
       controller?.abort();
-      if (input.value.trim().length < 2) {
-        close();
-        return;
-      }
+      if (input.value.trim().length < 2) return close();
       searchTimer = window.setTimeout(() => void search(), 180);
     });
 
@@ -283,8 +254,7 @@
       if (panel.hidden || !suggestions.length) return;
       if (event.key === "ArrowDown" || event.key === "ArrowUp") {
         event.preventDefault();
-        const change = event.key === "ArrowDown" ? 1 : -1;
-        activeIndex = Math.max(0, Math.min(suggestions.length - 1, activeIndex + change));
+        activeIndex = Math.max(0, Math.min(suggestions.length - 1, activeIndex + (event.key === "ArrowDown" ? 1 : -1)));
         updateActive();
       } else if (event.key === "Enter") {
         event.preventDefault();
@@ -303,7 +273,6 @@
     const suburb = document.getElementById(group.suburbId);
     const postcode = document.getElementById(group.postcodeId);
     if (!street || !suburb || !postcode) return false;
-
     bindAddressInput(street, "street", group);
     bindAddressInput(suburb, "suburb", group);
     return true;
@@ -314,11 +283,12 @@
     const style = document.createElement("style");
     style.id = "orderDetailFieldStyles";
     style.textContent = `
+      [data-order-detail-formatting="uppercase"]{text-transform:uppercase!important}
       .order-detail-autocomplete-host{position:relative!important;overflow:visible!important}
       .order-detail-autocomplete-host.has-order-detail-suggestions{z-index:100!important}
       .order-detail-suggestions{position:absolute;z-index:100002;top:100%;left:-1px;right:-1px;max-height:260px;overflow-y:auto;background:#fff;border:1px solid #cfd7d4;box-shadow:0 8px 20px rgba(23,33,31,.12)}
       .order-detail-suggestions[hidden]{display:none!important}
-      .order-detail-suggestion{box-sizing:border-box;width:100%;display:grid;gap:2px;margin:0;padding:8px 10px;text-align:left;color:#17211f;background:#fff;border:0;border-bottom:1px solid #e1e6e4;border-radius:0;cursor:pointer;font-family:inherit}
+      .order-detail-suggestion{box-sizing:border-box;width:100%;display:grid;gap:2px;margin:0;padding:8px 10px;text-align:left;text-transform:uppercase;color:#17211f;background:#fff;border:0;border-bottom:1px solid #e1e6e4;border-radius:0;cursor:pointer;font-family:inherit}
       .order-detail-suggestion:last-child{border-bottom:0}
       .order-detail-suggestion:hover,.order-detail-suggestion.is-active{background:#eef6f3}
       .order-detail-suggestion strong{font-size:11px;font-weight:650;line-height:1.25}
@@ -330,7 +300,7 @@
   }
 
   function scan() {
-    [...TITLE_CASE_IDS, ...SENTENCE_CASE_IDS].forEach((id) => {
+    UPPERCASE_IDS.forEach((id) => {
       const field = document.getElementById(id);
       if (field) bindFormatting(field);
     });
@@ -348,9 +318,7 @@
     }, scanAttempts < 10 ? 100 : 300);
   }
 
-  const serverInitialiser = async function initialiseServerAddressFields() {
-    scan();
-  };
+  const serverInitialiser = async function initialiseServerAddressFields() { scan(); };
   serverInitialiser.__managerAddressPatched = true;
   window.initialiseGoogleAddress = serverInitialiser;
   window.initialiseOrderDetailFields = scan;
@@ -367,9 +335,7 @@
   }, true);
   document.addEventListener("mousedown", (event) => {
     if (event.target.closest(".order-detail-autocomplete-host")) return;
-    document.querySelectorAll("[data-server-address-search='true']").forEach((input) => {
-      input.__closeOrderDetailSuggestions?.();
-    });
+    document.querySelectorAll("[data-server-address-search='true']").forEach((input) => input.__closeOrderDetailSuggestions?.());
   });
 
   const observer = new MutationObserver(scheduleScan);
