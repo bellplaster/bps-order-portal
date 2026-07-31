@@ -10,6 +10,24 @@
     return rounded.toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1");
   }
 
+  function metricFontSize(value) {
+    const length = String(value ?? "").length;
+    if (length >= 14) return "7px";
+    if (length >= 12) return "8px";
+    if (length >= 10) return "9px";
+    if (length >= 8) return "10px";
+    return "11px";
+  }
+
+  function setMetricValue(cell, value, ariaLabel) {
+    if (!cell) return;
+    const text = String(value ?? "0");
+    if (cell.textContent !== text) cell.textContent = text;
+    cell.style.setProperty("--board-metric-font-size", metricFontSize(text));
+    cell.setAttribute("aria-label", ariaLabel);
+    cell.title = text;
+  }
+
   function numericText(value) {
     const match = String(value || "").replace(/,/g, "").match(/\d+(?:\.\d+)?/);
     return match ? Number(match[0]) : 0;
@@ -92,15 +110,12 @@
       });
 
       grandTotal += columnTotal;
-      const cell = summaryRow.cells[columnIndex];
       const next = formatArea(columnTotal);
-      if (cell && cell.textContent !== next) cell.textContent = next;
-      if (cell) cell.setAttribute("aria-label", `${next} square metres`);
+      setMetricValue(summaryRow.cells[columnIndex], next, `${next} square metres`);
     }
 
     const nextTotal = formatArea(grandTotal);
-    if (totalValue.textContent !== nextTotal) totalValue.textContent = nextTotal;
-    totalValue.setAttribute("aria-label", `${nextTotal} total square metres`);
+    setMetricValue(totalValue, nextTotal, `${nextTotal} total square metres`);
   }
 
   function updateAllBoardSummaries() {
@@ -193,7 +208,6 @@
         min-height: 26px !important;
         max-height: 26px !important;
         padding: 1px 2px !important;
-        font-size: 11px !important;
         line-height: 24px !important;
         vertical-align: middle !important;
       }
@@ -206,11 +220,18 @@
         padding-left: 5px !important;
         text-align: left;
         white-space: nowrap;
+        font-size: 11px !important;
       }
       .unified-board-table .board-area-summary-value {
-        text-align: center;
+        min-width: 0 !important;
+        padding-inline: 1px !important;
         color: #17211f;
+        font-size: var(--board-metric-font-size, 11px) !important;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.01em;
+        text-align: center;
         white-space: nowrap;
+        overflow: hidden;
       }
       .unified-board-table tfoot {
         border-top: 1px solid var(--line);
@@ -221,15 +242,21 @@
         font-weight: 700;
       }
       .unified-board-table .board-area-total-label {
-        padding-right: 8px !important;
-        text-align: right;
-        white-space: nowrap;
-      }
-      .unified-board-table .board-area-total-value {
         padding-right: 5px !important;
         text-align: right;
-        color: var(--bell-green, #006557);
         white-space: nowrap;
+        font-size: 11px !important;
+      }
+      .unified-board-table .board-area-total-value {
+        min-width: 0 !important;
+        padding-inline: 2px !important;
+        color: var(--bell-green, #006557);
+        font-size: var(--board-metric-font-size, 11px) !important;
+        font-variant-numeric: tabular-nums;
+        letter-spacing: -0.01em;
+        text-align: right;
+        white-space: nowrap;
+        overflow: hidden;
       }
     `;
     document.head.append(style);
