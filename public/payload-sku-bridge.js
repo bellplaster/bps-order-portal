@@ -15,6 +15,12 @@
     };
   }
 
+  function displayName(product) {
+    const formatter = globalThis.BpsProductDisplayName?.productDisplayName;
+    if (typeof formatter !== "function") throw new Error("Product display-name module is not loaded.");
+    return formatter(product);
+  }
+
   buildFloorPayload = function buildSkuAwareFloorPayload(floor) {
     const floorState = ensureFloorState(floor);
     return {
@@ -25,7 +31,7 @@
           return {
             key,
             sku: String(product.sku || "").trim(),
-            description: String(product.description || product.descriptionRaw || product.label || product.name || "").trim(),
+            description: displayName(product),
             quantity: Number(quantity),
           };
         }),
