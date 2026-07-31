@@ -41,7 +41,7 @@
         height:38px!important;
         box-sizing:border-box!important;
         border-left:1px solid #d5dcda!important;
-        background:#fff url('/calendar.svg?v=20260731-4') center/15px 15px no-repeat!important;
+        background:#fff url('/calendar.svg?v=20260731-4') center/12px 12px no-repeat!important;
         pointer-events:none!important;
         opacity:1!important;
         visibility:visible!important;
