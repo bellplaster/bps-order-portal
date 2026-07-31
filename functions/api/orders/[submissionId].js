@@ -1,44 +1,38 @@
-import {
-  deleteOrderPermanently,
-  setOrderArchiveStatus,
-} from "../../_shared/orders-v2.js";
+export async function onRequestGet(context) {
+  return readOnlyResponse(context);
+}
+
+export async function onRequestPut(context) {
+  return readOnlyResponse(context);
+}
 
 export async function onRequestPatch(context) {
-  return handle(context, async () => {
-    const payload = await context.request.json().catch(() => null);
-    const action = String(payload?.action || "").trim().toLowerCase();
-    if (!["archive", "restore"].includes(action)) throw requestError('Action must be "archive" or "restore".');
-    return setOrderArchiveStatus(
-      context.env,
-      String(context.params.submissionId || ""),
-      action === "archive",
-      context.data?.auth,
-    );
-  });
+  return readOnlyResponse(context);
 }
 
 export async function onRequestDelete(context) {
-  return handle(context, async () => deleteOrderPermanently(
-    context.env,
-    String(context.params.submissionId || ""),
-    context.data?.auth,
-  ));
+  return readOnlyResponse(context);
 }
 
-async function handle(context, operation) {
+function readOnlyResponse(context) {
   const requestId = crypto.randomUUID();
-  try {
-    const result = await operation();
-    return Response.json({ ...result, requestId }, { headers: { "Cache-Control": "no-store", "X-Request-ID": requestId } });
-  } catch (error) {
-    const message = error?.message || String(error);
-    const status = error?.status || (message === "Order not found." ? 404 : /invalid|required|cannot|must/i.test(message) ? 400 : 500);
-    return Response.json({ ok: false, error: message, diagnostic: error?.diagnostic || null, requestId }, { status, headers: { "X-Request-ID": requestId } });
+  const auth = context.data?.auth;
+  if (!auth?.userId) {
+    return Response.json({ ok: false, error: "Authentication required.", requestId }, {
+      status: 401,
+      headers: { "Cache-Control": "no-store", "X-Request-ID": requestId },
+    });
   }
-}
-
-function requestError(message) {
-  const error = new Error(message);
-  error.status = 400;
-  return error;
+  return Response.json({
+    ok: false,
+    error: "Submitted orders are permanent records and cannot be edited, resubmitted, archived, restored or deleted.",
+    requestId,
+  }, {
+    status: 405,
+    headers: {
+      Allow: "",
+      "Cache-Control": "no-store",
+      "X-Request-ID": requestId,
+    },
+  });
 }
