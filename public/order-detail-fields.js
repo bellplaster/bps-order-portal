@@ -1,4 +1,33 @@
 (() => {
+  const RENDER_GATE_STYLE_ID = "portal-initial-render-gate";
+  let renderRevealed = false;
+
+  function installRenderGate() {
+    document.documentElement.classList.add("portal-is-initialising");
+    let style = document.getElementById(RENDER_GATE_STYLE_ID);
+    if (!style) {
+      style = document.createElement("style");
+      style.id = RENDER_GATE_STYLE_ID;
+      style.textContent = `
+        html.portal-is-initialising body.order-form-page,
+        html.portal-is-initialising body.account-page{visibility:hidden!important}
+      `;
+      document.head.append(style);
+    }
+  }
+
+  function revealPortal() {
+    if (renderRevealed) return;
+    renderRevealed = true;
+    document.documentElement.classList.remove("portal-is-initialising");
+  }
+
+  installRenderGate();
+  window.addEventListener("load", () => {
+    window.requestAnimationFrame(() => window.requestAnimationFrame(revealPortal));
+  }, { once: true });
+  window.setTimeout(revealPortal, 3500);
+
   const UPPERCASE_IDS = new Set([
     "companyName",
     "contactName",
