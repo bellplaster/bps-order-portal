@@ -1,4 +1,4 @@
-const MAX_PRODUCT_QUANTITY = 10000;
+const MAX_PRODUCT_QUANTITY = 99999;
 const PRODUCT_QUANTITY_DIGITS = String(MAX_PRODUCT_QUANTITY).length;
 
 function normaliseProductQuantity(value, fallback = 0) {
