@@ -30,7 +30,7 @@ html body.order-form-page main.order-shell form#orderForm .sheet-details-grid .s
 .review-section:has(#reviewOrderLines) .review-section-header h2,.review-section:has(#reviewOrderLines) .review-section-header .text-button{margin:0!important;padding:0!important;font:700 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important}
 .review-section:has(#reviewOrderLines) .review-section-header .text-button{margin-left:auto!important}
 .review-area-heading{display:flex!important;width:100%!important;height:26px!important;min-height:26px!important;align-items:center!important;margin:0!important;padding:0 8px!important;border:0!important;box-sizing:border-box!important;background:#c3c9c7!important;color:#17211f!important;font:700 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important}
-.review-column-heading,.review-line.review-line-metrics,.review-total{display:grid!important;grid-template-columns:180px minmax(0,1fr) 220px 160px!important;width:100%!important;height:26px!important;min-height:26px!important;margin:0!important;padding:0!important;gap:0!important;box-sizing:border-box!important;font-size:11px!important}
+.review-column-heading,.review-line.review-line-metrics,.review-total{display:grid!important;grid-template-columns:180px minmax(0,1fr) 112px 88px!important;width:100%!important;height:26px!important;min-height:26px!important;margin:0!important;padding:0!important;gap:0!important;box-sizing:border-box!important;font-size:11px!important}
 .review-column-heading{align-items:stretch!important;border:0!important;border-bottom:1px solid var(--line)!important;background:#e0e3e2!important}
 .review-column-heading>span,.review-column-heading>small{display:flex!important;min-width:0!important;height:26px!important;align-items:center!important;margin:0!important;padding:0 8px!important;border:0!important;box-sizing:border-box!important;color:#17211f!important;font:700 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;text-align:left!important;text-transform:none!important}
 .review-column-heading>small{justify-content:center!important;padding-inline:3px!important}
@@ -39,15 +39,12 @@ html body.order-form-page main.order-shell form#orderForm .sheet-details-grid .s
 .review-line-sku{color:#53615d!important;font-weight:500!important}.review-line-product{color:#17211f!important;font-weight:600!important}
 .review-line.review-line-metrics>em,.review-line.review-line-metrics>b{justify-content:center!important;padding-inline:3px!important;text-align:center!important}
 .review-line.review-line-metrics>em{color:#17211f!important;font-style:normal!important;font-weight:500!important}.review-line.review-line-metrics>b{color:#17211f!important;font-weight:600!important}
-.review-total{position:relative!important;align-items:stretch!important;border:0!important;border-top:1px solid var(--line)!important;border-bottom:1px solid var(--line)!important;background:#fff!important}
+.review-total{align-items:stretch!important;border:0!important;border-top:1px solid var(--line)!important;border-bottom:1px solid var(--line)!important;background:#fff!important}
 #reviewLineTotal{grid-column:1!important;display:flex!important;min-width:0!important;height:26px!important;align-items:center!important;gap:8px!important;margin:0!important;padding:0 8px!important;border:0!important;box-sizing:border-box!important;white-space:nowrap!important}
-#reviewUnitTotal,.review-footer-labels{display:contents!important}
-.review-footer-labels{position:static!important;inset:auto!important;pointer-events:none!important}
-.review-footer-labels>small{position:static!important;top:auto!important;display:flex!important;min-width:0!important;height:26px!important;align-items:center!important;justify-content:flex-start!important;margin:0!important;padding:0 8px!important;box-sizing:border-box!important;color:#17211f!important;font:500 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;text-align:left!important;white-space:nowrap!important;overflow:hidden!important}
-.review-footer-labels>small:first-child{grid-column:3!important;right:auto!important}.review-footer-labels>small:last-child{grid-column:4!important;right:auto!important}
-.review-footer-area-value{grid-column:3!important}.review-footer-units-value{grid-column:4!important}
-.review-footer-area-value,.review-footer-units-value{display:flex!important;min-width:0!important;height:26px!important;align-items:center!important;justify-content:flex-end!important;margin:0!important;padding:0 8px 0 72px!important;box-sizing:border-box!important;color:#17211f!important;font:700 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;white-space:nowrap!important;overflow:hidden!important}
-.review-footer-units-value{padding-left:76px!important}
+#reviewUnitTotal{grid-column:3/5!important;display:grid!important;grid-template-columns:112px 88px!important;width:100%!important;min-width:0!important;height:26px!important;margin:0!important;padding:0!important}
+.review-footer-metric{display:grid!important;grid-template-columns:auto minmax(0,1fr)!important;min-width:0!important;height:26px!important;align-items:center!important;gap:6px!important;margin:0!important;padding:0 8px!important;box-sizing:border-box!important;white-space:nowrap!important}
+.review-footer-metric small{min-width:0!important;margin:0!important;color:#17211f!important;font:500 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.review-footer-metric strong{min-width:0!important;margin:0!important;color:#17211f!important;font:700 11px/26px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;text-align:right!important;overflow:visible!important}
 .review-total,.review-total *{font-size:11px!important;line-height:26px!important;letter-spacing:0!important;text-transform:none!important}
 
 /* Customer identity | Bell Plaster | actions. Header edges match the 1520px order workspace. */
@@ -60,9 +57,11 @@ html body.order-form-page main.order-shell form#orderForm .sheet-details-grid .s
 .portal-company-identity span{display:block!important;color:#6b7774!important;font-size:10px!important;font-weight:600!important;letter-spacing:.045em!important;line-height:1.2!important;text-transform:uppercase!important}
 
 @media(max-width:760px){
-.review-column-heading,.review-line.review-line-metrics,.review-total{grid-template-columns:90px minmax(0,1fr) 106px 76px!important}
-.review-footer-labels>small,.review-footer-area-value,.review-footer-units-value{font-size:9px!important;padding-inline:4px!important}
-.review-footer-area-value,.review-footer-units-value{padding-left:44px!important}
+.review-column-heading,.review-line.review-line-metrics,.review-total{grid-template-columns:90px minmax(0,1fr) 86px 62px!important}
+#reviewUnitTotal{grid-template-columns:86px 62px!important}
+.review-footer-metric{grid-template-columns:1fr!important;align-content:center!important;gap:0!important;padding:0 4px!important}
+.review-footer-metric small{display:none!important}
+.review-footer-metric strong{text-align:center!important;font-size:10px!important}
 .order-form-page .portal-header{grid-template-columns:auto 1fr auto!important;column-gap:10px!important;min-height:60px!important;padding:8px 12px!important}
 .order-form-page .portal-header .brand-link{grid-column:1!important;justify-self:start!important}
 .order-form-page .portal-header .brand-link img{width:132px!important;max-width:132px!important}
