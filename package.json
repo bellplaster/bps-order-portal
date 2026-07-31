@@ -7,7 +7,7 @@
     "dev": "wrangler pages dev public",
     "deploy": "wrangler pages deploy public --project-name bps-order-portal",
     "test": "node --test tests/*.test.mjs",
-    "check": "node --check public/order-form-enhancements.js && node --check public/account-contacts-management.js && node --check public/account-role-ux.js && node --check functions/api/account-contacts.js",
+    "check": "node --check public/order-form-enhancements.js && node --check public/payload-sku-bridge.js && node --check public/account-contacts-management.js && node --check public/account-role-ux.js && node --check functions/api/account-contacts.js",
     "test:xlsx": "node tools/generate-test-files.mjs"
   },
   "devDependencies": {
