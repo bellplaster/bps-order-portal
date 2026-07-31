@@ -5,11 +5,6 @@
   let updateFrame = 0;
   let renderCountsAttempts = 0;
 
-  function formatArea(value) {
-    const rounded = Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
-    return rounded.toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1");
-  }
-
   function metricFontSize(value) {
     const length = String(value ?? "").length;
     if (length >= 14) return "7px";
@@ -92,6 +87,9 @@
 
   function updateBoardSummary(table) {
     if (!(table instanceof HTMLTableElement) || !table.tHead || !table.tBodies.length) return;
+    const math = globalThis.BpsBoardAreaMath;
+    if (!math) throw new Error("Board area calculation module is not loaded.");
+
     const widthRow = table.tHead.rows[2];
     const tbody = table.tBodies[0];
     const summaryRow = tbody.querySelector(":scope > .board-area-summary-row");
@@ -100,29 +98,25 @@
 
     const productRows = [...tbody.rows].filter((row) => {
       if (row.classList.contains("board-area-summary-row")) return false;
-      const length = numericText(row.cells[0]?.textContent);
-      return length >= 1000;
+      return numericText(row.cells[0]?.textContent) >= 1000;
     });
 
-    let grandTotal = 0;
-    for (let columnIndex = 1; columnIndex < widthRow.cells.length; columnIndex += 1) {
-      const widthMm = numericText(widthRow.cells[columnIndex]?.textContent);
-      let columnTotal = 0;
+    const widthsMm = [...widthRow.cells].slice(1).map((cell) => numericText(cell.textContent));
+    const rows = productRows.map((row) => ({
+      lengthMm: numericText(row.cells[0]?.textContent),
+      quantities: [...widthRow.cells].slice(1).map((_cell, columnOffset) => {
+        const input = row.cells[columnOffset + 1]?.querySelector(".quantity-input");
+        return input?.value || 0;
+      }),
+    }));
 
-      productRows.forEach((row) => {
-        const lengthMm = numericText(row.cells[0]?.textContent);
-        const input = row.cells[columnIndex]?.querySelector(".quantity-input");
-        const quantity = Number(String(input?.value || "0").replace(/,/g, ""));
-        if (!widthMm || !lengthMm || !Number.isFinite(quantity) || quantity <= 0) return;
-        columnTotal += (widthMm * lengthMm * quantity) / 1_000_000;
-      });
+    const result = math.calculateBoardSummary(widthsMm, rows);
+    result.columnTotals.forEach((columnTotal, columnOffset) => {
+      const next = math.formatArea(columnTotal);
+      setMetricValue(summaryRow.cells[columnOffset + 1], next, `${next} square metres`);
+    });
 
-      grandTotal += columnTotal;
-      const next = formatArea(columnTotal);
-      setMetricValue(summaryRow.cells[columnIndex], next, `${next} square metres`);
-    }
-
-    const nextTotal = formatArea(grandTotal);
+    const nextTotal = math.formatArea(result.grandTotal);
     setMetricValue(totalValue, nextTotal, `${nextTotal} total square metres`);
   }
 
