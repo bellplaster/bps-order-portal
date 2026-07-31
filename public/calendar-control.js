@@ -52,7 +52,11 @@
     style.textContent = `
       .order-form-page .sheet-field-row:has(>#requiredDate){
         position:relative!important;
-        isolation:isolate!important;
+        z-index:1!important;
+        overflow:visible!important;
+      }
+      .order-form-page .sheet-field-row:has(>#requiredDateCalendarButton[aria-expanded="true"]){
+        z-index:100005!important;
       }
       .order-form-page .sheet-field-row:has(>#requiredDate)::after{
         display:none!important;
