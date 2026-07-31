@@ -19,14 +19,14 @@ export async function replaceAreaExportsWithCombined(env, payload, result, auth)
   if (!account) throw new Error("The customer account for the combined export is missing.");
 
   const areaEntries = Object.entries(payload?.floors && typeof payload.floors === "object" ? payload.floors : {})
-    .filter(([, area]) => area && typeof area === "object");
+    .filter(([, area]) => hasAreaProducts(area));
   if (!areaEntries.length) return result;
 
+  const includeAreaSeparators = areaEntries.length > 1;
   const productRows = [];
   for (const [areaKey, area] of areaEntries) {
     const label = upper(area.label || areaKey || "AREA");
-
-    productRows.push([label, "", 1]);
+    if (includeAreaSeparators) productRows.push([label, "", 1]);
 
     const rows = [];
     for (const item of Array.isArray(area.items) ? area.items : []) {
@@ -44,7 +44,6 @@ export async function replaceAreaExportsWithCombined(env, payload, result, auth)
   }
 
   if (!productRows.length) throw new Error("The combined Accrivia export contains no products.");
-
   productRows.push(["NOTES", buildDeliveryNotesDescription(payload), 1]);
 
   const pickup = isPickup(payload?.deliveryType);
@@ -116,6 +115,13 @@ export async function replaceAreaExportsWithCombined(env, payload, result, auth)
   return result;
 }
 
+function hasAreaProducts(area) {
+  if (!area || typeof area !== "object") return false;
+  const hasItems = Array.isArray(area.items) && area.items.some((item) => Number(item?.quantity || 0) > 0);
+  const hasAdditional = Array.isArray(area.otherMaterials) && area.otherMaterials.some((item) => Number(item?.quantity || 0) > 0);
+  return hasItems || hasAdditional;
+}
+
 function combineRows(items, areaLabel) {
   const combined = new Map();
   for (const item of items) {
@@ -148,13 +154,7 @@ function buildDeliveryNotesDescription(payload) {
 
 function timeSlotLabel(value) {
   const key = upper(value);
-  const labels = {
-    "1ST": "1ST",
-    "2ND": "2ND",
-    "AM": "AM",
-    "PM": "PM",
-    "ANY": "ANY",
-  };
+  const labels = { "1ST": "1ST", "2ND": "2ND", AM: "AM", PM: "PM", ANY: "ANY" };
   return labels[key] || key;
 }
 
@@ -205,11 +205,7 @@ function buildExportAddresses(payload, labels, pickup) {
     };
   }
 
-  return {
-    line1: [prefix, street].filter(Boolean).join(" "),
-    line2: suburbFull,
-    line3: "",
-  };
+  return { line1: [prefix, street].filter(Boolean).join(" "), line2: suburbFull, line3: "" };
 }
 
 function parseUnitLabel(value) {
