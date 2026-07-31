@@ -12,7 +12,7 @@
     ["order-product-payload", "/order-product-payload.js?v=20260729-1"],
     ["admin-defaults", "/admin-defaults.js?v=20260731-1"],
     ["board-width-order", "/board-width-order.js?v=20260729-1"],
-    ["order-form-enhancements", "/order-form-enhancements.js?v=20260731-3"],
+    ["order-form-enhancements", "/order-form-enhancements.js?v=20260801-4"],
     ["product-quantity-authority", "/product-quantity-authority.js?v=20260731-1"],
     ["order-selection-source", "/order-selection-source.js?v=20260731-4"],
     ["admin-testing", "/admin-testing.js?v=20260731-4"],
@@ -20,7 +20,7 @@
     ["calendar-control", "/calendar-control.js?v=20260731-4"],
     ["portal-identity-ux", "/portal-identity-ux.js?v=20260731-2"],
     ["inline-tab-rename", "/inline-tab-rename.js?v=20260801-4"],
-    ["board-area-summary", "/board-area-summary.js?v=20260801-2"],
+    ["board-area-summary", "/board-area-summary.js?v=20260801-3"],
   ];
 
   controllers.forEach(([marker, src]) => {
