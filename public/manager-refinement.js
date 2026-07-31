@@ -19,13 +19,9 @@
     ["Customer Pickup", PICKUP_VALUE],
   ]);
   let retryCount = 0;
-  let tabArrangeTimer = 0;
-  let tabObserver = null;
-  let arrangingTabs = false;
 
   removeUppercaseAddressListener();
   loadStyles();
-  patchGoogleAddressInitialiser();
   patchAddressFormatting();
   initialiseRefinements();
   document.addEventListener("DOMContentLoaded", initialiseRefinements, { once: true });
@@ -38,18 +34,15 @@
     }
   }, 100);
 
-  document.addEventListener("input", (event) => {
-    if (event.target.matches(".quantity-input")) updateTabSummary();
-  });
   document.addEventListener("change", (event) => {
-    if (event.target.matches('input[name="deliveryExtra"]')) {
+    if (event.target.matches?.('input[name="deliveryExtra"]')) {
       capitaliseExtras();
       updateExtrasSummary();
     }
   });
-  document.addEventListener("click", interceptAddTab, true);
+
   document.addEventListener("click", (event) => {
-    if (event.target.closest("[data-floor-tab], [data-delete-area], .remove-row, .additional-result-row")) {
+    if (event.target.closest?.(".remove-row, .additional-result-row")) {
       window.setTimeout(postRenderCleanup, 0);
     }
   });
@@ -66,9 +59,7 @@
     patchRenderCounts();
     patchRenderer();
     refineInsulationLabels();
-    normaliseEmptyDefaultTab();
-    observeTabRow();
-    scheduleTabArrangement();
+    window.initialiseOrderDetailFields?.();
   }
 
   function loadStyles() {
@@ -79,7 +70,7 @@
       link.dataset.managerRefinement = "true";
       document.head.append(link);
     }
-    link.href = "/manager-refinement.css?v=20260727-2";
+    link.href = "/manager-refinement.css?v=20260731-1";
   }
 
   function removeUppercaseAddressListener() {
@@ -88,24 +79,6 @@
         window.removeEventListener("DOMContentLoaded", enforceUppercaseGoogleAddress);
       }
     } catch (_error) { }
-  }
-
-  function patchGoogleAddressInitialiser() {
-    if (window.initialiseGoogleAddress?.__managerAddressPatched) return;
-    const patched = async function initialiseManagerGoogleAddress() {
-      try {
-        const config = await fetchJson("/api/address-config");
-        if (!config.configured || !config.apiKey) return;
-        await loadScript(`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(config.apiKey)}&libraries=places&v=weekly`);
-        setupStructuredAddress();
-        bindAddressAutocompletes();
-      } catch (error) {
-        console.warn("Google address suggestions are unavailable.", error);
-      }
-    };
-    patched.__managerAddressPatched = true;
-    window.initialiseGoogleAddress = patched;
-    try { initialiseGoogleAddress = patched; } catch (_error) { }
   }
 
   function patchAddressFormatting() {
@@ -275,7 +248,7 @@
     if (!field || !originalInput) return;
     if (field.dataset.structuredAddress === "true") {
       syncStructuredAddressFromHidden();
-      bindAddressAutocompletes();
+      window.initialiseOrderDetailFields?.();
       return;
     }
 
@@ -294,6 +267,9 @@
     suburb.autocomplete = "off";
     suburb.removeAttribute("data-suburb-autocomplete");
     suburb.removeAttribute("data-manager-suburb-ready");
+    suburb.removeAttribute("data-server-address-search");
+    suburb.removeAttribute("data-places-bound");
+
     const clear = document.getElementById("clearAddressButton")?.cloneNode(true) || document.createElement("button");
     clear.id = "clearAddressButton";
     clear.className = "clear-input";
@@ -344,14 +320,14 @@
       if (typeof scheduleDraft === "function") scheduleDraft();
     });
     suburb.addEventListener("input", () => {
-      setValue("deliveryPostcode", "");
+      if (suburb.dataset.addressSelectionInProgress !== "true") setValue("deliveryPostcode", "");
       suburb.setCustomValidity("");
       syncStructuredAddress();
       if (typeof scheduleDraft === "function") scheduleDraft();
     });
 
     syncStructuredAddressFromHidden();
-    bindAddressAutocompletes();
+    window.initialiseOrderDetailFields?.();
     if (typeof updatePickupMode === "function") updatePickupMode();
   }
 
@@ -366,96 +342,11 @@
     return cell;
   }
 
-  function bindAddressAutocompletes() {
-    if (!window.google?.maps?.places?.Autocomplete) return;
-    bindStreetAutocomplete();
-    bindSuburbAutocomplete();
-  }
-
-  function bindStreetAutocomplete() {
-    const input = document.getElementById("deliveryStreet");
-    if (!input || input.dataset.googleAutocomplete === "street") return;
-    input.dataset.googleAutocomplete = "street";
-    const autocomplete = new google.maps.places.Autocomplete(input, {
-      componentRestrictions: { country: "au" },
-      fields: ["address_components", "formatted_address", "place_id"],
-      types: ["address"],
-    });
-    state.streetAddressAutocomplete = autocomplete;
-    autocomplete.addListener("place_changed", async () => {
-      const place = autocomplete.getPlace();
-      let parsed = parseGoogleComponents(place?.address_components || []);
-      if ((!parsed.postcode || !parsed.suburb) && place?.place_id) parsed = await geocodePlace(place.place_id, parsed);
-      if (parsed.state && parsed.state !== "VIC") return showAddressError(input, "Choose a Victorian address.");
-      input.setCustomValidity("");
-      input.value = titleCaseAddress(parsed.line1 || input.value);
-      setValue("deliveryAddressSearch", titleCaseAddress(parsed.suburb));
-      setValue("deliveryPostcode", parsed.postcode);
-      syncStructuredAddress();
-      if (typeof scheduleDraft === "function") scheduleDraft();
-    });
-  }
-
-  function bindSuburbAutocomplete() {
-    const input = document.getElementById("deliveryAddressSearch");
-    if (!input || input.dataset.googleAutocomplete === "suburb") return;
-    input.dataset.googleAutocomplete = "suburb";
-    const autocomplete = new google.maps.places.Autocomplete(input, {
-      componentRestrictions: { country: "au" },
-      fields: ["address_components", "formatted_address", "place_id"],
-      types: ["(cities)"],
-    });
-    state.addressAutocomplete = autocomplete;
-    autocomplete.addListener("place_changed", async () => {
-      const place = autocomplete.getPlace();
-      let parsed = parseGoogleComponents(place?.address_components || []);
-      if (!parsed.postcode && place?.place_id) parsed = await geocodePlace(place.place_id, parsed);
-      if (parsed.state && parsed.state !== "VIC") return showAddressError(input, "Choose a Victorian suburb.");
-      input.setCustomValidity("");
-      input.value = titleCaseAddress(parsed.suburb || input.value);
-      setValue("deliveryPostcode", parsed.postcode);
-      syncStructuredAddress();
-      if (typeof scheduleDraft === "function") scheduleDraft();
-    });
-  }
-
-  async function geocodePlace(placeId, fallback) {
-    if (!window.google?.maps?.Geocoder || !placeId) return fallback;
-    try {
-      const response = await new google.maps.Geocoder().geocode({ placeId });
-      const parsed = parseGoogleComponents(response.results?.[0]?.address_components || []);
-      return parsed.suburb || parsed.postcode || parsed.line1 ? parsed : fallback;
-    } catch (_error) {
-      return fallback;
-    }
-  }
-
-  function parseGoogleComponents(components) {
-    const get = (type, short = false) => {
-      const component = components.find((item) => item.types?.includes(type));
-      return component ? component[short ? "short_name" : "long_name"] : "";
-    };
-    const streetNumber = get("street_number");
-    const route = get("route");
-    const unit = get("subpremise");
-    const street = [streetNumber, route].filter(Boolean).join(" ");
-    return {
-      line1: unit && street ? `${unit}/${street}` : street,
-      suburb: get("locality") || get("postal_town") || get("sublocality") || get("administrative_area_level_2"),
-      state: String(get("administrative_area_level_1", true) || "").toUpperCase(),
-      postcode: get("postal_code"),
-    };
-  }
-
-  function showAddressError(input, message) {
-    input.setCustomValidity(message);
-    input.reportValidity();
-  }
-
   function titleCaseAddress(value) {
     return String(value || "")
       .toLowerCase()
-      .replace(/\b([a-z])/g, (match) => match.toUpperCase())
+      .replace(/(^|[\s\-/,'’])([a-z])/g, (_match, prefix, letter) => `${prefix}${letter.toUpperCase()}`)
+      .replace(/\bPo\s+Box\b/g, "PO Box")
       .replace(/\bVic\b/g, "VIC");
   }
 
@@ -508,6 +399,7 @@
 
   function patchAddressHelpers() {
     const parse = function parseManagerAddress() { syncStructuredAddress(); };
+    parse.__managerAddressPatched = true;
     window.parseAndStoreManualAddress = parse;
     try { parseAndStoreManualAddress = parse; } catch (_error) { }
     window.clearAddress = clearStructuredAddress;
@@ -521,13 +413,15 @@
       syncStructuredAddress();
       const result = original.apply(this, args);
       const pickup = selectedRadio("deliveryType") === PICKUP_VALUE;
-      const street = value("deliveryStreet");
-      const suburb = value("deliveryAddressSearch");
-      const postcode = value("deliveryPostcode");
-      if (!pickup && !street) throw fieldError("deliveryStreet", "Enter the street address.");
-      if (!suburb) throw fieldError("deliveryAddressSearch", "Choose a Victorian suburb.");
-      if (!/^(?:3\d{3}|8\d{3})$/.test(postcode)) {
-        throw fieldError("deliveryAddressSearch", "Choose the suburb from the suggestions so its postcode can be confirmed.");
+      if (!pickup) {
+        const street = value("deliveryStreet");
+        const suburb = value("deliveryAddressSearch");
+        const postcode = value("deliveryPostcode");
+        if (!street) throw fieldError("deliveryStreet", "Enter the street address.");
+        if (!suburb) throw fieldError("deliveryAddressSearch", "Choose a Victorian suburb.");
+        if (!/^(?:3\d{3}|8\d{3})$/.test(postcode)) {
+          throw fieldError("deliveryAddressSearch", "Choose the suburb from the suggestions so its postcode can be confirmed.");
+        }
       }
       return result;
     };
@@ -593,138 +487,9 @@
     });
   }
 
-  function normaliseEmptyDefaultTab() {
-    if (typeof state === "undefined" || !Array.isArray(state.deliveryAreas) || state.deliveryAreas.length !== 1) return;
-    const area = state.deliveryAreas[0];
-    const lines = typeof getFloorLines === "function" ? getFloorLines(area.id) : [];
-    if (lines.length) return;
-    if (!/^(?:Area 1|Ground Floor|1st Floor)$/i.test(area.label || "")) return;
-    area.label = "Tab 1";
-    if (typeof floorLabels !== "undefined") floorLabels[area.id] = "Tab 1";
-    const label = document.querySelector(`[data-floor-tab="${CSS.escape(area.id)}"] .area-tab-label`);
-    if (label) label.textContent = "Tab 1";
-  }
-
-  function interceptAddTab(event) {
-    const button = event.target.closest("[data-add-area]");
-    if (!button || button.disabled) return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    void addStandardTab();
-  }
-
-  async function addStandardTab() {
-    if (typeof state === "undefined" || !Array.isArray(state.deliveryAreas) || state.deliveryAreas.length >= 20) return;
-    const used = new Set(state.deliveryAreas.map((area) => String(area.label || "").toLowerCase()));
-    let number = 1;
-    while (used.has(`tab ${number}`)) number += 1;
-    if (number === 1 && state.deliveryAreas.length) number = state.deliveryAreas.length + 1;
-    while (used.has(`tab ${number}`)) number += 1;
-    let id = `tab-${number}`;
-    let suffix = 2;
-    while (state.deliveryAreas.some((area) => area.id === id)) id = `tab-${number}-${suffix++}`;
-    const label = `Tab ${number}`;
-    state.deliveryAreas.push({ id, label });
-    state.quantities[id] = new Map();
-    state.otherMaterials[id] = [];
-    floorLabels[id] = label;
-    state.activeFloor = id;
-    await rerenderAreas();
-  }
-
-  async function resetAllTabs() {
-    if (typeof state === "undefined") return;
-    const hasProducts = Array.isArray(state.deliveryAreas)
-      && state.deliveryAreas.some((area) => (typeof getFloorLines === "function" ? getFloorLines(area.id).length : 0) > 0);
-    if (hasProducts && !window.confirm("Reset all tabs to one blank Tab 1? All product quantities will be cleared.")) return;
-    const id = "tab-1";
-    state.deliveryAreas = [{ id, label: "Tab 1" }];
-    state.activeFloor = id;
-    state.quantities = { [id]: new Map() };
-    state.otherMaterials = { [id]: [] };
-    if (typeof floorLabels !== "undefined") {
-      Object.keys(floorLabels).forEach((key) => delete floorLabels[key]);
-      floorLabels[id] = "Tab 1";
-    }
-    await rerenderAreas();
-  }
-
-  async function rerenderAreas() {
-    if (typeof loadCatalog === "function") await loadCatalog();
-    if (typeof renderCounts === "function") renderCounts();
-    if (typeof scheduleDraft === "function") scheduleDraft();
-    window.setTimeout(postRenderCleanup, 0);
-  }
-
-  function observeTabRow() {
-    const tabs = document.getElementById("deliveryAreaTabs") || document.querySelector(".floor-tabs");
-    if (!tabs || tabs.dataset.managerObserved === "true") return;
-    tabs.dataset.managerObserved = "true";
-    tabObserver?.disconnect();
-    tabObserver = new MutationObserver(() => {
-      if (!arrangingTabs) scheduleTabArrangement();
-    });
-    tabObserver.observe(tabs, { childList: true });
-  }
-
-  function scheduleTabArrangement() {
-    if (arrangingTabs) return;
-    window.clearTimeout(tabArrangeTimer);
-    tabArrangeTimer = window.setTimeout(arrangeTabControls, 0);
-  }
-
-  function arrangeTabControls() {
-    const tabs = document.getElementById("deliveryAreaTabs") || document.querySelector(".floor-tabs");
-    if (!tabs || arrangingTabs) return;
-    tabs.querySelectorAll(".area-tab-reset").forEach((node) => node.remove());
-    let reset = tabs.querySelector(".area-tabs-reset");
-    if (!reset) {
-      reset = document.createElement("button");
-      reset.type = "button";
-      reset.className = "area-tabs-reset";
-      reset.textContent = "Reset tabs";
-      reset.title = "Clear all product tabs and return to Tab 1";
-      reset.addEventListener("click", () => void resetAllTabs());
-    }
-    let summary = tabs.querySelector(".area-tab-summary");
-    if (!summary) {
-      summary = document.createElement("div");
-      summary.className = "area-tab-summary";
-      summary.innerHTML = '<span class="area-summary-metric" data-tab-products>Products 0</span><span class="area-summary-separator">·</span><span class="area-summary-metric" data-tab-units>Qty 0</span>';
-    }
-    const shells = [...tabs.querySelectorAll(":scope > .area-tab-shell")];
-    const add = tabs.querySelector(":scope > [data-add-area]");
-    const editor = tabs.querySelector(":scope > .area-name-editor");
-    const desired = [...shells, add, reset, summary, editor].filter(Boolean);
-    const current = [...tabs.children];
-    const alreadyOrdered = current.length === desired.length && current.every((node, index) => node === desired[index]);
-    if (!alreadyOrdered) {
-      arrangingTabs = true;
-      tabObserver?.disconnect();
-      tabs.append(...desired);
-      tabObserver?.observe(tabs, { childList: true });
-      arrangingTabs = false;
-    }
-    updateTabSummary();
-  }
-
-  function updateTabSummary() {
-    const summary = document.querySelector(".area-tab-summary");
-    if (!summary || typeof state === "undefined") return;
-    const lines = typeof getFloorLines === "function" ? getFloorLines(state.activeFloor) : [];
-    const productCount = lines.length;
-    const unitCount = lines.reduce((total, line) => total + Number(line.quantity || 0), 0);
-    const products = summary.querySelector("[data-tab-products]");
-    const units = summary.querySelector("[data-tab-units]");
-    if (products) products.textContent = `Products ${productCount}`;
-    if (units) units.textContent = `Qty ${unitCount}`;
-  }
-
   function postRenderCleanup() {
     refineInsulationLabels();
     capitaliseExtras();
-    normaliseEmptyDefaultTab();
-    arrangeTabControls();
-    updateTabSummary();
+    window.initialiseOrderDetailFields?.();
   }
 })();
