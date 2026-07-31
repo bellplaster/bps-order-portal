@@ -48,6 +48,15 @@
     panel.append(help);
   }
 
+  function loadSavedContactManager() {
+    if (document.querySelector('script[data-account-contacts-management="true"]')) return;
+    const script = document.createElement("script");
+    script.src = "/account-contacts-management.js?v=20260801-1";
+    script.defer = true;
+    script.dataset.accountContactsManagement = "true";
+    document.body.append(script);
+  }
+
   function clearAdminOnlyMessage() {
     const message = document.getElementById("accountMessage");
     if (!message) return;
@@ -80,9 +89,10 @@
     const heading = document.querySelector(".account-heading h1");
     const copy = document.querySelector(".account-heading p");
     if (heading) heading.textContent = "Account";
-    if (copy) copy.textContent = "Manage order defaults and sign-in security.";
+    if (copy) copy.textContent = "Manage order defaults, shared contacts and sign-in security.";
 
     clearAdminOnlyMessage();
+    loadSavedContactManager();
     window.setTimeout(clearAdminOnlyMessage, 250);
     window.setTimeout(clearAdminOnlyMessage, 1000);
   }
