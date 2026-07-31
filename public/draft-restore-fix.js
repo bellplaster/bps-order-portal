@@ -47,6 +47,14 @@
     document.body.append(script);
   }
 
+  if (!document.querySelector('script[data-admin-testing="true"]')) {
+    const script = document.createElement("script");
+    script.src = "/admin-testing.js?v=20260731-1";
+    script.defer = true;
+    script.dataset.adminTesting = "true";
+    document.body.append(script);
+  }
+
   const syncRequiredDateState = () => {
     const input = document.getElementById("requiredDate");
     if (!(input instanceof HTMLInputElement)) return false;
