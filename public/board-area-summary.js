@@ -6,15 +6,9 @@
     return String(value || "").replace(/\s+/g, " ").trim().toLowerCase();
   }
 
-  function clearObsoleteTotalTreatment(root = document) {
+  function clearObsoleteWrapper(root = document) {
     root.querySelectorAll?.(".board-area-total-summary").forEach((element) => {
       element.classList.remove("board-area-total-summary");
-    });
-    root.querySelectorAll?.(".board-area-total-label").forEach((element) => {
-      element.classList.remove("board-area-total-label");
-    });
-    root.querySelectorAll?.(".board-area-total-value").forEach((element) => {
-      element.classList.remove("board-area-total-value");
     });
   }
 
@@ -44,7 +38,7 @@
   }
 
   function scan(root = document) {
-    clearObsoleteTotalTreatment(root);
+    clearObsoleteWrapper(root);
     root.querySelectorAll?.(".unified-board-table").forEach(markSummaryRow);
   }
 
@@ -57,9 +51,10 @@
   style.textContent = `
     .unified-board-table tbody>.board-area-summary-row>*{
       box-sizing:border-box!important;
-      height:30px!important;
-      min-height:30px!important;
-      padding:0 6px!important;
+      height:26px!important;
+      min-height:26px!important;
+      max-height:26px!important;
+      padding:0 2px!important;
       vertical-align:middle!important;
       text-align:center!important;
       background:#eef3f1!important;
@@ -68,11 +63,11 @@
       border-bottom:1px solid #d7dfdc!important;
       font-size:11px!important;
       font-weight:600!important;
-      line-height:30px!important;
+      line-height:26px!important;
       cursor:default!important;
     }
     .unified-board-table tbody>.board-area-summary-row>.board-area-summary-label{
-      padding-left:8px!important;
+      padding-left:5px!important;
       text-align:left!important;
       color:#34423e!important;
       font-weight:700!important;
