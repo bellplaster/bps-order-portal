@@ -91,7 +91,8 @@
 }
 
 .order-form-page .admin-order-copy strong,
-.order-form-page .admin-order-account > span {
+.order-form-page .admin-order-account > span,
+.order-form-page .admin-test-quantity > span {
   font-size: 10px;
   font-weight: 700;
   line-height: 1.2;
@@ -138,13 +139,40 @@
   white-space: nowrap;
 }
 
+.order-form-page .admin-test-quantity {
+  display: grid;
+  grid-template-columns: auto 74px;
+  align-items: center;
+  gap: 6px;
+}
+
+.order-form-page .admin-test-quantity input {
+  box-sizing: border-box;
+  width: 74px;
+  height: 34px;
+  margin: 0;
+  padding: 0 8px;
+  color: #17211f;
+  background: #fff;
+  border: 1px solid #c8d1ce;
+  border-radius: 0;
+  font: 600 11px/1 Inter, system-ui, sans-serif;
+  text-align: center;
+}
+
+.order-form-page .admin-test-quantity input:focus {
+  outline: 0;
+  box-shadow: inset 0 0 0 1px var(--bell-green);
+}
+
 .order-form-page .admin-order-actions .button {
   min-height: 34px;
   padding: 0 12px;
   font-size: 10px;
 }
 
-.order-form-page .admin-order-actions .button:disabled {
+.order-form-page .admin-order-actions .button:disabled,
+.order-form-page .admin-test-quantity input:disabled {
   cursor: not-allowed;
   opacity: .45;
 }
@@ -161,5 +189,6 @@
 
   .order-form-page .admin-order-actions {
     justify-content: flex-start;
+    flex-wrap: wrap;
   }
 }
