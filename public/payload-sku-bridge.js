@@ -1,7 +1,27 @@
 (() => {
-  // The live review catalogue is the source of truth for SKU identity and
-  // description. Dynamic tabs may be created or restored before their state
-  // containers exist, so normalise the tab state before reading it.
+  function clean(value) {
+    return String(value ?? "").replace(/\s+/g, " ").trim();
+  }
+
+  function canonical(value) {
+    return clean(value)
+      .replace(/[×]/g, "x")
+      .replace(/[–—]/g, "-")
+      .toUpperCase();
+  }
+
+  function productDisplayName(product = {}) {
+    const base = clean(product.label || product.description || product.descriptionRaw || product.name || product.sku);
+    const detail = clean(product.detail);
+    if (!base) return detail;
+    if (!detail) return base;
+    if (canonical(base).includes(canonical(detail))) return base;
+    return `${base} - ${detail}`;
+  }
+
+  const naming = Object.freeze({ productDisplayName });
+  globalThis.BpsProductDisplayName = naming;
+
   function ensureFloorState(floor) {
     if (!state.quantities || typeof state.quantities !== "object") state.quantities = {};
     if (!(state.quantities[floor] instanceof Map)) state.quantities[floor] = new Map();
@@ -15,12 +35,6 @@
     };
   }
 
-  function displayName(product) {
-    const formatter = globalThis.BpsProductDisplayName?.productDisplayName;
-    if (typeof formatter !== "function") throw new Error("Product display-name module is not loaded.");
-    return formatter(product);
-  }
-
   buildFloorPayload = function buildSkuAwareFloorPayload(floor) {
     const floorState = ensureFloorState(floor);
     return {
@@ -30,17 +44,39 @@
           const product = state.catalog?.[key] || {};
           return {
             key,
-            sku: String(product.sku || "").trim(),
-            description: displayName(product),
+            sku: clean(product.sku),
+            description: productDisplayName(product),
             quantity: Number(quantity),
           };
         }),
       otherMaterials: floorState.otherMaterials
         .filter((item) => Number(item?.quantity) > 0)
         .map((item) => ({
-          sku: String(item?.sku || "").trim(),
+          sku: clean(item?.sku),
+          description: clean(item?.description),
           quantity: Number(item?.quantity),
         })),
     };
+  };
+
+  getFloorLines = function getSkuAwareFloorLines(floor) {
+    const floorState = ensureFloorState(floor);
+    const mapped = [...floorState.quantities.entries()].map(([key, quantity]) => {
+      const product = state.catalog?.[key] || {};
+      return {
+        floor,
+        key,
+        sku: clean(product.sku) || "Pending mapping",
+        label: productDisplayName(product) || key,
+        quantity: Number(quantity),
+      };
+    });
+    const additional = floorState.otherMaterials.map((item) => ({
+      floor,
+      sku: clean(item?.sku),
+      label: clean(item?.description || item?.sku),
+      quantity: Number(item?.quantity),
+    }));
+    return [...mapped, ...additional].filter((line) => line.quantity > 0);
   };
 })();
