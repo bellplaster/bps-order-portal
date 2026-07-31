@@ -1,62 +1,88 @@
 (() => {
   const TIME_SLOT_VALUES = new Set(["1ST", "2ND", "AM", "PM", "ANY"]);
-  let patched = false;
+  let payloadPatched = false;
+  let validationPatched = false;
 
-  function visibleTimeSlot() {
-    const select = document.querySelector(".delivery-select-timeSlot .delivery-select");
-    const selectValue = String(select?.value || "").trim().toUpperCase();
-    if (TIME_SLOT_VALUES.has(selectValue)) return selectValue;
-
-    const checked = document.querySelector('input[name="timeSlot"]:checked');
-    const radioValue = String(checked?.value || "").trim().toUpperCase();
-    return TIME_SLOT_VALUES.has(radioValue) ? radioValue : "ANY";
+  function timeSlotSelect() {
+    return document.querySelector(".delivery-select-timeSlot .delivery-select");
   }
 
-  function syncTimeSlotRadios() {
-    const value = visibleTimeSlot();
+  function canonicalTimeSlot() {
+    const selectValue = String(timeSlotSelect()?.value || "").trim().toUpperCase();
+    if (TIME_SLOT_VALUES.has(selectValue)) return selectValue;
+
+    const checkedValue = String(document.querySelector('input[name="timeSlot"]:checked')?.value || "")
+      .trim()
+      .toUpperCase();
+    return TIME_SLOT_VALUES.has(checkedValue) ? checkedValue : "";
+  }
+
+  function syncTimeSlot() {
+    const value = canonicalTimeSlot();
     document.querySelectorAll('input[name="timeSlot"]').forEach((radio) => {
-      radio.checked = String(radio.value || "").toUpperCase() === value;
+      radio.checked = Boolean(value) && String(radio.value || "").trim().toUpperCase() === value;
     });
+    const select = timeSlotSelect();
+    if (select && value && select.value !== value) select.value = value;
     return value;
   }
 
   function patchPayload() {
-    if (patched || typeof window.buildPayload !== "function") return false;
-    const originalBuildPayload = window.buildPayload;
-    const canonicalBuildPayload = function buildPayloadFromVisibleSelections(...args) {
-      const payload = originalBuildPayload.apply(this, args);
-      payload.timeSlot = syncTimeSlotRadios();
+    if (payloadPatched || typeof window.buildPayload !== "function") return false;
+    const original = window.buildPayload;
+    const refined = function buildPayloadFromVisibleSelections(...args) {
+      const timeSlot = syncTimeSlot();
+      const payload = original.apply(this, args);
+      payload.timeSlot = timeSlot || "ANY";
       return payload;
     };
-    canonicalBuildPayload.__visibleSelectionSource = true;
-    window.buildPayload = canonicalBuildPayload;
-    try { buildPayload = canonicalBuildPayload; } catch (_error) { }
-    patched = true;
+    refined.__visibleSelectionSource = true;
+    window.buildPayload = refined;
+    try { buildPayload = refined; } catch (_error) { }
+    payloadPatched = true;
+    return true;
+  }
+
+  function patchValidation() {
+    if (validationPatched || typeof window.validateForm !== "function") return false;
+    const original = window.validateForm;
+    const refined = function validateVisibleSelections(...args) {
+      const timeSlot = syncTimeSlot();
+      if (!timeSlot) throw new Error("Choose a time slot.");
+      return original.apply(this, args);
+    };
+    refined.__visibleSelectionSource = true;
+    window.validateForm = refined;
+    try { validateForm = refined; } catch (_error) { }
+    validationPatched = true;
     return true;
   }
 
   function bindSelect() {
-    const select = document.querySelector(".delivery-select-timeSlot .delivery-select");
+    const select = timeSlotSelect();
     if (!(select instanceof HTMLSelectElement) || select.dataset.selectionSource === "true") return false;
     select.dataset.selectionSource = "true";
     select.addEventListener("change", () => {
-      syncTimeSlotRadios();
-      if (typeof updateGeneratedDeliverySummary === "function") updateGeneratedDeliverySummary();
-      if (typeof scheduleDraft === "function") scheduleDraft();
+      syncTimeSlot();
+      window.updateGeneratedDeliverySummary?.();
+      window.scheduleDraft?.();
     });
-    syncTimeSlotRadios();
+    syncTimeSlot();
     return true;
   }
 
   function initialise() {
     patchPayload();
+    patchValidation();
     bindSelect();
+
     let attempts = 0;
     const timer = window.setInterval(() => {
       attempts += 1;
       patchPayload();
+      patchValidation();
       bindSelect();
-      if ((patched && attempts >= 10) || attempts >= 60) window.clearInterval(timer);
+      if ((payloadPatched && validationPatched && attempts >= 10) || attempts >= 60) window.clearInterval(timer);
     }, 100);
   }
 
