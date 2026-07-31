@@ -19,7 +19,7 @@
     ["order-history-access", "/order-history-access.js?v=20260731-1"],
     ["calendar-control", "/calendar-control.js?v=20260731-4"],
     ["portal-identity-ux", "/portal-identity-ux.js?v=20260731-2"],
-    ["inline-tab-rename", "/inline-tab-rename.js?v=20260801-3"],
+    ["inline-tab-rename", "/inline-tab-rename.js?v=20260801-4"],
   ];
 
   controllers.forEach(([marker, src]) => {
