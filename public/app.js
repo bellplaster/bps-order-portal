@@ -70,6 +70,15 @@ function bindStaticActions() {
     selectAdminOrderAccount(Number(event.target.value || 0));
   });
   document.getElementById("fillActiveAreaWithOneButton")?.addEventListener("click", fillActiveAreaWithOne);
+  document.getElementById("adminTestQuantity")?.addEventListener("input", (event) => {
+    event.target.value = event.target.value.replace(/\D/g, "").slice(0, 5);
+  });
+  document.getElementById("adminTestQuantity")?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      fillActiveAreaWithOne();
+    }
+  });
   document.getElementById("clearActiveAreaTestButton")?.addEventListener("click", clearActiveAreaTestValues);
 
   document.querySelectorAll("[data-step-target]").forEach((button) => {
@@ -203,15 +212,18 @@ function applyAdminOrderAccount(account) {
   const summary = document.getElementById("accountSummary");
   if (summary) summary.textContent = [companyName, debtorCode].filter(Boolean).join(" · ");
 
+  document.getElementById("adminTestQuantity")?.toggleAttribute("disabled", !id);
   document.getElementById("fillActiveAreaWithOneButton")?.toggleAttribute("disabled", !id);
   document.getElementById("clearActiveAreaTestButton")?.toggleAttribute("disabled", !id);
 }
 
 function setAdminOrderToolsBusy(busy) {
   const select = document.getElementById("adminCustomerAccount");
+  const quantity = document.getElementById("adminTestQuantity");
   const fill = document.getElementById("fillActiveAreaWithOneButton");
   const clear = document.getElementById("clearActiveAreaTestButton");
   if (select) select.disabled = busy;
+  if (quantity) quantity.disabled = busy || !state.adminOrderAccountId;
   if (fill) fill.disabled = busy || !state.adminOrderAccountId;
   if (clear) clear.disabled = busy || !state.adminOrderAccountId;
 }
@@ -219,6 +231,15 @@ function setAdminOrderToolsBusy(busy) {
 function fillActiveAreaWithOne() {
   if (state.account?.role !== "admin" || !state.adminOrderAccountId) {
     showGlobal("Choose a customer account before using the test controls.", "error");
+    return;
+  }
+
+  const quantityInput = document.getElementById("adminTestQuantity");
+  const quantity = Number(quantityInput?.value || 0);
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 10000) {
+    showGlobal("Enter a whole-number test quantity from 1 to 10,000.", "error");
+    quantityInput?.focus();
+    quantityInput?.select();
     return;
   }
 
@@ -232,14 +253,14 @@ function fillActiveAreaWithOne() {
     const key = String(input.dataset.productKey || "").trim();
     if (!key) return;
     keys.add(key);
-    state.quantities[areaId].set(key, 1);
-    input.value = "1";
+    state.quantities[areaId].set(key, quantity);
+    input.value = String(quantity);
     input.classList.add("has-value");
   });
 
   renderCounts();
   scheduleDraft();
-  showGlobal(`${keys.size} standard products in ${floorLabels[areaId] || "the active area"} were set to 1.`, "success");
+  showGlobal(`${keys.size} standard products in ${floorLabels[areaId] || "the active area"} were set to ${quantity.toLocaleString()}.`, "success");
 }
 
 function clearActiveAreaTestValues() {
