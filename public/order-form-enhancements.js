@@ -36,7 +36,7 @@
   function ensureBoardSummary(table) {
     if (!(table instanceof HTMLTableElement) || !table.tHead || !table.tBodies.length) return;
     const widthRow = table.tHead.rows[2];
-    if (!widthRow || widthRow.cells.length < 2) return;
+    if (!widthRow || widthRow.cells.length < 3) return;
 
     const tbody = table.tBodies[0];
     let summaryRow = tbody.querySelector(":scope > .board-area-summary-row");
@@ -63,21 +63,29 @@
     let tfoot = table.tFoot;
     if (!tfoot) tfoot = table.createTFoot();
     let totalRow = tfoot.querySelector(":scope > .board-area-total-row");
-    if (!totalRow) {
+    if (!totalRow || totalRow.cells.length !== 3) {
+      totalRow?.remove();
       totalRow = document.createElement("tr");
       totalRow.className = "board-area-total-row";
+
+      const spacer = document.createElement("td");
+      spacer.className = "board-area-total-spacer";
+
       const label = document.createElement("th");
+      label.scope = "row";
       label.className = "board-area-total-label";
-      label.colSpan = Math.max(1, widthRow.cells.length - 1);
       label.textContent = "Total m²";
+
       const value = document.createElement("td");
       value.className = "board-area-total-value";
       value.textContent = "0";
-      totalRow.append(label, value);
+
+      totalRow.append(spacer, label, value);
       tfoot.append(totalRow);
-    } else {
-      totalRow.querySelector(".board-area-total-label")?.setAttribute("colspan", String(Math.max(1, widthRow.cells.length - 1)));
     }
+
+    const spacer = totalRow.querySelector(".board-area-total-spacer");
+    if (spacer) spacer.colSpan = Math.max(1, widthRow.cells.length - 2);
 
     updateBoardSummary(table);
   }
@@ -104,8 +112,8 @@
       productRows.forEach((row) => {
         const lengthMm = numericText(row.cells[0]?.textContent);
         const input = row.cells[columnIndex]?.querySelector(".quantity-input");
-        const quantity = Number(input?.value || 0);
-        if (!widthMm || !lengthMm || !quantity) return;
+        const quantity = Number(String(input?.value || "0").replace(/,/g, ""));
+        if (!widthMm || !lengthMm || !Number.isFinite(quantity) || quantity <= 0) return;
         columnTotal += (widthMm * lengthMm * quantity) / 1_000_000;
       });
 
@@ -186,14 +194,19 @@
 
   function installObserver() {
     const root = document.querySelector(".products-area") || document.body;
-    const observer = new MutationObserver(scheduleBoardUpdate);
+    const observer = new MutationObserver((mutations) => {
+      if (mutations.some((mutation) => mutation.type === "childList")) scheduleBoardUpdate();
+    });
     observer.observe(root, { childList: true, subtree: true });
   }
 
   function installStyles() {
-    if (document.getElementById("order-form-enhancement-styles")) return;
-    const style = document.createElement("style");
-    style.id = "order-form-enhancement-styles";
+    let style = document.getElementById("order-form-enhancement-styles");
+    if (!style) {
+      style = document.createElement("style");
+      style.id = "order-form-enhancement-styles";
+      document.head.append(style);
+    }
     style.textContent = `
       .unified-board-table .board-area-summary-row,
       .unified-board-table .board-area-total-row {
@@ -207,59 +220,63 @@
         height: 26px !important;
         min-height: 26px !important;
         max-height: 26px !important;
-        padding: 1px 2px !important;
-        line-height: 24px !important;
+        padding: 0 2px !important;
+        line-height: 26px !important;
         vertical-align: middle !important;
       }
       .unified-board-table .board-area-summary-row > th,
       .unified-board-table .board-area-summary-row > td {
-        background: #f7f9f8;
-        font-weight: 600;
+        background: #eef3f1 !important;
+        border-top: 1px solid #bcc8c4 !important;
+        border-bottom: 1px solid #d7dfdc !important;
+        font-weight: 600 !important;
       }
       .unified-board-table .board-area-summary-label {
         padding-left: 5px !important;
-        text-align: left;
-        white-space: nowrap;
+        text-align: left !important;
+        white-space: nowrap !important;
         font-size: 11px !important;
       }
       .unified-board-table .board-area-summary-value {
         min-width: 0 !important;
         padding-inline: 1px !important;
-        color: #17211f;
+        color: #40504b !important;
         font-size: var(--board-metric-font-size, 11px) !important;
-        font-variant-numeric: tabular-nums;
-        letter-spacing: -0.01em;
-        text-align: center;
-        white-space: nowrap;
-        overflow: hidden;
+        font-variant-numeric: tabular-nums !important;
+        letter-spacing: -0.01em !important;
+        text-align: center !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
       }
       .unified-board-table tfoot {
-        border-top: 1px solid var(--line);
+        border-top: 0 !important;
       }
-      .unified-board-table .board-area-total-row > th,
-      .unified-board-table .board-area-total-row > td {
-        background: #eef2f0;
-        font-weight: 700;
+      .unified-board-table .board-area-total-row > td,
+      .unified-board-table .board-area-total-row > th {
+        background: #eef3f1 !important;
+        border-bottom: 1px solid #d7dfdc !important;
+        font-weight: 700 !important;
+      }
+      .unified-board-table .board-area-total-spacer {
+        padding: 0 !important;
       }
       .unified-board-table .board-area-total-label {
-        padding-right: 5px !important;
-        text-align: right;
-        white-space: nowrap;
+        text-align: center !important;
+        white-space: nowrap !important;
         font-size: 11px !important;
       }
       .unified-board-table .board-area-total-value {
         min-width: 0 !important;
-        padding-inline: 2px !important;
-        color: var(--bell-green, #006557);
+        padding-inline: 1px !important;
+        color: var(--bell-green, #006557) !important;
         font-size: var(--board-metric-font-size, 11px) !important;
-        font-variant-numeric: tabular-nums;
-        letter-spacing: -0.01em;
-        text-align: right;
-        white-space: nowrap;
-        overflow: hidden;
+        font-variant-numeric: tabular-nums !important;
+        letter-spacing: -0.01em !important;
+        text-align: center !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
       }
     `;
-    document.head.append(style);
   }
 
   function initialise() {
