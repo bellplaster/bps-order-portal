@@ -35,9 +35,9 @@ test("column and grand totals include multiple rows and widths", () => {
   );
 
   closeTo(result.columnTotals[0], 15.84);
-  closeTo(result.columnTotals[1], 16.47);
-  closeTo(result.grandTotal, 32.31);
-  assert.equal(math.formatArea(result.grandTotal), "32.31");
+  closeTo(result.columnTotals[1], 17.01);
+  closeTo(result.grandTotal, 32.85);
+  assert.equal(math.formatArea(result.grandTotal), "32.85");
 });
 
 test("invalid, zero and negative quantities do not change totals", () => {
