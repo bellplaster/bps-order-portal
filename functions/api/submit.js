@@ -19,25 +19,24 @@ export async function onRequestPost(context) {
     const auth = context.data?.auth || {};
     let accountId = Number(auth.accountId || 0);
 
+    // Administrators place test orders against the customer account assigned to
+    // their own user record. The former selectable-customer workflow has been
+    // removed, so the client is no longer required or trusted to nominate an
+    // account in the payload.
     if (auth.role === "admin") {
       const currentAdmin = await context.env.DB.prepare(
         `SELECT account_id FROM users WHERE id = ? AND role = 'admin' AND active = 1 LIMIT 1`,
       ).bind(auth.userId).first();
       accountId = Number(currentAdmin?.account_id || 0);
-      const requestedAccountId = Number(payload.customerAccountId || 0);
 
-      if (!requestedAccountId) {
+      if (!accountId) {
         return Response.json(
-          { ok: false, error: "Choose the customer account that will own this order.", requestId },
-          { status: 400, headers: { "Cache-Control": "no-store", "X-Request-ID": requestId } },
-        );
-      }
-      if (!accountId || requestedAccountId !== accountId) {
-        return Response.json(
-          { ok: false, error: "The selected admin test customer changed. Refresh the order page and try again.", requestId },
+          { ok: false, error: "Your administrator account is not assigned to a customer account.", requestId },
           { status: 409, headers: { "Cache-Control": "no-store", "X-Request-ID": requestId } },
         );
       }
+
+      payload.customerAccountId = accountId;
     }
 
     const reference = String(payload.reference || payload.customerReference || "").trim();
@@ -77,18 +76,16 @@ export async function onRequestPost(context) {
       DB: createMatrixAwareDb(context.env.DB, payload),
     };
 
-    const result = await processOrderSubmission(submissionEnv, payload, auth);
-    await replaceAreaExportsWithCombined(context.env, payload, result, {
-      ...auth,
-      accountId: Number(payload.customerAccountId || auth.accountId || accountId || 0),
-    });
+    const effectiveAuth = { ...auth, accountId };
+    const result = await processOrderSubmission(submissionEnv, payload, effectiveAuth);
+    await replaceAreaExportsWithCombined(context.env, payload, result, effectiveAuth);
     await preservePickupSiteReference(context.env, payload, result).catch((error) => {
       console.warn("Pickup site reference could not be stored.", error);
     });
 
     let email = { sent: false, reason: "not_attempted" };
     try {
-      email = await sendOrderFilesEmail(context.env, payload, result, auth);
+      email = await sendOrderFilesEmail(context.env, payload, result, effectiveAuth);
     } catch (error) {
       email = { sent: false, reason: "send_failed", error: error?.message || String(error) };
       console.error("Order email could not be sent.", error);
