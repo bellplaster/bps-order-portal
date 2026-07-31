@@ -17,6 +17,7 @@
     ["product-quantity-authority", "/product-quantity-authority.js?v=20260731-1"],
     ["order-selection-source", "/order-selection-source.js?v=20260731-4"],
     ["admin-testing", "/admin-testing.js?v=20260731-4"],
+    ["order-history-access", "/order-history-access.js?v=20260731-1"],
   ];
 
   controllers.forEach(([marker, src]) => {
