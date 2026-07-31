@@ -19,41 +19,14 @@
     if (summary) {
       summary.textContent = name;
       summary.setAttribute("aria-label", `Signed in as ${name}`);
+      summary.setAttribute("title", name);
     }
 
-    const header = document.querySelector(".portal-header");
-    const brand = header?.querySelector(".brand-link");
-    if (!header || !brand) return true;
-
-    let identity = header.querySelector(".portal-customer-identity");
-    if (!identity) {
-      identity = document.createElement("div");
-      identity.className = "portal-customer-identity";
-      header.insertBefore(identity, brand);
-    }
-    identity.textContent = name;
-    identity.setAttribute("title", name);
-
-    header.querySelectorAll(".portal-customer-identity").forEach((node) => {
-      if (node !== identity) node.remove();
-    });
+    document.querySelectorAll(".portal-customer-identity").forEach((node) => node.remove());
     return true;
   }
 
-  function installStyles() {
-    if (document.getElementById("portal-customer-identity-styles")) return;
-    const style = document.createElement("style");
-    style.id = "portal-customer-identity-styles";
-    style.textContent = `
-      .portal-header{position:relative}
-      .portal-customer-identity{min-width:0;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#17211f;font-size:12px;font-weight:650;line-height:1.2;text-transform:none}
-      @media(max-width:760px){.portal-customer-identity{max-width:120px;font-size:10px}}
-    `;
-    document.head.append(style);
-  }
-
   function start() {
-    installStyles();
     if (apply()) return;
     let attempts = 0;
     const timer = window.setInterval(() => {
