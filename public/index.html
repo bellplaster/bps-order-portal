@@ -18,7 +18,7 @@
   <link rel="stylesheet" href="/focus-refinement.css?v=20260724-2">
   <link rel="stylesheet" href="/experience-refinement.css?v=20260724-2">
   <link rel="stylesheet" href="/review-metrics-refinement.css?v=20260724-2">
-  <link rel="stylesheet" href="/order-control-refinement.css?v=20260729-3">
+  <link rel="stylesheet" href="/order-control-refinement.css?v=20260731-1">
 </head>
 <body class="order-form-page">
   <header class="portal-header">
@@ -59,7 +59,11 @@
         </select>
       </label>
       <div class="admin-order-actions">
-        <button id="fillActiveAreaWithOneButton" class="button button-secondary" type="button" disabled>Set active tab to 1</button>
+        <label class="admin-test-quantity" for="adminTestQuantity">
+          <span>Qty</span>
+          <input id="adminTestQuantity" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="5" value="1" disabled aria-label="Test quantity from 1 to 10,000">
+        </label>
+        <button id="fillActiveAreaWithOneButton" class="button button-secondary" type="button" disabled>Set active tab</button>
         <button id="clearActiveAreaTestButton" class="button button-secondary" type="button" disabled>Clear active tab</button>
       </div>
     </section>
@@ -212,7 +216,7 @@
     <div id="historyList" class="history-list"><p class="empty-state">Loading orders…</p></div>
   </aside>
 
-  <script src="/app.js?v=20260729-3" defer></script>
+  <script src="/app.js?v=20260731-1" defer></script>
   <script src="/app-products.js?v=20260731-1" defer></script>
   <script src="/app-order.js?v=20260724-2" defer></script>
   <script src="/app-address.js?v=20260731-1" defer></script>
