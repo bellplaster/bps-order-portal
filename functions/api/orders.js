@@ -7,17 +7,30 @@ export async function onRequestGet(context) {
     const auth = context.data?.auth;
     if (!auth?.userId) return Response.json({ ok: false, error: "Authentication required.", requestId }, { status: 401 });
 
-    const accountId = await resolveAssignedAccountId(context.env.DB, auth.userId);
-    if (!accountId) {
-      return Response.json({ ok: false, error: "Your portal user is not assigned to a customer account.", requestId }, { status: 403 });
+    await ensureOrderTrackingSchema(context.env.DB);
+    const viewer = await context.env.DB.prepare(
+      `SELECT id, account_id, username, role, active, is_primary, default_contact_name
+       FROM users WHERE id = ? AND active = 1 LIMIT 1`,
+    ).bind(auth.userId).first();
+    const accountId = Number(viewer?.account_id || 0);
+    if (!viewer || !accountId) {
+      return Response.json({ ok: false, error: "Your login is not assigned to a customer account.", requestId }, { status: 400 });
     }
 
-    const ordersResult = await context.env.DB.prepare(`SELECT
+    const canViewAccountOrders = viewer.role === "admin" || Number(viewer.is_primary) === 1;
+    const where = canViewAccountOrders
+      ? "WHERE o.account_id = ?"
+      : "WHERE o.account_id = ? AND o.created_by_user_id = ?";
+    const sql = `SELECT
        o.submission_id, o.customer_reference, o.status, o.created_at, o.updated_at,
-       o.payload_json, o.account_id, o.company_name_snapshot, o.debtor_code_snapshot
-     FROM orders o
-     WHERE o.account_id = ?
-     ORDER BY o.created_at DESC LIMIT 100`).bind(accountId).all();
+       o.payload_json, o.account_id, o.company_name_snapshot, o.debtor_code_snapshot,
+       o.created_by_user_id, o.created_by_username_snapshot, o.created_by_name_snapshot
+     FROM orders o ${where}
+     ORDER BY o.created_at DESC LIMIT 200`;
+    const query = context.env.DB.prepare(sql);
+    const ordersResult = canViewAccountOrders
+      ? await query.bind(accountId).all()
+      : await query.bind(accountId, Number(viewer.id)).all();
 
     const orders = [];
     for (const order of ordersResult.results || []) {
@@ -50,7 +63,11 @@ export async function onRequestGet(context) {
           if (!product || String(product.sku || "").trim()) return null;
           return { key: item.key, label: product.label, quantity: Number(item.quantity || 0) };
         }).filter(Boolean);
-        if (pendingItems.length) pendingMapping.push({ floor, floor_label: areaLabel(floor, details), items: pendingItems });
+        if (pendingItems.length) pendingMapping.push({
+          floor,
+          floor_label: areaLabel(floor, details),
+          items: pendingItems,
+        });
       });
       orders.push({
         submission_id: order.submission_id,
@@ -60,9 +77,13 @@ export async function onRequestGet(context) {
         status: order.status,
         created_at: order.created_at,
         updated_at: order.updated_at,
-        can_archive: order.status !== "archived",
-        can_restore: order.status === "archived",
-        can_delete: true,
+        created_by_user_id: order.created_by_user_id || null,
+        created_by_username: order.created_by_username_snapshot || "",
+        created_by_name: order.created_by_name_snapshot || order.created_by_username_snapshot || "Legacy order",
+        can_edit: false,
+        can_archive: false,
+        can_restore: false,
+        can_delete: false,
         other_products: otherProducts,
         other_materials: otherMaterials,
         order_details: {
@@ -82,7 +103,33 @@ export async function onRequestGet(context) {
       });
     }
 
-    return Response.json({ ok: true, orders, requestId }, {
+    const staff = canViewAccountOrders
+      ? await context.env.DB.prepare(
+          `SELECT id, username, default_contact_name, active, is_primary
+           FROM users WHERE account_id = ? ORDER BY is_primary DESC, default_contact_name COLLATE NOCASE, username COLLATE NOCASE`,
+        ).bind(accountId).all()
+      : { results: [] };
+
+    return Response.json({
+      ok: true,
+      orders,
+      viewer: {
+        userId: Number(viewer.id),
+        username: viewer.username,
+        name: viewer.default_contact_name || viewer.username,
+        role: viewer.role,
+        isAccountSupervisor: Number(viewer.is_primary) === 1,
+        scope: canViewAccountOrders ? "account" : "own",
+      },
+      staff: (staff.results || []).map((user) => ({
+        id: Number(user.id),
+        username: user.username,
+        name: user.default_contact_name || user.username,
+        active: Number(user.active) === 1,
+        isAccountSupervisor: Number(user.is_primary) === 1,
+      })),
+      requestId,
+    }, {
       headers: { "Cache-Control": "no-store", "X-Request-ID": requestId },
     });
   } catch (error) {
@@ -93,15 +140,18 @@ export async function onRequestGet(context) {
   }
 }
 
-async function resolveAssignedAccountId(db, userId) {
-  const user = await db.prepare(
-    `SELECT u.account_id
-     FROM users u
-     INNER JOIN customer_accounts a ON a.id = u.account_id
-     WHERE u.id = ? AND u.active = 1 AND a.active = 1
-     LIMIT 1`,
-  ).bind(userId).first();
-  return Number(user?.account_id || 0);
+async function ensureOrderTrackingSchema(db) {
+  const columns = await db.prepare(`PRAGMA table_info(orders)`).all();
+  const names = new Set((columns.results || []).map((row) => String(row.name)));
+  const additions = {
+    created_by_user_id: "INTEGER",
+    created_by_username_snapshot: "TEXT NOT NULL DEFAULT ''",
+    created_by_name_snapshot: "TEXT NOT NULL DEFAULT ''",
+  };
+  for (const [name, definition] of Object.entries(additions)) {
+    if (!names.has(name)) await db.prepare(`ALTER TABLE orders ADD COLUMN ${name} ${definition}`).run();
+  }
+  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_orders_account_creator_created ON orders(account_id, created_by_user_id, created_at DESC)`).run();
 }
 
 function inferRevision(filename) {
