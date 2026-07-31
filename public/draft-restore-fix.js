@@ -12,7 +12,7 @@
     ["order-product-payload", "/order-product-payload.js?v=20260729-1"],
     ["admin-defaults", "/admin-defaults.js?v=20260731-1"],
     ["board-width-order", "/board-width-order.js?v=20260729-1"],
-    ["linked-contact-picker", "/linked-contact-picker.js?v=20260730-1"],
+    ["linked-contact-picker", "/linked-contact-picker.js?v=20260731-2"],
     ["order-form-enhancements", "/order-form-enhancements.js?v=20260731-3"],
     ["product-quantity-authority", "/product-quantity-authority.js?v=20260731-1"],
     ["order-selection-source", "/order-selection-source.js?v=20260731-4"],
