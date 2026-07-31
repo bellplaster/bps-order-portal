@@ -8,7 +8,7 @@ const CONFIG = Object.freeze({
   maxAreas: 20,
   maxItemsPerArea: 250,
   maxOtherMaterialsPerArea: 100,
-  maxQuantityPerProduct: 10000,
+  maxQuantityPerProduct: 99999,
 });
 
 const LEGACY_AREAS = Object.freeze({
