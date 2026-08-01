@@ -1,4 +1,4 @@
-# Deployment refresh: 2026-08-01 email sending secret activation
+# Deployment configuration for the Bell Plaster order portal
 name = "bps-order-portal"
 compatibility_date = "2026-07-15"
 pages_build_output_dir = "public"
@@ -18,6 +18,9 @@ ORDER_EMAIL_FROM = "portal@orders.bellplaster.com.au"
 ORDER_EMAIL_TO = "marketing@bellplaster.com.au"
 ORDER_EMAIL_CC = ""
 ORDER_EMAIL_REPLY_TO = "info@bellplaster.com.au"
+
+[secrets]
+required = ["CLOUDFLARE_EMAIL_API_TOKEN"]
 
 [observability]
 enabled = true
