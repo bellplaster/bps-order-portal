@@ -34,6 +34,7 @@
           ...item,
           key,
           sku,
+          lineIdentity: String(item?.lineIdentity || product?.lineIdentity || currentKey).trim(),
           description: String(item?.description || product?.description || product?.label || "").trim(),
         };
       });
