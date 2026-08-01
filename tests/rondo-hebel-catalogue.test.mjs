@@ -4,6 +4,8 @@ import test from "node:test";
 
 const source = await readFile(new URL("../public/rondo-hebel-catalogue.js", import.meta.url), "utf8");
 const loader = await readFile(new URL("../public/draft-restore-fix.js", import.meta.url), "utf8");
+const payload = await readFile(new URL("../public/order-product-payload.js", import.meta.url), "utf8");
+const exporter = await readFile(new URL("../functions/_shared/combined-accrivia-export.js", import.meta.url), "utf8");
 const styles = await readFile(new URL("../public/lower-products-refinement.css", import.meta.url), "utf8");
 
 const expectedSkus = [
@@ -41,8 +43,24 @@ test("new tables use the existing lower catalogue and quantity controls", () => 
   assert.doesNotMatch(source, /className = ["']qty["']/);
 });
 
+test("duplicate SKU product lines retain independent form keys", () => {
+  assert.match(source, /function keyFor\(sku, lineIdentity = ""\)/);
+  assert.match(source, /rondo-suspended-accessory-/);
+  assert.match(source, /rondo-duo-accessory-/);
+  assert.match(source, /lineIdentity,/);
+  assert.equal((source.match(/\["Flat Rod Bracket", "274"\]/g) || []).length, 2);
+});
+
+test("line identity survives payload reconciliation and Accrivia export", () => {
+  assert.match(payload, /lineIdentity: String\(item\?\.lineIdentity \|\| product\?\.lineIdentity \|\| currentKey\)/);
+  assert.match(exporter, /item\?\.lineIdentity \|\| item\?\.key/);
+  assert.match(exporter, /lineIdentity: `standard:\$\{lineIdentity\}`/);
+  assert.match(exporter, /const key = String\(item\.lineIdentity \|\| item\.sku\)/);
+});
+
 test("catalogue controller is loaded and syntax-checked", () => {
-  assert.match(loader, /rondo-hebel-catalogue\.js\?v=20260801-1/);
+  assert.match(loader, /rondo-hebel-catalogue\.js\?v=20260801-2/);
+  assert.match(loader, /order-product-payload\.js\?v=20260801-1/);
   assert.match(styles, /\.rondo-grid-table/);
   assert.match(styles, /\.hebel-panel-table/);
 });
