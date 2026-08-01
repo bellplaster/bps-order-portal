@@ -1,4 +1,4 @@
-# Deployment refresh: 2026-08-01 12:54 AEST — email secret restored
+# Deployment refresh: 2026-08-01 13:00 AEST — email token rotated
 name = "bps-order-portal"
 compatibility_date = "2026-07-15"
 pages_build_output_dir = "public"
