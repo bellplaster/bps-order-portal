@@ -34,7 +34,7 @@ test("manager catalogue order uses three equal desktop columns", () => {
 });
 
 test("catalogue renderers load once in deterministic document order", () => {
-  const lowerIndex = index.indexOf('/lower-products-refinement.js?v=20260801-2');
+  const lowerIndex = index.indexOf('/lower-products-refinement.js?v=20260801-3');
   const catalogueIndex = index.indexOf('/rondo-hebel-catalogue.js?v=20260801-5');
   const additionalIndex = index.indexOf('/additional-products-refinement.js?v=20260729-2');
   assert.ok(lowerIndex >= 0, "lower catalogue renderer is missing");
@@ -44,9 +44,10 @@ test("catalogue renderers load once in deterministic document order", () => {
   assert.doesNotMatch(loader, /rondo-hebel-catalogue\.js/);
 });
 
-test("the deployed page refreshes both three-column assets", () => {
+test("the deployed page requests the current three-column assets", () => {
   assert.match(index, /lower-products-refinement\.css\?v=20260801-3/);
-  assert.match(index, /lower-products-refinement\.js\?v=20260801-2/);
+  assert.match(index, /lower-products-refinement\.js\?v=20260801-3/);
+  assert.doesNotMatch(index, /lower-products-refinement\.js\?v=20260801-2/);
   assert.match(index, /rondo-hebel-catalogue\.js\?v=20260801-5/);
   assert.match(index, /draft-restore-fix\.js\?v=20260801-2/);
 });
