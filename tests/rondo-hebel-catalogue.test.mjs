@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const source = await readFile(new URL("../public/rondo-hebel-catalogue.js", import.meta.url), "utf8");
+const lower = await readFile(new URL("../public/lower-products-refinement.js", import.meta.url), "utf8");
 const loader = await readFile(new URL("../public/draft-restore-fix.js", import.meta.url), "utf8");
 const payload = await readFile(new URL("../public/order-product-payload.js", import.meta.url), "utf8");
 const exporter = await readFile(new URL("../functions/_shared/combined-accrivia-export.js", import.meta.url), "utf8");
@@ -21,6 +22,22 @@ const expectedSkus = [
 
 test("every supplied Rondo and Hebel SKU is registered", () => {
   expectedSkus.forEach((sku) => assert.match(source, new RegExp(`[\"']${sku}[\"']`), `Missing SKU ${sku}`));
+});
+
+test("manager catalogue order uses three columns", () => {
+  assert.match(lower, /renderListCategory\(floor, "COMPOUNDS"[\s\S]*renderListCategory\(floor, "ACCESSORIES"[\s\S]*renderFastenersCategory[\s\S]*renderCornicesCategory[\s\S]*renderThermalCategory/);
+  assert.match(lower, /makeColumn\(\s*renderRondoCategory/);
+  assert.match(lower, /makeColumn\(\s*renderPartiwallCategory/);
+  assert.match(styles, /grid-template-columns:minmax\(0,1\.15fr\) minmax\(0,1\.55fr\) minmax\(0,1\.7fr\)/);
+});
+
+test("acoustics are retired before any catalogue renderer runs", () => {
+  assert.match(lower, /retireAcousticProducts\(\);\s*const result = originalRenderer/);
+  assert.match(lower, /delete state\.catalog\?\.\[key\]/);
+  assert.match(lower, /state\.layout\.sections\.insulation\.acousticRows = \[\]/);
+  assert.doesNotMatch(lower, /function renderAcousticCategory/);
+  assert.doesNotMatch(lower, /makeCategory\("ACOUSTICS"/);
+  assert.doesNotMatch(styles, /acoustics-table/);
 });
 
 test("Rondo additions use the existing RONDO/PVC section", () => {
@@ -42,10 +59,10 @@ test("Rondo accessories are visually separated without another heading", () => {
   assert.doesNotMatch(source, /Clips & Brackets/);
 });
 
-test("Cornices stay independent and Hebel is inserted before Insulations", () => {
-  assert.match(source, /const insulation = document\.querySelector/);
-  assert.match(source, /column\.insertBefore\(section, insulation\)/);
-  assert.doesNotMatch(source, /cornices-category.*append\(.*hebel/s);
+test("Hebel is inserted directly above Partiwalls", () => {
+  assert.match(source, /const partiwall = document\.querySelector/);
+  assert.match(source, /column\.insertBefore\(section, partiwall\)/);
+  assert.match(source, /hebel-panel-table", \[38,/);
 });
 
 test("new tables use the existing lower catalogue and quantity controls", () => {
@@ -70,8 +87,8 @@ test("line identity survives payload reconciliation and Accrivia export", () => 
   assert.match(exporter, /const key = String\(item\.lineIdentity \|\| item\.sku\)/);
 });
 
-test("catalogue controller is loaded and syntax-checked", () => {
-  assert.match(loader, /rondo-hebel-catalogue\.js\?v=20260801-3/);
+test("catalogue controller is refreshed", () => {
+  assert.match(loader, /rondo-hebel-catalogue\.js\?v=20260801-4/);
   assert.match(loader, /order-product-payload\.js\?v=20260801-1/);
   assert.match(styles, /\.rondo-grid-table/);
   assert.match(styles, /\.hebel-panel-table/);
