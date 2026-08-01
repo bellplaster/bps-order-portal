@@ -29,16 +29,21 @@ export async function replaceAreaExportsWithCombined(env, payload, result, auth)
     if (includeAreaSeparators) productRows.push([label, "", 1]);
 
     const rows = [];
-    for (const item of Array.isArray(area.items) ? area.items : []) {
+    for (const [index, item] of (Array.isArray(area.items) ? area.items : []).entries()) {
       const product = PRODUCT_CATALOG[String(item?.key || "").trim()] || {};
       const sku = upper(item?.sku || product.sku);
       const quantity = Number(item?.quantity || 0);
-      if (sku && Number.isInteger(quantity) && quantity > 0) rows.push({ sku, quantity });
+      const lineIdentity = String(item?.lineIdentity || item?.key || `standard-${index}`).trim();
+      if (sku && Number.isInteger(quantity) && quantity > 0) {
+        rows.push({ sku, quantity, lineIdentity: `standard:${lineIdentity}` });
+      }
     }
     for (const item of Array.isArray(area.otherMaterials) ? area.otherMaterials : []) {
       const sku = upper(item?.sku);
       const quantity = Number(item?.quantity || 0);
-      if (sku && Number.isInteger(quantity) && quantity > 0) rows.push({ sku, quantity });
+      if (sku && Number.isInteger(quantity) && quantity > 0) {
+        rows.push({ sku, quantity, lineIdentity: `additional:${sku}` });
+      }
     }
     productRows.push(...combineRows(rows, label));
   }
@@ -125,7 +130,7 @@ function hasAreaProducts(area) {
 function combineRows(items, areaLabel) {
   const combined = new Map();
   for (const item of items) {
-    const key = item.sku.toUpperCase();
+    const key = String(item.lineIdentity || item.sku).toUpperCase();
     const current = combined.get(key) || { sku: item.sku, quantity: 0 };
     current.quantity += item.quantity;
     if (current.quantity > MAX_PRODUCT_QUANTITY) {
