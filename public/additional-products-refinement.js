@@ -97,7 +97,7 @@
     [...(table.tBodies?.[0]?.rows || [])].forEach(markSpanningRow);
   }
 
-  function restructureFloor(floor) {
+  function placeAdditionalProducts(floor) {
     const root = document.getElementById(`${floor}OrderSheet`);
     if (!root) return;
 
@@ -105,41 +105,31 @@
     const panel = root.querySelector('.additional-products-panel');
     markBoardProductBoundaries(root);
     if (!grid || !panel) return;
+
     refinePanelLabels(panel);
+    panel.classList.add('additional-products-separated');
 
-    if (grid.querySelector(':scope > .lower-catalogue-main')) return;
-
-    const columns = [...grid.querySelectorAll(':scope > .lower-catalogue-column')];
-    if (columns.length < 4) return;
-
-    const main = document.createElement('div');
-    main.className = 'lower-catalogue-main';
-    const mainColumns = document.createElement('div');
-    mainColumns.className = 'lower-catalogue-main-columns';
-    columns.slice(0, 3).forEach((column) => mainColumns.append(column));
-    main.append(mainColumns, panel);
-
-    const rightColumn = columns[3];
-    grid.replaceChildren(main, rightColumn);
+    if (grid.nextElementSibling !== panel) {
+      grid.insertAdjacentElement('afterend', panel);
+    }
 
     const heading = panel.querySelector('.additional-products-heading h3');
     if (heading) heading.textContent = 'Additional products';
     const input = panel.querySelector('.additional-search input');
     if (input) input.placeholder = 'Stock code, product name or size';
-    refinePanelLabels(panel);
   }
 
-  function restructureAll() {
+  function placeAllAdditionalProducts() {
     if (typeof state === 'undefined' || !Array.isArray(state.deliveryAreas)) return;
-    state.deliveryAreas.forEach((area) => restructureFloor(area.id));
+    state.deliveryAreas.forEach((area) => placeAdditionalProducts(area.id));
   }
 
   function patchRenderer() {
     const original = window.renderUnifiedFloorSheet;
     if (typeof original !== 'function' || original.__additionalProductsRefined) return;
-    const patched = function renderUnifiedFloorSheetWithCompactSearch(floor, ...args) {
+    const patched = function renderUnifiedFloorSheetWithSeparatedSearch(floor, ...args) {
       const result = original.call(this, floor, ...args);
-      restructureFloor(floor);
+      placeAdditionalProducts(floor);
       return result;
     };
     patched.__additionalProductsRefined = true;
@@ -196,7 +186,7 @@
     patchResetOrder();
     patchRenderer();
     patchSearch();
-    restructureAll();
+    placeAllAdditionalProducts();
   }
 
   initialise();
@@ -204,6 +194,6 @@
   const timer = window.setInterval(() => {
     attempts += 1;
     initialise();
-    if (attempts >= 50 || document.querySelector('.lower-catalogue-main')) window.clearInterval(timer);
+    if (attempts >= 50 || document.querySelector('.additional-products-separated')) window.clearInterval(timer);
   }, 100);
 })();
