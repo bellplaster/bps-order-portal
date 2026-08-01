@@ -8,6 +8,7 @@ const loader = await readFile(new URL("../public/draft-restore-fix.js", import.m
 const payload = await readFile(new URL("../public/order-product-payload.js", import.meta.url), "utf8");
 const exporter = await readFile(new URL("../functions/_shared/combined-accrivia-export.js", import.meta.url), "utf8");
 const styles = await readFile(new URL("../public/lower-products-refinement.css", import.meta.url), "utf8");
+const experienceStyles = await readFile(new URL("../public/experience-refinement.css", import.meta.url), "utf8");
 const index = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
 
 const expectedSkus = [
@@ -33,6 +34,13 @@ test("manager catalogue order uses three equal desktop columns", () => {
   assert.doesNotMatch(styles, /@media\(max-width:1180px\)/);
 });
 
+test("lower-products stylesheet is the sole catalogue column-layout owner", () => {
+  assert.doesNotMatch(experienceStyles, /\.lower-catalogue-grid\s*\{[^}]*grid-template-columns/);
+  assert.doesNotMatch(experienceStyles, /\.lower-catalogue-main(?:-columns)?/);
+  assert.doesNotMatch(experienceStyles, /minmax\(0,3\.78fr\)/);
+  assert.doesNotMatch(experienceStyles, /\.lower-catalogue-grid>\.lower-catalogue-column/);
+});
+
 test("catalogue renderers load once in deterministic document order", () => {
   const lowerIndex = index.indexOf('/lower-products-refinement.js?v=20260801-3');
   const catalogueIndex = index.indexOf('/rondo-hebel-catalogue.js?v=20260801-5');
@@ -44,10 +52,12 @@ test("catalogue renderers load once in deterministic document order", () => {
   assert.doesNotMatch(loader, /rondo-hebel-catalogue\.js/);
 });
 
-test("the deployed page requests the current three-column assets", () => {
+test("the deployed page requests the current catalogue assets", () => {
   assert.match(index, /lower-products-refinement\.css\?v=20260801-3/);
   assert.match(index, /lower-products-refinement\.js\?v=20260801-3/);
   assert.doesNotMatch(index, /lower-products-refinement\.js\?v=20260801-2/);
+  assert.match(index, /experience-refinement\.css\?v=20260801-1/);
+  assert.doesNotMatch(index, /experience-refinement\.css\?v=20260724-2/);
   assert.match(index, /rondo-hebel-catalogue\.js\?v=20260801-5/);
   assert.match(index, /draft-restore-fix\.js\?v=20260801-2/);
 });
@@ -56,6 +66,7 @@ test("Additional Products is a separate full-width region below the catalogue", 
   assert.match(styles, /\.lower-catalogue-grid\+\.additional-products-panel/);
   assert.match(styles, /\.additional-products-panel\.additional-products-separated/);
   assert.match(styles, /margin-top:14px!important/);
+  assert.doesNotMatch(experienceStyles, /\.additional-products-panel\{[^}]*margin:0!important/);
 });
 
 test("acoustics are retired before any catalogue renderer runs", () => {
