@@ -9,7 +9,7 @@
 
   const controllers = [
     ["order-defaults", "/order-defaults.js?v=20260729-1"],
-    ["order-product-payload", "/order-product-payload.js?v=20260729-1"],
+    ["order-product-payload", "/order-product-payload.js?v=20260801-1"],
     ["admin-defaults", "/admin-defaults.js?v=20260731-1"],
     ["board-width-order", "/board-width-order.js?v=20260729-1"],
     ["order-form-enhancements", "/order-form-enhancements.js?v=20260801-4"],
@@ -21,7 +21,7 @@
     ["portal-identity-ux", "/portal-identity-ux.js?v=20260731-2"],
     ["inline-tab-rename", "/inline-tab-rename.js?v=20260801-4"],
     ["board-area-summary", "/board-area-summary.js?v=20260801-3"],
-    ["rondo-hebel-catalogue", "/rondo-hebel-catalogue.js?v=20260801-1"],
+    ["rondo-hebel-catalogue", "/rondo-hebel-catalogue.js?v=20260801-2"],
   ];
 
   controllers.forEach(([marker, src]) => {
