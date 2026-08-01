@@ -23,13 +23,18 @@
       });
 
       payload.items = (Array.isArray(payload.items) ? payload.items : []).map((item) => {
-        const product = catalog[item?.key] || {};
+        const currentKey = String(item?.key || "");
+        const product = catalog[currentKey] || {};
         const sku = normaliseSku(item?.sku || product?.sku || product?.stockCode);
         const canonicalKey = sku ? canonicalBySku.get(sku)?.key : "";
+        const key = /^source-/i.test(currentKey)
+          ? (canonicalKey || currentKey)
+          : currentKey;
         return {
           ...item,
-          key: canonicalKey || String(item?.key || ""),
+          key,
           sku,
+          description: String(item?.description || product?.description || product?.label || "").trim(),
         };
       });
 
