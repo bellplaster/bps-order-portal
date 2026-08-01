@@ -33,9 +33,22 @@ test("manager catalogue order uses three equal desktop columns", () => {
   assert.doesNotMatch(styles, /@media\(max-width:1180px\)/);
 });
 
+test("catalogue renderers load once in deterministic document order", () => {
+  const lowerIndex = index.indexOf('/lower-products-refinement.js?v=20260801-2');
+  const catalogueIndex = index.indexOf('/rondo-hebel-catalogue.js?v=20260801-5');
+  const additionalIndex = index.indexOf('/additional-products-refinement.js?v=20260729-2');
+  assert.ok(lowerIndex >= 0, "lower catalogue renderer is missing");
+  assert.ok(catalogueIndex > lowerIndex, "Rondo/Hebel must wrap the lower renderer");
+  assert.ok(additionalIndex > catalogueIndex, "Additional Products must wrap the completed catalogue renderer");
+  assert.equal((index.match(/rondo-hebel-catalogue\.js/g) || []).length, 1);
+  assert.doesNotMatch(loader, /rondo-hebel-catalogue\.js/);
+});
+
 test("the deployed page refreshes both three-column assets", () => {
   assert.match(index, /lower-products-refinement\.css\?v=20260801-3/);
   assert.match(index, /lower-products-refinement\.js\?v=20260801-2/);
+  assert.match(index, /rondo-hebel-catalogue\.js\?v=20260801-5/);
+  assert.match(index, /draft-restore-fix\.js\?v=20260801-2/);
 });
 
 test("Additional Products is a separate full-width region below the catalogue", () => {
@@ -72,8 +85,9 @@ test("Rondo accessories are visually separated without another heading", () => {
   assert.doesNotMatch(source, /Clips & Brackets/);
 });
 
-test("Hebel is inserted directly above Partiwalls", () => {
+test("Hebel is inserted into the same third column directly above Partiwalls", () => {
   assert.match(source, /const partiwall = document\.querySelector/);
+  assert.match(source, /const column = partiwall\?\.parentElement/);
   assert.match(source, /column\.insertBefore\(section, partiwall\)/);
   assert.match(source, /hebel-panel-table", \[38,/);
 });
@@ -100,9 +114,8 @@ test("line identity survives payload reconciliation and Accrivia export", () => 
   assert.match(exporter, /const key = String\(item\.lineIdentity \|\| item\.sku\)/);
 });
 
-test("catalogue controller is refreshed", () => {
-  assert.match(loader, /rondo-hebel-catalogue\.js\?v=20260801-4/);
-  assert.match(loader, /order-product-payload\.js\?v=20260801-1/);
+test("catalogue styles retain Rondo and Hebel rules", () => {
   assert.match(styles, /\.rondo-grid-table/);
   assert.match(styles, /\.hebel-panel-table/);
+  assert.match(styles, /\.hebel-category/);
 });
