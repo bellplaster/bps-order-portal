@@ -36,6 +36,12 @@ test("Rondo accessories connect directly to their grid tables", () => {
   assert.match(source, /appendMatrixRows\(tbody, floor, definition, scope\);\s*appendAccessoryRows\(tbody, floor, definition\.accessories, totalColumns, scope\);/);
 });
 
+test("Rondo accessories are visually separated without another heading", () => {
+  assert.match(styles, /tr:not\(\.rondo-accessory-row\)\+tr\.rondo-accessory-row/);
+  assert.match(styles, /border-top:4px solid #c3c9c7!important/);
+  assert.doesNotMatch(source, /Clips & Brackets/);
+});
+
 test("Cornices stay independent and Hebel is inserted before Insulations", () => {
   assert.match(source, /const insulation = document\.querySelector/);
   assert.match(source, /column\.insertBefore\(section, insulation\)/);
