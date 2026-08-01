@@ -28,12 +28,31 @@
   ]);
 
   const refinedRenderer = function renderUnifiedFloorSheetWithLowerCatalogue(floor, ...args) {
+    retireAcousticProducts();
     const result = originalRenderer.call(this, floor, ...args);
     renderLowerCatalogue(floor);
     return result;
   };
   refinedRenderer.__lowerCatalogueRefined = true;
   window.renderUnifiedFloorSheet = refinedRenderer;
+
+  function retireAcousticProducts() {
+    const acousticRows = state.layout?.sections?.insulation?.acousticRows;
+    if (!Array.isArray(acousticRows) || !acousticRows.length) return;
+
+    const retiredKeys = new Set();
+    acousticRows.forEach((row) => {
+      (row?.cells || []).forEach((key) => {
+        if (key) retiredKeys.add(key);
+      });
+    });
+
+    retiredKeys.forEach((key) => {
+      delete state.catalog?.[key];
+      Object.values(state.quantities || {}).forEach((quantities) => quantities?.delete?.(key));
+    });
+    state.layout.sections.insulation.acousticRows = [];
+  }
 
   function renderLowerCatalogue(floor) {
     const root = document.getElementById(`${floor}OrderSheet`);
@@ -46,23 +65,20 @@
     const accessoryRows = compounds.filter((row) => ACCESSORY_PATTERN.test(String(row.label || "")));
 
     const grid = document.createElement("div");
-    grid.className = "lower-catalogue-grid";
+    grid.className = "lower-catalogue-grid lower-catalogue-grid-manager-order";
 
     grid.append(
       makeColumn(
         renderListCategory(floor, "COMPOUNDS", compoundRows, "compounds-category"),
-      ),
-      makeColumn(
         renderListCategory(floor, "ACCESSORIES", accessoryRows, "accessories-category"),
         renderFastenersCategory(floor, sections.screws, sections.nails),
+        renderCornicesCategory(floor, sections.cove, sections.decorative),
+        renderThermalCategory(floor, sections.insulation?.thermalRows || []),
       ),
       makeColumn(
         renderRondoCategory(floor, sections.rondo),
-        renderCornicesCategory(floor, sections.cove, sections.decorative),
       ),
       makeColumn(
-        renderThermalCategory(floor, sections.insulation?.thermalRows || []),
-        renderAcousticCategory(floor, sections.insulation?.acousticRows || []),
         renderPartiwallCategory(
           floor,
           sections.partiwall,
@@ -85,7 +101,6 @@
   function makeCategory(title, className = "") {
     const section = document.createElement("section");
     section.className = `lower-catalogue-section ${className}`.trim();
-
     const heading = document.createElement("h3");
     heading.className = "lower-category-title";
     heading.textContent = title;
@@ -114,7 +129,6 @@
     const table = makeTable("lower-list-table");
     addColgroup(table, [66, 20, 14]);
     const tbody = document.createElement("tbody");
-
     (rows || []).forEach((row) => {
       const tr = document.createElement("tr");
       const name = document.createElement("th");
@@ -126,7 +140,6 @@
       tr.append(name, detail, createQuantityCell(floor, row.key || null));
       tbody.append(tr);
     });
-
     table.append(tbody);
     section.append(table);
     return section;
@@ -137,9 +150,7 @@
     const table = makeTable("fasteners-table");
     addColgroup(table, [64, 18, 18]);
     const tbody = document.createElement("tbody");
-
     appendMatrixHeader(tbody, "Screws", screws?.columns || ["25 mm", "32 mm"]);
-
     let currentGroup = "";
     normaliseMatrixRows(screws?.rows || []).forEach((row) => {
       const match = String(row.label || "").match(/^(Loose|Collated)\s*-\s*(.+)$/i);
@@ -151,13 +162,11 @@
       }
       appendMatrixRow(tbody, floor, label, row.cells || []);
     });
-
     const nailRows = normaliseMatrixRows(nails?.rows || []);
     if (nailRows.length) {
       appendMatrixHeader(tbody, "Nails", nails?.columns || ["30 mm", "40 mm"]);
       nailRows.forEach((row) => appendMatrixRow(tbody, floor, row.label || "", row.cells || []));
     }
-
     table.append(tbody);
     section.append(table);
     return section;
@@ -203,7 +212,6 @@
     addColgroup(table, [34, 9.43, 9.43, 9.43, 9.43, 9.43, 9.43, 9.42]);
     const tbody = document.createElement("tbody");
     appendMatrixHeader(tbody, "Type", RONDO_LENGTHS);
-
     const products = new Map();
     (definition?.rows || []).forEach((row) => {
       const label = String(row.label || "").trim();
@@ -212,7 +220,6 @@
       if (!products.has(label)) products.set(label, new Map());
       if (length) products.get(label).set(length, row.key);
     });
-
     products.forEach((lengthMap, label) => {
       const tr = document.createElement("tr");
       const th = document.createElement("th");
@@ -222,7 +229,6 @@
       RONDO_LENGTHS.forEach((length) => tr.append(createQuantityCell(floor, lengthMap.get(length) || null)));
       tbody.append(tr);
     });
-
     table.append(tbody);
     section.append(table);
     return section;
@@ -230,7 +236,6 @@
 
   function renderCornicesCategory(floor, cove, decorative) {
     const section = makeCategory("CORNICES", "cornices-category");
-
     const coveRows = normaliseMatrixRows(cove?.rows || []).filter((row) => String(row.label || "").trim() === "4800");
     if (coveRows.length) {
       const coveTable = makeTable("cornice-cove-table");
@@ -241,7 +246,6 @@
       coveTable.append(coveBody);
       section.append(coveTable);
     }
-
     const rows = normaliseListRows(decorative?.rows || []);
     if (rows.length) {
       const decorativeTable = makeTable("decorative-cornice-table");
@@ -278,7 +282,6 @@
     addColgroup(table, [45, 13, 21, 21]);
     const tbody = document.createElement("tbody");
     appendMatrixHeader(tbody, "Type", ["R", "430 mm", "580 mm"]);
-
     normaliseMatrixRows(rows || []).forEach((row) => {
       const match = String(row.label || "").match(/^(Wall|Ceiling)\s+R?([\d.]+)/i);
       const tr = document.createElement("tr");
@@ -292,33 +295,6 @@
       (row.cells || []).forEach((key) => tr.append(createQuantityCell(floor, key || null)));
       tbody.append(tr);
     });
-
-    table.append(tbody);
-    section.append(table);
-    return section;
-  }
-
-  function renderAcousticCategory(floor, rows) {
-    const section = makeCategory("ACOUSTICS", "acoustics-category");
-    const table = makeTable("acoustics-table");
-    addColgroup(table, [30, 28, 21, 21]);
-    const tbody = document.createElement("tbody");
-    appendMatrixHeader(tbody, "kg", ["mm", "450 mm", "600 mm"]);
-
-    normaliseMatrixRows(rows || []).forEach((row) => {
-      const match = String(row.label || "").match(/^(\d+)\s*kg\s*-\s*(\d+)\s*mm/i);
-      const tr = document.createElement("tr");
-      const kg = document.createElement("th");
-      kg.scope = "row";
-      kg.textContent = match?.[1] || row.label || "";
-      const mm = document.createElement("td");
-      mm.className = "lower-item-detail";
-      mm.textContent = match?.[2] || "";
-      tr.append(kg, mm);
-      (row.cells || []).forEach((key) => tr.append(createQuantityCell(floor, key || null)));
-      tbody.append(tr);
-    });
-
     table.append(tbody);
     section.append(table);
     return section;
@@ -331,13 +307,11 @@
     const tbody = document.createElement("tbody");
     appendMatrixHeader(tbody, "Product", matrix?.columns || ["3000", "3600"]);
     normaliseMatrixRows(matrix?.rows || []).forEach((row) => appendMatrixRow(tbody, floor, row.label || "", row.cells || []));
-
     const rows = normaliseListRows([...(accessories?.rows || []), ...(screws?.rows || [])])
       .filter((row) => !/^Aluminium Clips Flat(?: \(each\))?$/i.test(String(row.label || "").trim()))
       .map((row, index) => ({ row, index, rank: PARTIWALL_ORDER.get(getSku(row.key)) ?? 100 + index }))
       .sort((left, right) => left.rank - right.rank || left.index - right.index)
       .map((entry) => entry.row);
-
     rows.forEach((row) => {
       const tr = document.createElement("tr");
       const th = document.createElement("th");
@@ -347,7 +321,6 @@
       tr.append(th, createQuantityCell(floor, row.key || null));
       tbody.append(tr);
     });
-
     table.append(tbody);
     section.append(table);
     return section;
