@@ -176,19 +176,7 @@
     });
   }
 
-  function appendAccessoryHeading(tbody, totalColumns) {
-    const row = document.createElement("tr");
-    row.className = "lower-subheader lower-group-heading";
-    const cell = document.createElement("th");
-    cell.colSpan = totalColumns;
-    cell.textContent = "Clips & Brackets";
-    row.append(cell);
-    tbody.append(row);
-  }
-
   function appendAccessoryRows(tbody, floor, accessories, totalColumns, scope) {
-    appendAccessoryHeading(tbody, totalColumns);
-
     if (totalColumns === 4) {
       for (let index = 0; index < accessories.length; index += 2) {
         const row = document.createElement("tr");
