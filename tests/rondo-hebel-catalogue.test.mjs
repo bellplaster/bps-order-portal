@@ -30,6 +30,12 @@ test("Rondo additions use the existing RONDO/PVC section", () => {
   assert.doesNotMatch(source, /makeCategory\(["'](?:Suspended Ceiling Grid|DUO Grid)/);
 });
 
+test("Rondo accessories connect directly to their grid tables", () => {
+  assert.doesNotMatch(source, /Clips & Brackets/);
+  assert.doesNotMatch(source, /appendAccessoryHeading/);
+  assert.match(source, /appendMatrixRows\(tbody, floor, definition, scope\);\s*appendAccessoryRows\(tbody, floor, definition\.accessories, totalColumns, scope\);/);
+});
+
 test("Cornices stay independent and Hebel is inserted before Insulations", () => {
   assert.match(source, /const insulation = document\.querySelector/);
   assert.match(source, /column\.insertBefore\(section, insulation\)/);
@@ -59,7 +65,7 @@ test("line identity survives payload reconciliation and Accrivia export", () => 
 });
 
 test("catalogue controller is loaded and syntax-checked", () => {
-  assert.match(loader, /rondo-hebel-catalogue\.js\?v=20260801-2/);
+  assert.match(loader, /rondo-hebel-catalogue\.js\?v=20260801-3/);
   assert.match(loader, /order-product-payload\.js\?v=20260801-1/);
   assert.match(styles, /\.rondo-grid-table/);
   assert.match(styles, /\.hebel-panel-table/);
