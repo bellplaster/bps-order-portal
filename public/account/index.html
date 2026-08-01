@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="/refinement.css?v=20260722-2">
   <link rel="stylesheet" href="/account-final-refinement.css?v=20260728-11">
   <style>
-    .admin-dialog,.admin-dialog-card,.admin-dialog-fields,.admin-dialog-fields .account-field,.admin-dialog-fields .account-field select{box-sizing:border-box}.admin-dialog{overflow-x:hidden}.admin-dialog-card{width:100%;max-width:100%;overflow-x:hidden}.admin-dialog-fields{width:100%;max-width:100%;grid-template-columns:repeat(2,minmax(0,1fr));overflow:hidden}.admin-dialog-fields .account-field,.admin-dialog-fields .account-field-wide,.admin-dialog-fields .account-field select{min-width:0;max-width:100%}.admin-dialog-fields .account-field-wide{width:100%;grid-column:1/-1}.admin-dialog-fields .account-field select{display:block;width:100%}.order-default-grid .account-field:has(>select){overflow:visible}.order-default-grid .account-field>select{position:absolute;top:0;right:0;bottom:0;left:var(--account-label-width);width:auto;min-width:0;max-width:none;height:100%;min-height:100%;margin:0;box-sizing:border-box}
+    .admin-dialog,.admin-dialog-card,.admin-dialog-fields,.admin-dialog-fields .account-field,.admin-dialog-fields .account-field select{box-sizing:border-box}.admin-dialog{overflow-x:hidden}.admin-dialog-card{width:100%;max-width:100%;overflow-x:hidden}.admin-dialog-fields{width:100%;max-width:100%;grid-template-columns:repeat(2,minmax(0,1fr));overflow:hidden}.admin-dialog-fields .account-field,.admin-dialog-fields .account-field-wide,.admin-dialog-fields .account-field select{min-width:0;max-width:100%}.admin-dialog-fields .account-field-wide{width:100%;grid-column:1/-1}.admin-dialog-fields .account-field select{display:block;width:100%}.order-default-grid .account-field:has(>select){overflow:visible}.order-default-grid .account-field>select{position:absolute;top:0;right:0;bottom:0;left:var(--account-label-width);width:auto;min-width:0;max-width:none;height:100%;min-height:100%;margin:0;box-sizing:border-box}.admin-email-test-status{display:block;margin-top:4px;font-size:12px;line-height:1.45;color:#68736f}.admin-email-test-status[data-state="success"]{color:#006557}.admin-email-test-status[data-state="error"]{color:#a62b45}.admin-email-test-status[data-state="pending"]{color:#52605c}.admin-management-row button[aria-busy="true"]{cursor:wait;opacity:.72}
   </style>
 </head>
 <body class="account-page">
@@ -69,7 +69,21 @@
         <form id="createUserForm" class="admin-create-panel" hidden><div class="admin-create-heading"><strong>New portal user</strong><button id="cancelCreateUser" class="text-button" type="button">Cancel</button></div><div class="admin-create-grid admin-user-create-grid"><label class="account-field"><span>Username</span><input id="newUsername" required></label><label class="account-field"><span>Role</span><select id="newUserRole"><option value="customer">Customer</option><option value="admin">Administrator</option></select></label><label class="account-field"><span>Customer account</span><select id="newUserAccount" required></select></label><label class="account-field"><span>Initial password</span><input id="newUserPassword" type="password" minlength="8" required></label></div><div class="admin-action-row"><button class="button button-primary">Create user</button></div></form>
         <div class="admin-table"><div class="admin-table-header admin-user-columns"><span>User</span><span>Account</span><span>Status</span><span>Actions</span></div><div id="usersList" class="admin-table-body"></div></div><div id="usersPagination" class="admin-pagination"></div>
       </div>
-      <div class="admin-panel" data-admin-panel="configuration" hidden><div class="admin-panel-toolbar admin-panel-toolbar-simple"><div class="admin-panel-title"><h3>Form &amp; catalogue</h3></div></div><div class="admin-management-list"><article class="admin-management-row"><div><strong>Customer order form</strong><span>Open the current form exactly as customers see it.</span></div><a class="button button-secondary" href="/" target="_blank">Open form</a></article><article class="admin-management-row"><div><strong>Accrivia catalogue</strong><span>Import and maintain the product catalogue.</span></div><a class="button button-secondary" href="/catalog-admin/">Manage catalogue</a></article></div></div>
+      <div class="admin-panel" data-admin-panel="configuration" hidden>
+        <div class="admin-panel-toolbar admin-panel-toolbar-simple"><div class="admin-panel-title"><h3>Form &amp; catalogue</h3></div></div>
+        <div class="admin-management-list">
+          <article class="admin-management-row"><div><strong>Customer order form</strong><span>Open the current form exactly as customers see it.</span></div><a class="button button-secondary" href="/" target="_blank">Open form</a></article>
+          <article class="admin-management-row"><div><strong>Accrivia catalogue</strong><span>Import and maintain the product catalogue.</span></div><a class="button button-secondary" href="/catalog-admin/">Manage catalogue</a></article>
+          <article class="admin-management-row">
+            <div>
+              <strong>Email delivery test</strong>
+              <span>Send one small message through the production email service. No order or XLSX file is created.</span>
+              <span id="adminEmailTestStatus" class="admin-email-test-status" role="status" aria-live="polite"></span>
+            </div>
+            <button id="sendAdminEmailTest" class="button button-secondary" type="button">Send test email</button>
+          </article>
+        </div>
+      </div>
     </section>
 
     <section class="account-section security-card"><header class="account-section-bar"><h2>Security</h2></header><button id="togglePasswordPanel" class="security-toggle" type="button" aria-expanded="false"><span><strong>Password</strong><small>Change your sign-in password</small></span><b>Change password</b></button><div id="passwordPanel" class="password-panel" hidden><form id="passwordForm"><div class="account-section-body password-fields"><label class="account-field"><span>Current password</span><input id="currentPassword" type="password" required></label><label class="account-field"><span>New password</span><input id="newPassword" type="password" minlength="8" required></label><label class="account-field"><span>Confirm password</span><input id="confirmPassword" type="password" minlength="8" required></label></div><div class="account-form-actions password-actions"><button id="cancelPasswordChange" class="button button-secondary" type="button">Cancel</button><button class="button button-primary">Update password</button></div></form></div></section>
@@ -83,5 +97,6 @@
   <script src="/order-detail-fields.js?v=20260731-2" defer></script>
   <script src="/admin-user-management.js?v=20260731-1" defer></script>
   <script src="/admin-defaults.js?v=20260731-1" defer></script>
+  <script src="/admin-email-test.js?v=20260801-1" defer></script>
 </body>
 </html>
