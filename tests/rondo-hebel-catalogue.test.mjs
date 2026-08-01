@@ -24,11 +24,12 @@ test("every supplied Rondo and Hebel SKU is registered", () => {
   expectedSkus.forEach((sku) => assert.match(source, new RegExp(`[\"']${sku}[\"']`), `Missing SKU ${sku}`));
 });
 
-test("manager catalogue order uses three columns", () => {
+test("manager catalogue order uses three equal desktop columns", () => {
   assert.match(lower, /renderListCategory\(floor, "COMPOUNDS"[\s\S]*renderListCategory\(floor, "ACCESSORIES"[\s\S]*renderFastenersCategory[\s\S]*renderCornicesCategory[\s\S]*renderThermalCategory/);
   assert.match(lower, /makeColumn\(\s*renderRondoCategory/);
   assert.match(lower, /makeColumn\(\s*renderPartiwallCategory/);
-  assert.match(styles, /grid-template-columns:minmax\(0,1\.15fr\) minmax\(0,1\.55fr\) minmax\(0,1\.7fr\)/);
+  assert.match(styles, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.doesNotMatch(styles, /@media\(max-width:1180px\)/);
 });
 
 test("acoustics are retired before any catalogue renderer runs", () => {
