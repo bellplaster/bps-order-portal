@@ -42,6 +42,40 @@ test("email test endpoint rejects non-administrators without contacting Cloudfla
   }
 });
 
+test("email test endpoint reports the exact missing deployment bindings", async () => {
+  const originalFetch = globalThis.fetch;
+  let providerCalled = false;
+  globalThis.fetch = async () => {
+    providerCalled = true;
+    throw new Error("Provider should not be called");
+  };
+
+  try {
+    const response = await onRequestPost({
+      data: { auth: { userId: 1, username: "admin", role: "admin" } },
+      env: {
+        ORDER_EMAIL_TO: "marketing@bellplaster.com.au",
+      },
+    });
+    const body = await response.json();
+
+    assert.equal(response.status, 503);
+    assert.equal(body.ok, false);
+    assert.equal(body.reason, "not_configured");
+    assert.deepEqual(body.missingBindings, [
+      "CLOUDFLARE_ACCOUNT_ID",
+      "CLOUDFLARE_EMAIL_API_TOKEN",
+    ]);
+    assert.equal(
+      body.detail,
+      "Missing production bindings: CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_EMAIL_API_TOKEN.",
+    );
+    assert.equal(providerCalled, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("email test endpoint sends one message to the configured internal recipient", async () => {
   const originalFetch = globalThis.fetch;
   let requestUrl = "";
