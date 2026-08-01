@@ -11,11 +11,17 @@ export async function onRequestPost(context) {
 
   const accountId = String(context.env?.CLOUDFLARE_ACCOUNT_ID || "").trim();
   const token = String(context.env?.CLOUDFLARE_EMAIL_API_TOKEN || "").trim();
-  if (!accountId || !token) {
+  const missingBindings = [];
+  if (!accountId) missingBindings.push("CLOUDFLARE_ACCOUNT_ID");
+  if (!token) missingBindings.push("CLOUDFLARE_EMAIL_API_TOKEN");
+
+  if (missingBindings.length) {
     return json({
       ok: false,
       error: "Email sending is not configured for this deployment.",
       reason: "not_configured",
+      missingBindings,
+      detail: `Missing production binding${missingBindings.length === 1 ? "" : "s"}: ${missingBindings.join(", ")}.`,
     }, 503);
   }
 
