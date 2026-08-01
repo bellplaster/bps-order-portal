@@ -77,13 +77,19 @@
   renderer.__rondoHebelCatalogue = true;
   window.renderUnifiedFloorSheet = renderer;
 
-  function keyFor(sku) {
-    return `catalogue-${String(sku).toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+  function slug(value) {
+    return String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   }
 
-  function register(sku, label, detail = "") {
+  function keyFor(sku, lineIdentity = "") {
+    const base = `catalogue-${slug(sku)}`;
+    const suffix = slug(lineIdentity);
+    return suffix ? `${base}--${suffix}` : base;
+  }
+
+  function register(sku, label, detail = "", lineIdentity = "") {
     if (!sku) return null;
-    const key = keyFor(sku);
+    const key = keyFor(sku, lineIdentity);
     if (!state.catalog) state.catalog = {};
     const existing = state.catalog[key] || {};
     state.catalog[key] = {
@@ -93,26 +99,39 @@
       label,
       description: label,
       detail,
+      lineIdentity,
       mapped: true,
       available: true,
     };
     return key;
   }
 
-  function registerDefinition(definition) {
-    definition.rows.forEach(([, cells]) => cells.forEach((entry) => {
-      if (entry) register(entry[0], entry[1], entry[2]);
+  function matrixLineIdentity(scope, rowIndex, cellIndex) {
+    return `${scope}-matrix-${rowIndex}-${cellIndex}`;
+  }
+
+  function accessoryLineIdentity(scope, index) {
+    return `${scope}-accessory-${index}`;
+  }
+
+  function registerDefinition(definition, scope) {
+    definition.rows.forEach(([, cells], rowIndex) => cells.forEach((entry, cellIndex) => {
+      if (entry) register(entry[0], entry[1], entry[2], matrixLineIdentity(scope, rowIndex, cellIndex));
     }));
-    (definition.accessories || []).forEach(([label, sku]) => register(sku, label));
+    (definition.accessories || []).forEach(([label, sku], index) => {
+      register(sku, label, "", accessoryLineIdentity(scope, index));
+    });
   }
 
   function registerCatalogue() {
     if (!state?.catalog) state.catalog = {};
-    registerDefinition(RONDO.suspended);
-    registerDefinition(RONDO.duo);
-    registerDefinition(HEBEL.panels);
-    registerDefinition(HEBEL.steel);
-    HEBEL.compounds.forEach(([label, detail, sku]) => register(sku, label, detail));
+    registerDefinition(RONDO.suspended, "rondo-suspended");
+    registerDefinition(RONDO.duo, "rondo-duo");
+    registerDefinition(HEBEL.panels, "hebel-panels");
+    registerDefinition(HEBEL.steel, "hebel-steel");
+    HEBEL.compounds.forEach(([label, detail, sku], index) => {
+      register(sku, label, detail, `hebel-compounds-${index}`);
+    });
   }
 
   function makeTable(className, widths) {
@@ -139,18 +158,20 @@
     tbody.append(row);
   }
 
-  function quantityCell(floor, entry) {
-    return createQuantityCell(floor, entry ? keyFor(entry[0]) : null);
+  function quantityCell(floor, entry, lineIdentity) {
+    return createQuantityCell(floor, entry ? keyFor(entry[0], lineIdentity) : null);
   }
 
-  function appendMatrixRows(tbody, floor, definition) {
-    definition.rows.forEach(([label, cells]) => {
+  function appendMatrixRows(tbody, floor, definition, scope) {
+    definition.rows.forEach(([label, cells], rowIndex) => {
       const row = document.createElement("tr");
       const name = document.createElement("th");
       name.scope = "row";
       name.textContent = label;
       row.append(name);
-      cells.forEach((entry) => row.append(quantityCell(floor, entry)));
+      cells.forEach((entry, cellIndex) => {
+        row.append(quantityCell(floor, entry, matrixLineIdentity(scope, rowIndex, cellIndex)));
+      });
       tbody.append(row);
     });
   }
@@ -165,19 +186,20 @@
     tbody.append(row);
   }
 
-  function appendAccessoryRows(tbody, floor, accessories, totalColumns) {
+  function appendAccessoryRows(tbody, floor, accessories, totalColumns, scope) {
     appendAccessoryHeading(tbody, totalColumns);
 
     if (totalColumns === 4) {
       for (let index = 0; index < accessories.length; index += 2) {
         const row = document.createElement("tr");
         row.className = "rondo-accessory-row rondo-accessory-pair";
-        [accessories[index], accessories[index + 1]].forEach((entry) => {
+        [accessories[index], accessories[index + 1]].forEach((entry, pairIndex) => {
+          const accessoryIndex = index + pairIndex;
           if (entry) {
             const name = document.createElement("th");
             name.scope = "row";
             name.textContent = entry[0];
-            row.append(name, createQuantityCell(floor, keyFor(entry[1])));
+            row.append(name, createQuantityCell(floor, keyFor(entry[1], accessoryLineIdentity(scope, accessoryIndex))));
           } else {
             row.append(document.createElement("td"), document.createElement("td"));
           }
@@ -187,25 +209,25 @@
       return;
     }
 
-    accessories.forEach(([label, sku]) => {
+    accessories.forEach(([label, sku], index) => {
       const row = document.createElement("tr");
       row.className = "rondo-accessory-row";
       const name = document.createElement("th");
       name.scope = "row";
       name.colSpan = totalColumns - 1;
       name.textContent = label;
-      row.append(name, createQuantityCell(floor, keyFor(sku)));
+      row.append(name, createQuantityCell(floor, keyFor(sku, accessoryLineIdentity(scope, index))));
       tbody.append(row);
     });
   }
 
-  function renderRondoGridTable(floor, definition, className) {
+  function renderRondoGridTable(floor, definition, className, scope) {
     const totalColumns = definition.columns.length + 1;
     const table = makeTable(className, totalColumns === 4 ? [55, 15, 15, 15] : [58, 21, 21]);
     const tbody = document.createElement("tbody");
     appendHeader(tbody, definition.title, definition.columns);
-    appendMatrixRows(tbody, floor, definition);
-    appendAccessoryRows(tbody, floor, definition.accessories, totalColumns);
+    appendMatrixRows(tbody, floor, definition, scope);
+    appendAccessoryRows(tbody, floor, definition.accessories, totalColumns, scope);
     table.append(tbody);
     return table;
   }
@@ -214,8 +236,8 @@
     const section = document.querySelector(`#${CSS.escape(floor)}OrderSheet .rondo-category`);
     if (!section || section.querySelector(".suspended-grid-table")) return;
     section.append(
-      renderRondoGridTable(floor, RONDO.suspended, "rondo-grid-table suspended-grid-table"),
-      renderRondoGridTable(floor, RONDO.duo, "rondo-grid-table duo-grid-table"),
+      renderRondoGridTable(floor, RONDO.suspended, "rondo-grid-table suspended-grid-table", "rondo-suspended"),
+      renderRondoGridTable(floor, RONDO.duo, "rondo-grid-table duo-grid-table", "rondo-duo"),
     );
   }
 
@@ -237,7 +259,7 @@
     const table = makeTable("hebel-panel-table", [31, 9.86, 9.86, 9.86, 9.86, 9.86, 9.86, 9.84]);
     const tbody = document.createElement("tbody");
     appendHeader(tbody, "Product", HEBEL.panels.columns);
-    appendMatrixRows(tbody, floor, HEBEL.panels);
+    appendMatrixRows(tbody, floor, HEBEL.panels, "hebel-panels");
     table.append(tbody);
     return table;
   }
@@ -246,7 +268,7 @@
     const table = makeTable("hebel-compounds-table", [58, 22, 20]);
     const tbody = document.createElement("tbody");
     appendHeader(tbody, "Compounds & Coatings", ["Size", "Qty"]);
-    HEBEL.compounds.forEach(([label, detail, sku]) => {
+    HEBEL.compounds.forEach(([label, detail, sku], index) => {
       const row = document.createElement("tr");
       const name = document.createElement("th");
       name.scope = "row";
@@ -254,7 +276,7 @@
       const size = document.createElement("td");
       size.className = "lower-item-detail";
       size.textContent = detail;
-      row.append(name, size, createQuantityCell(floor, keyFor(sku)));
+      row.append(name, size, createQuantityCell(floor, keyFor(sku, `hebel-compounds-${index}`)));
       tbody.append(row);
     });
     table.append(tbody);
@@ -265,7 +287,7 @@
     const table = makeTable("hebel-steel-table", [58, 21, 21]);
     const tbody = document.createElement("tbody");
     appendHeader(tbody, "Top Hats & Angles", HEBEL.steel.columns);
-    appendMatrixRows(tbody, floor, HEBEL.steel);
+    appendMatrixRows(tbody, floor, HEBEL.steel, "hebel-steel");
     table.append(tbody);
     return table;
   }
