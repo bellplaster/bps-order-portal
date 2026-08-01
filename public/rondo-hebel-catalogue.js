@@ -230,8 +230,8 @@
   }
 
   function renderHebel(floor) {
-    const insulation = document.querySelector(`#${CSS.escape(floor)}OrderSheet .insulation-category`);
-    const column = insulation?.parentElement;
+    const partiwall = document.querySelector(`#${CSS.escape(floor)}OrderSheet .partiwall-category`);
+    const column = partiwall?.parentElement;
     if (!column || column.querySelector(".hebel-category")) return;
 
     const section = document.createElement("section");
@@ -240,11 +240,11 @@
     heading.className = "lower-category-title";
     heading.textContent = "HEBEL";
     section.append(heading, renderHebelPanels(floor), renderHebelCompounds(floor), renderHebelSteel(floor));
-    column.insertBefore(section, insulation);
+    column.insertBefore(section, partiwall);
   }
 
   function renderHebelPanels(floor) {
-    const table = makeTable("hebel-panel-table", [31, 9.86, 9.86, 9.86, 9.86, 9.86, 9.86, 9.84]);
+    const table = makeTable("hebel-panel-table", [38, 8.86, 8.86, 8.86, 8.86, 8.86, 8.86, 8.84]);
     const tbody = document.createElement("tbody");
     appendHeader(tbody, "Product", HEBEL.panels.columns);
     appendMatrixRows(tbody, floor, HEBEL.panels, "hebel-panels");
