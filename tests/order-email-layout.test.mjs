@@ -72,8 +72,8 @@ test("order email uses the authenticated username, omits the lone default tab, a
   assert.match(requestBody.html, />View order<\/a>/);
   assert.match(requestBody.html, /<v:roundrect[\s\S]*height:40px;v-text-anchor:middle;width:96px;/);
   assert.match(requestBody.html, /width="96" height="40"[\s\S]*background:#006557/);
-  assert.match(requestBody.html, />Order summary<\/h1>/);
-  assert.match(requestBody.html, /<tr><td height="16" style="height:16px;font-size:0;line-height:0;">&nbsp;<\/td><\/tr>/);
+  assert.match(requestBody.html, /<td style="padding:0 0 16px;">[\s\S]*>Order summary<\/h1>/);
+  assert.doesNotMatch(requestBody.html, /<tr><td height="16" style="height:16px;font-size:0;line-height:0;">&nbsp;<\/td><\/tr>/);
   assert.match(requestBody.html, /SHEETROCK ONE 10 mm 1350 x 6000/);
   assert.match(requestBody.html, /SKU: 10SR1360/);
   assert.match(requestBody.html, /Qty 10/);
