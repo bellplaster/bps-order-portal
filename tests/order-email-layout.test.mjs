@@ -63,7 +63,7 @@ test("order email uses the authenticated username, omits the lone default tab, a
   assert.equal(requestBody.attachments[0].filename, "42.xlsx");
   assert.equal(
     requestBody.subject,
-    "New web portal order — Anytime Delivery to 125 Sussex St, Pascoe Vale on 1 December 2026",
+    "[Portal Order] Anytime Delivery to 125 Sussex St, Pascoe Vale on 1 December 2026",
   );
   assert.match(requestBody.html, /New web portal order/);
   assert.match(requestBody.html, /Abby<\/strong> placed order <strong>#42<\/strong>/);
@@ -119,7 +119,7 @@ test("order email retains tab labels when multiple tabs contain products", async
 
   assert.equal(
     requestBody.subject,
-    "New web portal order — 1st Load Delivery to 125 Sussex St, Pascoe Vale on 1 December 2026",
+    "[Portal Order] 1st Load Delivery to 125 Sussex St, Pascoe Vale on 1 December 2026",
   );
   assert.match(requestBody.html, /Mohamed<\/strong> placed order/);
   assert.match(requestBody.html, />Tab 1<\/td>/i);
