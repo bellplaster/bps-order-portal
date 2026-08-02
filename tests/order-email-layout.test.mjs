@@ -83,7 +83,8 @@ test("order email uses the authenticated username, omits the lone default tab, a
   assert.match(requestBody.html, /height:48px;padding:0;color:#202523;font-size:15px;font-weight:650;line-height:21px;vertical-align:middle;">10 total units/);
   assert.match(requestBody.html, /colspan="2" height="1" bgcolor="#dfe4e2"/);
   assert.doesNotMatch(requestBody.html, /border-top:1px solid #dfe4e2/);
-  assert.match(requestBody.html, /https:\/\/bellplastersupplies\.com\.au\/cdn\/shop\/files\/bell_logo_black\.png\?v=1781229976/);
+  assert.match(requestBody.html, /https:\/\/assets\.bellplaster\.com\.au\/bell_logo_black\.png/);
+  assert.doesNotMatch(requestBody.html, /bellplastersupplies\.com\.au\/cdn\/shop\/files\/bell_logo_black\.png/);
   assert.match(requestBody.html, /125 Sussex Street, Pascoe Vale VIC 3044/);
   assert.match(requestBody.html, /max-width:540px/);
   assert.match(requestBody.html, />Required<\/td>[\s\S]*>1 December 2026<\/td>/);
