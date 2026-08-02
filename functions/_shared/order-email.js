@@ -7,6 +7,8 @@ const DEFAULT_TO = "marketing@bellplaster.com.au";
 const DEFAULT_CC = "";
 const DEFAULT_REPLY_TO = "info@bellplaster.com.au";
 const DEFAULT_PORTAL_URL = "https://orders.bellplaster.com.au/";
+const DEFAULT_LOGO_URL = "https://bellplastersupplies.com.au/cdn/shop/files/bell_logo_black.png?v=1781229976";
+const COMPANY_ADDRESS = "125 Sussex Street, Pascoe Vale VIC 3044";
 
 export async function sendOrderFilesEmail(env, payload, result, auth = {}) {
   const accountId = String(env?.CLOUDFLARE_ACCOUNT_ID || "").trim();
@@ -47,14 +49,14 @@ export async function sendOrderFilesEmail(env, payload, result, auth = {}) {
   const company = String(snapshot.companyName || result?.companyName || payload?.customer || "Customer").trim();
   const submittedAt = formatSubmittedAt(snapshot.createdAt || new Date().toISOString());
   const contact = String(payload?.contact || snapshot.contact || "").trim();
-  const placedBy = humanName(contact || auth?.username || payload?.submittedBy || company);
+  const placedBy = displayUsername(auth?.username || payload?.submittedBy);
   const orderUrl = safeHttpUrl(env.ORDER_PORTAL_URL || DEFAULT_PORTAL_URL);
+  const logoUrl = safeHttpUrl(env.ORDER_EMAIL_LOGO_URL || DEFAULT_LOGO_URL);
   const order = {
     reference,
     company,
     debtorCode: snapshot.debtorCode || payload?.debtorCode || "—",
     placedBy,
-    submittedBy: auth?.username || payload?.submittedBy || "Portal user",
     submittedAt,
     requiredDate: formatRequiredDate(payload?.requiredDate),
     timeSlot: timeSlotLabel(payload?.timeSlot),
@@ -65,6 +67,7 @@ export async function sendOrderFilesEmail(env, payload, result, auth = {}) {
     extras: Array.isArray(payload?.extras) && payload.extras.length ? payload.extras.join(", ") : "None",
     instructions: String(payload?.deliveryInstructions || payload?.instructions || "").trim() || "None",
     orderUrl,
+    logoUrl,
   };
 
   const subject = buildSubject(payload);
@@ -114,14 +117,17 @@ export async function sendOrderFilesEmail(env, payload, result, auth = {}) {
 }
 
 function buildText(order, areas, totals, attachmentCount) {
+  const showAreaLabels = shouldShowAreaLabels(areas);
   const products = areas.length
     ? areas.flatMap((area) => [
         "",
-        area.label,
+        ...(showAreaLabels ? [area.label] : []),
         ...area.lines.map((line) => `${line.description}\nSKU: ${line.sku || "—"} | Qty ${line.quantity}`),
       ])
     : ["", "No product lines were available in the email payload."];
   return [
+    "New web portal order",
+    "",
     `${order.placedBy} placed order #${order.reference} on ${order.submittedAt}.`,
     "",
     `View order: ${order.orderUrl}`,
@@ -129,8 +135,8 @@ function buildText(order, areas, totals, attachmentCount) {
     "Order summary",
     ...products,
     "",
-    `Product lines: ${totals.lineCount}`,
-    `Total units: ${totals.unitCount}`,
+    `${totals.lineCount} product line${totals.lineCount === 1 ? "" : "s"}`,
+    `${totals.unitCount} total units`,
     "",
     "Delivery details",
     `Customer: ${order.company}`,
@@ -144,15 +150,20 @@ function buildText(order, areas, totals, attachmentCount) {
     `Instructions: ${order.instructions}`,
     "",
     `${attachmentCount} Accrivia XLSX file${attachmentCount === 1 ? " is" : "s are"} attached.`,
+    "",
+    "Bell Plaster and Building Supplies",
+    COMPANY_ADDRESS,
   ].join("\n");
 }
 
 function buildHtml(order, areas, totals) {
+  const showAreaLabels = shouldShowAreaLabels(areas);
   const products = areas.length
     ? areas.map((area) => `
+      ${showAreaLabels ? `
       <tr>
         <td style="padding:18px 0 8px;color:#5f6c68;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;">${escapeHtml(area.label)}</td>
-      </tr>
+      </tr>` : ""}
       ${area.lines.map((line) => `
       <tr>
         <td style="padding:0 0 16px;">
@@ -195,11 +206,12 @@ function buildHtml(order, areas, totals) {
 <body style="margin:0;padding:0;background:#f3f5f4;color:#202523;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;-webkit-text-size-adjust:100%;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background:#f3f5f4;">
     <tr>
-      <td align="center" style="padding:32px 16px;">
+      <td align="center" style="padding:32px 16px 24px;">
         <table role="presentation" width="540" cellpadding="0" cellspacing="0" style="width:100%;max-width:540px;border-collapse:separate;background:#ffffff;border:1px solid #cfd5d2;border-radius:8px;overflow:hidden;">
           <tr><td style="height:6px;background:#a62b47;font-size:0;line-height:0;">&nbsp;</td></tr>
           <tr>
             <td style="padding:24px 24px 20px;">
+              <div style="margin:0 0 8px;color:#a62b47;font-size:11px;font-weight:700;letter-spacing:.06em;line-height:16px;text-transform:uppercase;">New web portal order</div>
               <p style="margin:0;color:#202523;font-size:15px;line-height:23px;"><strong>${escapeHtml(order.placedBy)}</strong> placed order <strong>#${escapeHtml(order.reference)}</strong> on ${escapeHtml(order.submittedAt)}.</p>
               <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:18px;">
                 <tr>
@@ -217,10 +229,10 @@ function buildHtml(order, areas, totals) {
             <td style="padding:22px 24px 8px;">
               <h1 style="margin:0;color:#202523;font-size:18px;font-weight:650;line-height:24px;">Order summary</h1>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;">${products}</table>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-top:2px;background:#f7f9f8;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-top:2px;border-top:1px solid #dfe4e2;">
                 <tr>
-                  <td style="padding:10px 12px;color:#5f6c68;font-size:12px;line-height:18px;">${totals.lineCount} product line${totals.lineCount === 1 ? "" : "s"}</td>
-                  <td align="right" style="padding:10px 12px;color:#202523;font-size:12px;font-weight:600;line-height:18px;">${totals.unitCount} total units</td>
+                  <td style="padding:14px 0;color:#202523;font-size:15px;font-weight:650;line-height:21px;">${totals.lineCount} product line${totals.lineCount === 1 ? "" : "s"}</td>
+                  <td align="right" style="padding:14px 0;color:#202523;font-size:15px;font-weight:650;line-height:21px;">${totals.unitCount} total units</td>
                 </tr>
               </table>
             </td>
@@ -233,6 +245,14 @@ function buildHtml(order, areas, totals) {
               <h2 style="margin:0 0 8px;color:#202523;font-size:15px;font-weight:650;line-height:21px;">Delivery details</h2>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;">${details}</table>
               <p style="margin:18px 0 0;color:#7a8480;font-size:12px;line-height:18px;">The combined Accrivia XLSX is attached to this email.</p>
+            </td>
+          </tr>
+        </table>
+        <table role="presentation" width="540" cellpadding="0" cellspacing="0" style="width:100%;max-width:540px;border-collapse:collapse;">
+          <tr>
+            <td align="center" style="padding:28px 16px 8px;">
+              <img src="${escapeHtml(order.logoUrl)}" width="178" alt="Bell Plaster and Building Supplies" style="display:block;width:178px;max-width:100%;height:auto;border:0;outline:none;text-decoration:none;">
+              <p style="margin:12px 0 0;color:#7a8480;font-size:12px;line-height:18px;">${escapeHtml(COMPANY_ADDRESS)}</p>
             </td>
           </tr>
         </table>
@@ -348,8 +368,8 @@ function buildSubject(payload) {
   const date = formatRequiredDate(payload?.requiredDate);
   const slot = timeSlotLabel(payload?.timeSlot);
   return isPickup(payload?.deliveryType)
-    ? cleanSubject(`Pickup on ${date} ${slot}`)
-    : cleanSubject(`Delivery to ${subjectAddress(payload)} on ${date} ${slot}`);
+    ? cleanSubject(`New web portal order — ${slot} Pickup on ${date}`)
+    : cleanSubject(`New web portal order — ${slot} Delivery to ${subjectAddress(payload)} on ${date}`);
 }
 
 function subjectAddress(payload) {
@@ -405,8 +425,8 @@ function formatSubmittedAt(value) {
 }
 
 function timeSlotLabel(value) {
-  return ({ "1ST": "1st Load", "2ND": "2nd Load", AM: "AM", PM: "PM", ANY: "Any" })[String(value || "").trim().toUpperCase()]
-    || String(value || "Any");
+  return ({ "1ST": "1st Load", "2ND": "2nd Load", AM: "AM", PM: "PM", ANY: "Anytime" })[String(value || "").trim().toUpperCase()]
+    || String(value || "Anytime");
 }
 
 function deliveryTypeLabel(value) {
@@ -422,10 +442,14 @@ function isPickup(value) {
   return /pickup|pick\s*up|collect/i.test(String(value || ""));
 }
 
-function humanName(value) {
+function shouldShowAreaLabels(areas) {
+  return areas.length !== 1 || areas[0]?.label !== "Tab 1";
+}
+
+function displayUsername(value) {
   const text = String(value || "").trim();
-  if (!text) return "A portal user";
-  return text === text.toUpperCase() || text === text.toLowerCase() ? titleCase(text) : text;
+  if (!text) return "Portal user";
+  return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
 }
 
 function titleCase(value) {
