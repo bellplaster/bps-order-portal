@@ -63,9 +63,10 @@ test("order email uses the authenticated username, omits the lone default tab, a
   assert.equal(requestBody.attachments[0].filename, "42.xlsx");
   assert.equal(
     requestBody.subject,
-    "[Portal Order] Anytime Delivery to 125 Sussex St, Pascoe Vale on 1 December 2026",
+    "[Portal Order] Delivery (Anytime) to 125 Sussex St, Pascoe Vale on 1 December 2026",
   );
-  assert.match(requestBody.html, /New web portal order/);
+  assert.doesNotMatch(requestBody.html, /New web portal order/i);
+  assert.doesNotMatch(requestBody.text, /New web portal order/i);
   assert.match(requestBody.html, /Abby<\/strong> placed order <strong>#42<\/strong>/);
   assert.doesNotMatch(requestBody.html, /Douglas<\/strong> placed order/);
   assert.match(requestBody.html, />View order<\/a>/);
@@ -75,14 +76,21 @@ test("order email uses the authenticated username, omits the lone default tab, a
   assert.match(requestBody.html, /Qty 10/);
   assert.doesNotMatch(requestBody.html, />Tab 1<\/td>/i);
   assert.doesNotMatch(requestBody.text, /\nTab 1\n/);
-  assert.match(requestBody.html, /font-size:15px;font-weight:650;line-height:21px;">1 product line/);
-  assert.match(requestBody.html, /font-size:15px;font-weight:650;line-height:21px;">10 total units/);
-  assert.match(requestBody.html, /bell_logo_black\.png/);
+  assert.match(requestBody.html, /height:48px;padding:0;color:#202523;font-size:15px;font-weight:650;line-height:21px;vertical-align:middle;">1 product line/);
+  assert.match(requestBody.html, /height:48px;padding:0;color:#202523;font-size:15px;font-weight:650;line-height:21px;vertical-align:middle;">10 total units/);
+  assert.doesNotMatch(requestBody.html, /border-top:1px solid #dfe4e2/);
+  assert.match(requestBody.html, /https:\/\/bellplastersupplies\.com\.au\/cdn\/shop\/files\/bell_logo_black\.png\?v=1781229976/);
   assert.match(requestBody.html, /125 Sussex Street, Pascoe Vale VIC 3044/);
   assert.match(requestBody.html, /max-width:540px/);
+  assert.match(requestBody.html, />Required<\/td>[\s\S]*>1 December 2026<\/td>/);
+  assert.match(requestBody.html, />Time Slot<\/td>[\s\S]*>Anytime<\/td>/);
+  assert.doesNotMatch(requestBody.html, /Required[\s\S]*1 December 2026 · Anytime/);
+  assert.doesNotMatch(requestBody.html, /combined Accrivia XLSX/i);
+  assert.doesNotMatch(requestBody.text, /Accrivia XLSX file/i);
   assert.match(requestBody.text, /Abby placed order #42/);
   assert.match(requestBody.text, /SKU: 10SR1360 \| Qty 10/);
-  assert.match(requestBody.text, /Required: 1 December 2026 · Anytime/);
+  assert.match(requestBody.text, /Required: 1 December 2026/);
+  assert.match(requestBody.text, /Time Slot: Anytime/);
 });
 
 test("order email retains tab labels when multiple tabs contain products", async (context) => {
@@ -119,11 +127,12 @@ test("order email retains tab labels when multiple tabs contain products", async
 
   assert.equal(
     requestBody.subject,
-    "[Portal Order] 1st Load Delivery to 125 Sussex St, Pascoe Vale on 1 December 2026",
+    "[Portal Order] Delivery (1st Load) to 125 Sussex St, Pascoe Vale on 1 December 2026",
   );
   assert.match(requestBody.html, /Mohamed<\/strong> placed order/);
   assert.match(requestBody.html, />Tab 1<\/td>/i);
   assert.match(requestBody.html, />Level 2<\/td>/i);
   assert.match(requestBody.text, /\nTab 1\n/);
   assert.match(requestBody.text, /\nLevel 2\n/);
+  assert.match(requestBody.html, />Time Slot<\/td>[\s\S]*>1st Load<\/td>/);
 });
