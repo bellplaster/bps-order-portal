@@ -49,9 +49,9 @@ export async function sendOrderFilesEmail(env, payload, result, auth = {}) {
   const company = String(snapshot.companyName || result?.companyName || payload?.customer || "Customer").trim();
   const submittedAt = formatSubmittedAt(snapshot.createdAt || new Date().toISOString());
   const contact = String(payload?.contact || snapshot.contact || "").trim();
-  const placedBy = displayUsername(auth?.username || payload?.submittedBy);
-  const orderUrl = safeHttpUrl(env.ORDER_PORTAL_URL || DEFAULT_PORTAL_URL);
-  const logoUrl = safeHttpUrl(env.ORDER_EMAIL_LOGO_URL || DEFAULT_LOGO_URL);
+  const placedBy = displayUsername(auth?.username);
+  const orderUrl = safeHttpUrl(env.ORDER_PORTAL_URL || DEFAULT_PORTAL_URL, DEFAULT_PORTAL_URL);
+  const logoUrl = safeHttpUrl(env.ORDER_EMAIL_LOGO_URL || DEFAULT_LOGO_URL, DEFAULT_LOGO_URL);
   const order = {
     reference,
     company,
@@ -293,7 +293,12 @@ async function loadOrderSnapshot(env, payload, result) {
 
 async function buildAreaGroups(env, payload) {
   const floors = payload?.floors && typeof payload.floors === "object" ? payload.floors : {};
-  const groups = Object.entries(floors).map(([key, area], index) => {
+  const floorEntries = Object.entries(floors);
+  const singleLabel = floorEntries.length === 1
+    ? String(floorEntries[0][1]?.label || floorEntries[0][0] || "").trim()
+    : "";
+  const showAreaLabels = floorEntries.length !== 1 || singleLabel !== "Tab 1";
+  const groups = floorEntries.map(([key, area], index) => {
     const lines = [];
     for (const item of Array.isArray(area?.items) ? area.items : []) {
       const product = PRODUCT_CATALOG[String(item?.key || "").trim()] || {};
@@ -305,6 +310,7 @@ async function buildAreaGroups(env, payload) {
     return {
       label: String(area?.label || key || `Tab ${index + 1}`).trim(),
       lines: combineLines(lines),
+      showLabel: showAreaLabels,
     };
   }).filter((group) => group.lines.length);
   await enrichMissingDescriptions(env, groups);
@@ -443,7 +449,7 @@ function isPickup(value) {
 }
 
 function shouldShowAreaLabels(areas) {
-  return areas.length !== 1 || areas[0]?.label !== "Tab 1";
+  return areas.some((area) => area.showLabel);
 }
 
 function displayUsername(value) {
@@ -456,13 +462,13 @@ function titleCase(value) {
   return String(value || "").trim().toLowerCase().replace(/\b([a-z])/g, (match) => match.toUpperCase());
 }
 
-function safeHttpUrl(value) {
+function safeHttpUrl(value, fallback) {
   const text = String(value || "").trim();
   try {
     const url = new URL(text);
-    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : DEFAULT_PORTAL_URL;
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : fallback;
   } catch {
-    return DEFAULT_PORTAL_URL;
+    return fallback;
   }
 }
 
