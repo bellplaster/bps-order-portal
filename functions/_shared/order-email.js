@@ -6,6 +6,7 @@ const DEFAULT_FROM = "portal@orders.bellplaster.com.au";
 const DEFAULT_TO = "marketing@bellplaster.com.au";
 const DEFAULT_CC = "";
 const DEFAULT_REPLY_TO = "info@bellplaster.com.au";
+const DEFAULT_PORTAL_URL = "https://orders.bellplaster.com.au/";
 
 export async function sendOrderFilesEmail(env, payload, result, auth = {}) {
   const accountId = String(env?.CLOUDFLARE_ACCOUNT_ID || "").trim();
@@ -44,27 +45,31 @@ export async function sendOrderFilesEmail(env, payload, result, auth = {}) {
   const totals = areaTotals(areas);
   const reference = String(result?.customerReference || payload?.reference || "New order").trim();
   const company = String(snapshot.companyName || result?.companyName || payload?.customer || "Customer").trim();
-  const requiredDate = formatRequiredDate(payload?.requiredDate);
-  const timeSlot = timeSlotLabel(payload?.timeSlot);
-  const subject = buildSubject(payload);
-  const rows = [
-    ["Reference", reference],
-    ["Debtor code", snapshot.debtorCode || payload?.debtorCode || "—"],
-    ["Customer", company],
-    ["Submitted by", auth?.username || payload?.submittedBy || "Portal user"],
-    ["Submitted", formatSubmittedAt(snapshot.createdAt || new Date().toISOString())],
-    ["Required date", requiredDate],
-    ["Time slot", timeSlot],
-    ["Address", fullAddress(payload)],
-    ["Contact", payload?.contact || snapshot.contact || "—"],
-    ["Phone", payload?.mobile || snapshot.mobile || "—"],
-    ["Delivery type", deliveryTypeLabel(payload?.deliveryType)],
-    ["Extras", Array.isArray(payload?.extras) && payload.extras.length ? payload.extras.join(", ") : "None"],
-    ["Instructions", String(payload?.deliveryInstructions || payload?.instructions || "").trim() || "None"],
-  ];
+  const submittedAt = formatSubmittedAt(snapshot.createdAt || new Date().toISOString());
+  const contact = String(payload?.contact || snapshot.contact || "").trim();
+  const placedBy = humanName(contact || auth?.username || payload?.submittedBy || company);
+  const orderUrl = safeHttpUrl(env.ORDER_PORTAL_URL || DEFAULT_PORTAL_URL);
+  const order = {
+    reference,
+    company,
+    debtorCode: snapshot.debtorCode || payload?.debtorCode || "—",
+    placedBy,
+    submittedBy: auth?.username || payload?.submittedBy || "Portal user",
+    submittedAt,
+    requiredDate: formatRequiredDate(payload?.requiredDate),
+    timeSlot: timeSlotLabel(payload?.timeSlot),
+    address: fullAddress(payload),
+    contact: contact || "—",
+    phone: payload?.mobile || snapshot.mobile || "—",
+    deliveryType: deliveryTypeLabel(payload?.deliveryType),
+    extras: Array.isArray(payload?.extras) && payload.extras.length ? payload.extras.join(", ") : "None",
+    instructions: String(payload?.deliveryInstructions || payload?.instructions || "").trim() || "None",
+    orderUrl,
+  };
 
-  const text = buildText(rows, areas, totals, attachments.length);
-  const html = buildHtml(company, rows, areas, totals);
+  const subject = buildSubject(payload);
+  const text = buildText(order, areas, totals, attachments.length);
+  const html = buildHtml(order, areas, totals);
   const message = {
     from: {
       address: String(env.ORDER_EMAIL_FROM || DEFAULT_FROM).trim(),
@@ -108,70 +113,134 @@ export async function sendOrderFilesEmail(env, payload, result, auth = {}) {
   };
 }
 
-function buildText(rows, areas, totals, attachmentCount) {
+function buildText(order, areas, totals, attachmentCount) {
   const products = areas.length
     ? areas.flatMap((area) => [
         "",
         area.label,
-        ...area.lines.map((line) => `${line.sku || "—"} | ${line.description} | Qty ${line.quantity}`),
+        ...area.lines.map((line) => `${line.description}\nSKU: ${line.sku || "—"} | Qty ${line.quantity}`),
       ])
     : ["", "No product lines were available in the email payload."];
   return [
-    "A new Bell Plaster order has been submitted.",
+    `${order.placedBy} placed order #${order.reference} on ${order.submittedAt}.`,
     "",
-    ...rows.map(([label, value]) => `${label}: ${value}`),
+    `View order: ${order.orderUrl}`,
     "",
-    "Products",
+    "Order summary",
     ...products,
     "",
     `Product lines: ${totals.lineCount}`,
     `Total units: ${totals.unitCount}`,
     "",
+    "Delivery details",
+    `Customer: ${order.company}`,
+    `Debtor code: ${order.debtorCode}`,
+    `Required: ${order.requiredDate} · ${order.timeSlot}`,
+    `Delivery: ${order.deliveryType}`,
+    `Address: ${order.address}`,
+    `Contact: ${order.contact}`,
+    `Phone: ${order.phone}`,
+    `Extras: ${order.extras}`,
+    `Instructions: ${order.instructions}`,
+    "",
     `${attachmentCount} Accrivia XLSX file${attachmentCount === 1 ? " is" : "s are"} attached.`,
   ].join("\n");
 }
 
-function buildHtml(company, rows, areas, totals) {
-  const details = rows.map(([label, value]) => `
-    <tr>
-      <th style="width:145px;padding:8px 10px;text-align:left;vertical-align:top;border-bottom:1px solid #d9dfdd;color:#5f6c68;font-size:12px;">${escapeHtml(label)}</th>
-      <td style="padding:8px 10px;border-bottom:1px solid #d9dfdd;color:#17211f;font-size:12px;line-height:1.45;">${escapeHtml(value)}</td>
-    </tr>`).join("");
+function buildHtml(order, areas, totals) {
   const products = areas.length
     ? areas.map((area) => `
-      <section style="margin-top:18px;border:1px solid #d9dfdd;">
-        <div style="padding:9px 11px;background:#f1f5f3;font-size:13px;font-weight:700;">${escapeHtml(area.label)}</div>
-        <table role="presentation" style="width:100%;border-collapse:collapse;">
-          <thead><tr>
-            <th style="padding:7px 9px;text-align:left;border-bottom:1px solid #d9dfdd;color:#5f6c68;font-size:11px;">SKU</th>
-            <th style="padding:7px 9px;text-align:left;border-bottom:1px solid #d9dfdd;color:#5f6c68;font-size:11px;">Product</th>
-            <th style="width:54px;padding:7px 9px;text-align:right;border-bottom:1px solid #d9dfdd;color:#5f6c68;font-size:11px;">Qty</th>
-          </tr></thead>
-          <tbody>${area.lines.map((line) => `
+      <tr>
+        <td style="padding:18px 0 8px;color:#5f6c68;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;">${escapeHtml(area.label)}</td>
+      </tr>
+      ${area.lines.map((line) => `
+      <tr>
+        <td style="padding:0 0 16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;">
             <tr>
-              <td style="padding:7px 9px;border-bottom:1px solid #edf0ef;font-size:11px;white-space:nowrap;">${escapeHtml(line.sku || "—")}</td>
-              <td style="padding:7px 9px;border-bottom:1px solid #edf0ef;font-size:11px;">${escapeHtml(line.description)}</td>
-              <td style="padding:7px 9px;text-align:right;border-bottom:1px solid #edf0ef;font-size:11px;font-weight:700;">${line.quantity}</td>
-            </tr>`).join("")}</tbody>
-        </table>
-      </section>`).join("")
-    : '<p style="margin:14px 0 0;color:#5f6c68;font-size:12px;">No product lines were available in the email payload.</p>';
+              <td style="padding:0 12px 16px 0;border-bottom:1px solid #e5e9e7;vertical-align:top;">
+                <div style="color:#202523;font-size:14px;font-weight:600;line-height:20px;">${escapeHtml(line.description)}</div>
+                <div style="margin-top:3px;color:#7a8480;font-size:12px;line-height:18px;">SKU: ${escapeHtml(line.sku || "—")}</div>
+              </td>
+              <td width="72" align="right" style="width:72px;padding:0 0 16px;border-bottom:1px solid #e5e9e7;color:#202523;font-size:14px;font-weight:600;line-height:20px;vertical-align:top;white-space:nowrap;">Qty ${line.quantity}</td>
+            </tr>
+          </table>
+        </td>
+      </tr>`).join("")}`).join("")
+    : '<tr><td style="padding:16px 0;color:#5f6c68;font-size:13px;">No product lines were available in the email payload.</td></tr>';
 
-  return `<!doctype html><html><body style="margin:0;padding:24px;background:#f4f7f6;font-family:Arial,sans-serif;color:#17211f;">
-    <div style="max-width:760px;margin:0 auto;background:#fff;border:1px solid #d9dfdd;">
-      <div style="padding:15px 18px;background:#a62b47;color:#fff;font-size:17px;font-weight:700;">New customer order</div>
-      <div style="padding:18px;">
-        <p style="margin:0 0 14px;font-size:13px;line-height:1.5;"><strong>${escapeHtml(company)}</strong> has placed a new order through the Bell Plaster Order Portal.</p>
-        <table role="presentation" style="width:100%;border-collapse:collapse;border:1px solid #d9dfdd;">${details}</table>
-        <h2 style="margin:22px 0 0;font-size:15px;">Products</h2>
-        ${products}
-        <div style="margin-top:14px;padding:10px 12px;text-align:right;background:#f8faf9;border:1px solid #d9dfdd;font-size:12px;">
-          Product lines: <strong>${totals.lineCount}</strong>&nbsp;&nbsp;&nbsp; Total units: <strong>${totals.unitCount}</strong>
-        </div>
-        <p style="margin:16px 0 0;color:#5f6c68;font-size:12px;">The stored combined Accrivia XLSX is attached.</p>
-      </div>
-    </div>
-  </body></html>`;
+  const details = [
+    ["Customer", order.company],
+    ["Debtor code", order.debtorCode],
+    ["Required", `${order.requiredDate} · ${order.timeSlot}`],
+    ["Delivery", order.deliveryType],
+    ["Address", order.address],
+    ["Contact", order.contact],
+    ["Phone", order.phone],
+    ["Extras", order.extras],
+    ["Instructions", order.instructions],
+  ].map(([label, value]) => `
+    <tr>
+      <td width="110" style="width:110px;padding:5px 12px 5px 0;color:#7a8480;font-size:12px;line-height:18px;vertical-align:top;">${escapeHtml(label)}</td>
+      <td style="padding:5px 0;color:#202523;font-size:13px;line-height:18px;vertical-align:top;">${escapeHtml(value)}</td>
+    </tr>`).join("");
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Bell Plaster order</title>
+</head>
+<body style="margin:0;padding:0;background:#f3f5f4;color:#202523;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;-webkit-text-size-adjust:100%;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;background:#f3f5f4;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" width="540" cellpadding="0" cellspacing="0" style="width:100%;max-width:540px;border-collapse:separate;background:#ffffff;border:1px solid #cfd5d2;border-radius:8px;overflow:hidden;">
+          <tr><td style="height:6px;background:#a62b47;font-size:0;line-height:0;">&nbsp;</td></tr>
+          <tr>
+            <td style="padding:24px 24px 20px;">
+              <p style="margin:0;color:#202523;font-size:15px;line-height:23px;"><strong>${escapeHtml(order.placedBy)}</strong> placed order <strong>#${escapeHtml(order.reference)}</strong> on ${escapeHtml(order.submittedAt)}.</p>
+              <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:18px;">
+                <tr>
+                  <td style="border-radius:5px;background:#006557;">
+                    <a href="${escapeHtml(order.orderUrl)}" style="display:inline-block;padding:10px 17px;color:#ffffff;font-size:14px;font-weight:600;line-height:20px;text-decoration:none;border-radius:5px;">View order</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 24px;"><div style="height:1px;background:#dfe4e2;font-size:0;line-height:0;">&nbsp;</div></td>
+          </tr>
+          <tr>
+            <td style="padding:22px 24px 8px;">
+              <h1 style="margin:0;color:#202523;font-size:18px;font-weight:650;line-height:24px;">Order summary</h1>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;">${products}</table>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-top:2px;background:#f7f9f8;">
+                <tr>
+                  <td style="padding:10px 12px;color:#5f6c68;font-size:12px;line-height:18px;">${totals.lineCount} product line${totals.lineCount === 1 ? "" : "s"}</td>
+                  <td align="right" style="padding:10px 12px;color:#202523;font-size:12px;font-weight:600;line-height:18px;">${totals.unitCount} total units</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:18px 24px 0;"><div style="height:1px;background:#dfe4e2;font-size:0;line-height:0;">&nbsp;</div></td>
+          </tr>
+          <tr>
+            <td style="padding:20px 24px 24px;">
+              <h2 style="margin:0 0 8px;color:#202523;font-size:15px;font-weight:650;line-height:21px;">Delivery details</h2>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;">${details}</table>
+              <p style="margin:18px 0 0;color:#7a8480;font-size:12px;line-height:18px;">The combined Accrivia XLSX is attached to this email.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 }
 
 async function loadOrderSnapshot(env, payload, result) {
@@ -353,8 +422,24 @@ function isPickup(value) {
   return /pickup|pick\s*up|collect/i.test(String(value || ""));
 }
 
+function humanName(value) {
+  const text = String(value || "").trim();
+  if (!text) return "A portal user";
+  return text === text.toUpperCase() || text === text.toLowerCase() ? titleCase(text) : text;
+}
+
 function titleCase(value) {
   return String(value || "").trim().toLowerCase().replace(/\b([a-z])/g, (match) => match.toUpperCase());
+}
+
+function safeHttpUrl(value) {
+  const text = String(value || "").trim();
+  try {
+    const url = new URL(text);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : DEFAULT_PORTAL_URL;
+  } catch {
+    return DEFAULT_PORTAL_URL;
+  }
 }
 
 function cleanSubject(value) {
