@@ -51,7 +51,7 @@ export async function sendOrderFilesEmail(env, payload, result, auth = {}) {
   const contact = String(payload?.contact || snapshot.contact || "").trim();
   const placedBy = displayUsername(auth?.username);
   const orderUrl = safeHttpUrl(env.ORDER_PORTAL_URL || DEFAULT_PORTAL_URL, DEFAULT_PORTAL_URL);
-  const logoUrl = safeHttpUrl(env.ORDER_EMAIL_LOGO_URL || DEFAULT_LOGO_URL, DEFAULT_LOGO_URL);
+  const logoUrl = DEFAULT_LOGO_URL;
   const order = {
     reference,
     company,
@@ -71,7 +71,7 @@ export async function sendOrderFilesEmail(env, payload, result, auth = {}) {
   };
 
   const subject = buildSubject(payload);
-  const text = buildText(order, areas, totals, attachments.length);
+  const text = buildText(order, areas, totals);
   const html = buildHtml(order, areas, totals);
   const message = {
     from: {
@@ -116,7 +116,7 @@ export async function sendOrderFilesEmail(env, payload, result, auth = {}) {
   };
 }
 
-function buildText(order, areas, totals, attachmentCount) {
+function buildText(order, areas, totals) {
   const showAreaLabels = shouldShowAreaLabels(areas);
   const products = areas.length
     ? areas.flatMap((area) => [
@@ -126,8 +126,6 @@ function buildText(order, areas, totals, attachmentCount) {
       ])
     : ["", "No product lines were available in the email payload."];
   return [
-    "New web portal order",
-    "",
     `${order.placedBy} placed order #${order.reference} on ${order.submittedAt}.`,
     "",
     `View order: ${order.orderUrl}`,
@@ -141,15 +139,14 @@ function buildText(order, areas, totals, attachmentCount) {
     "Delivery details",
     `Customer: ${order.company}`,
     `Debtor code: ${order.debtorCode}`,
-    `Required: ${order.requiredDate} · ${order.timeSlot}`,
+    `Required: ${order.requiredDate}`,
+    `Time Slot: ${order.timeSlot}`,
     `Delivery: ${order.deliveryType}`,
     `Address: ${order.address}`,
     `Contact: ${order.contact}`,
     `Phone: ${order.phone}`,
     `Extras: ${order.extras}`,
     `Instructions: ${order.instructions}`,
-    "",
-    `${attachmentCount} Accrivia XLSX file${attachmentCount === 1 ? " is" : "s are"} attached.`,
     "",
     "Bell Plaster and Building Supplies",
     COMPANY_ADDRESS,
@@ -183,7 +180,8 @@ function buildHtml(order, areas, totals) {
   const details = [
     ["Customer", order.company],
     ["Debtor code", order.debtorCode],
-    ["Required", `${order.requiredDate} · ${order.timeSlot}`],
+    ["Required", order.requiredDate],
+    ["Time Slot", order.timeSlot],
     ["Delivery", order.deliveryType],
     ["Address", order.address],
     ["Contact", order.contact],
@@ -211,7 +209,6 @@ function buildHtml(order, areas, totals) {
           <tr><td style="height:6px;background:#a62b47;font-size:0;line-height:0;">&nbsp;</td></tr>
           <tr>
             <td style="padding:24px 24px 20px;">
-              <div style="margin:0 0 8px;color:#a62b47;font-size:11px;font-weight:700;letter-spacing:.06em;line-height:16px;text-transform:uppercase;">New web portal order</div>
               <p style="margin:0;color:#202523;font-size:15px;line-height:23px;"><strong>${escapeHtml(order.placedBy)}</strong> placed order <strong>#${escapeHtml(order.reference)}</strong> on ${escapeHtml(order.submittedAt)}.</p>
               <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:18px;">
                 <tr>
@@ -229,10 +226,10 @@ function buildHtml(order, areas, totals) {
             <td style="padding:22px 24px 8px;">
               <h1 style="margin:0;color:#202523;font-size:18px;font-weight:650;line-height:24px;">Order summary</h1>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;">${products}</table>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-top:2px;border-top:1px solid #dfe4e2;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-top:2px;">
                 <tr>
-                  <td style="padding:14px 0;color:#202523;font-size:15px;font-weight:650;line-height:21px;">${totals.lineCount} product line${totals.lineCount === 1 ? "" : "s"}</td>
-                  <td align="right" style="padding:14px 0;color:#202523;font-size:15px;font-weight:650;line-height:21px;">${totals.unitCount} total units</td>
+                  <td height="48" valign="middle" style="height:48px;padding:0;color:#202523;font-size:15px;font-weight:650;line-height:21px;vertical-align:middle;">${totals.lineCount} product line${totals.lineCount === 1 ? "" : "s"}</td>
+                  <td height="48" valign="middle" align="right" style="height:48px;padding:0;color:#202523;font-size:15px;font-weight:650;line-height:21px;vertical-align:middle;">${totals.unitCount} total units</td>
                 </tr>
               </table>
             </td>
@@ -244,7 +241,6 @@ function buildHtml(order, areas, totals) {
             <td style="padding:20px 24px 24px;">
               <h2 style="margin:0 0 8px;color:#202523;font-size:15px;font-weight:650;line-height:21px;">Delivery details</h2>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;">${details}</table>
-              <p style="margin:18px 0 0;color:#7a8480;font-size:12px;line-height:18px;">The combined Accrivia XLSX is attached to this email.</p>
             </td>
           </tr>
         </table>
@@ -374,8 +370,8 @@ function buildSubject(payload) {
   const date = formatRequiredDate(payload?.requiredDate);
   const slot = timeSlotLabel(payload?.timeSlot);
   return isPickup(payload?.deliveryType)
-    ? cleanSubject(`[Portal Order] ${slot} Pickup on ${date}`)
-    : cleanSubject(`[Portal Order] ${slot} Delivery to ${subjectAddress(payload)} on ${date}`);
+    ? cleanSubject(`[Portal Order] Pickup (${slot}) on ${date}`)
+    : cleanSubject(`[Portal Order] Delivery (${slot}) to ${subjectAddress(payload)} on ${date}`);
 }
 
 function subjectAddress(payload) {
