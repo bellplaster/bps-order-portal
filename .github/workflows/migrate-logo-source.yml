@@ -60,3 +60,5 @@ jobs:
           git add functions/_shared/order-email.js public/index.html public/account/index.html
           git commit -m "Serve portal logos from Cloudflare R2"
           git push
+
+# One-time migration trigger.
