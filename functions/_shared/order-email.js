@@ -238,9 +238,12 @@ function buildHtml(order, areas, totals) {
           </tr>
           <tr>
             <td style="padding:22px 24px 8px;">
-              <h1 style="margin:0;color:#202523;font-size:18px;font-weight:650;line-height:24px;">Order summary</h1>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;">
-                <tr><td height="16" style="height:16px;font-size:0;line-height:0;">&nbsp;</td></tr>
+                <tr>
+                  <td style="padding:0 0 16px;">
+                    <h1 style="margin:0;color:#202523;font-size:18px;font-weight:650;line-height:24px;">Order summary</h1>
+                  </td>
+                </tr>
               </table>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;">${products}</table>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-top:2px;">
