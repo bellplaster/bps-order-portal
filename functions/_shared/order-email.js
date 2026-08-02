@@ -7,7 +7,7 @@ const DEFAULT_TO = "marketing@bellplaster.com.au";
 const DEFAULT_CC = "";
 const DEFAULT_REPLY_TO = "info@bellplaster.com.au";
 const DEFAULT_PORTAL_URL = "https://orders.bellplaster.com.au/";
-const DEFAULT_LOGO_URL = "https://bellplastersupplies.com.au/cdn/shop/files/bell_logo_black.png?v=1781229976";
+const DEFAULT_LOGO_URL = "https://assets.bellplaster.com.au/bell_logo_black.png";
 const COMPANY_ADDRESS = "125 Sussex Street, Pascoe Vale VIC 3044";
 
 export async function sendOrderFilesEmail(env, payload, result, auth = {}) {
