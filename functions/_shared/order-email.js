@@ -195,7 +195,7 @@ function buildHtml(order, areas, totals) {
     </tr>`).join("");
 
   return `<!doctype html>
-<html lang="en">
+<html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -212,8 +212,22 @@ function buildHtml(order, areas, totals) {
               <p style="margin:0;color:#202523;font-size:15px;line-height:23px;"><strong>${escapeHtml(order.placedBy)}</strong> placed order <strong>#${escapeHtml(order.reference)}</strong> on ${escapeHtml(order.submittedAt)}.</p>
               <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-top:18px;">
                 <tr>
-                  <td style="border-radius:5px;background:#006557;">
-                    <a href="${escapeHtml(order.orderUrl)}" style="display:inline-block;padding:10px 17px;color:#ffffff;font-size:14px;font-weight:600;line-height:20px;text-decoration:none;border-radius:5px;">View order</a>
+                  <td align="left">
+                    <!--[if mso]>
+                    <v:roundrect href="${escapeHtml(order.orderUrl)}" style="height:40px;v-text-anchor:middle;width:96px;" arcsize="10%" stroke="f" fillcolor="#006557">
+                      <w:anchorlock xmlns:w="urn:schemas-microsoft-com:office:word"/>
+                      <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:14px;font-weight:bold;">View order</center>
+                    </v:roundrect>
+                    <![endif]-->
+                    <!--[if !mso]><!-- -->
+                    <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:separate;">
+                      <tr>
+                        <td width="96" height="40" align="center" valign="middle" bgcolor="#006557" style="width:96px;height:40px;background:#006557;border-radius:5px;text-align:center;vertical-align:middle;">
+                          <a href="${escapeHtml(order.orderUrl)}" style="display:block;width:96px;height:40px;color:#ffffff;font-size:14px;font-weight:600;line-height:40px;text-align:center;text-decoration:none;border-radius:5px;-webkit-text-size-adjust:none;">View order</a>
+                        </td>
+                      </tr>
+                    </table>
+                    <!--<![endif]-->
                   </td>
                 </tr>
               </table>
@@ -225,17 +239,20 @@ function buildHtml(order, areas, totals) {
           <tr>
             <td style="padding:22px 24px 8px;">
               <h1 style="margin:0;color:#202523;font-size:18px;font-weight:650;line-height:24px;">Order summary</h1>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;">
+                <tr><td height="16" style="height:16px;font-size:0;line-height:0;">&nbsp;</td></tr>
+              </table>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;">${products}</table>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin-top:2px;">
                 <tr>
                   <td height="48" valign="middle" style="height:48px;padding:0;color:#202523;font-size:15px;font-weight:650;line-height:21px;vertical-align:middle;">${totals.lineCount} product line${totals.lineCount === 1 ? "" : "s"}</td>
                   <td height="48" valign="middle" align="right" style="height:48px;padding:0;color:#202523;font-size:15px;font-weight:650;line-height:21px;vertical-align:middle;">${totals.unitCount} total units</td>
                 </tr>
+                <tr>
+                  <td colspan="2" height="1" bgcolor="#dfe4e2" style="height:1px;background:#dfe4e2;font-size:0;line-height:0;">&nbsp;</td>
+                </tr>
               </table>
             </td>
-          </tr>
-          <tr>
-            <td style="padding:18px 24px 0;"><div style="height:1px;background:#dfe4e2;font-size:0;line-height:0;">&nbsp;</div></td>
           </tr>
           <tr>
             <td style="padding:20px 24px 24px;">
