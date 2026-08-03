@@ -390,8 +390,8 @@ function buildSubject(payload) {
   const date = formatRequiredDate(payload?.requiredDate);
   const slot = timeSlotLabel(payload?.timeSlot);
   return isPickup(payload?.deliveryType)
-    ? cleanSubject(`[Portal Order] Pickup ${slot} on ${date}`)
-    : cleanSubject(`[Portal Order] Delivery ${slot} to ${subjectAddress(payload)} on ${date}`);
+    ? cleanSubject(`[Portal Order] ${slot} Pickup on ${date}`)
+    : cleanSubject(`[Portal Order] ${slot} Delivery to ${subjectAddress(payload)} on ${date}`);
 }
 
 function subjectAddress(payload) {
