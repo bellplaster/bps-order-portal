@@ -10,6 +10,7 @@ import {
   USER_ROLES,
 } from "../_shared/user-roles.js";
 import { ensureUserRoleSchema } from "../_shared/user-schema.js";
+import { normalisePortalUsername } from "../_shared/user-username.js";
 
 export async function onRequestGet(context) {
   try {
@@ -214,11 +215,11 @@ function requireSupportedRole(value) {
 }
 
 function normaliseUsername(value) {
-  const username = String(value || "").trim().toLowerCase();
-  if (!/^[a-z0-9._-]{3,80}$/.test(username)) {
-    throw badRequest("Username must be 3–80 characters using letters, numbers, dots, underscores or dashes.");
+  try {
+    return normalisePortalUsername(value);
+  } catch (error) {
+    throw badRequest(error?.message || "Enter a valid username.");
   }
-  return username;
 }
 
 function cleanOptional(value, max) {
