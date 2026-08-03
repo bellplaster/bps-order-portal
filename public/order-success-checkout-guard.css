@@ -1,0 +1,16 @@
+.checkout-success-active .two-step-nav,
+.checkout-success-active #adminOrderTools,
+.checkout-success-active #globalMessage,
+.checkout-success-active [data-step],
+.checkout-success-active #editModeBanner {
+  display: none !important;
+}
+
+.checkout-success-active #successScreen {
+  display: block !important;
+}
+
+.checkout-success-active .history-drawer,
+.checkout-success-active .drawer-backdrop {
+  z-index: 1200;
+}
