@@ -11,6 +11,8 @@ export function prepareOrderFilesForViewer(generatedFiles, { isAdmin = false } =
       .map((file) => ({
         ...file,
         filename: adminFilename(file?.filename),
+        floorLabel: adminLabel(file),
+        floor_label: adminLabel(file),
       }));
   }
 
@@ -19,6 +21,8 @@ export function prepareOrderFilesForViewer(generatedFiles, { isAdmin = false } =
     .map((file) => ({
       ...file,
       filename: customerFilename(file?.filename),
+      floorLabel: "Accrivia order file",
+      floor_label: "Accrivia order file",
     }));
 }
 
@@ -50,4 +54,11 @@ function adminFilename(filename) {
   if (LEGACY_SUFFIX.test(value)) return value.replace(LEGACY_SUFFIX, "-V1.xlsx");
   if (SITE_AREA_SUFFIX.test(value)) return value.replace(SITE_AREA_SUFFIX, "-V2.xlsx");
   return value;
+}
+
+function adminLabel(file) {
+  const filename = String(file?.filename || "").trim();
+  if (LEGACY_SUFFIX.test(filename)) return "Accrivia format · V1";
+  if (SITE_AREA_SUFFIX.test(filename)) return "Site area format · V2";
+  return String(file?.floorLabel || file?.floor_label || "Order spreadsheet").trim();
 }
