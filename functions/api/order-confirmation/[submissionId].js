@@ -63,6 +63,7 @@ export async function onRequestGet(context) {
     }
 
     const groups = buildProductGroups(payload);
+    await enrichProductDescriptions(context.env.DB, groups);
     const totals = groups.reduce((summary, group) => ({
       lineCount: summary.lineCount + group.lines.length,
       unitCount: summary.unitCount + group.lines.reduce((sum, line) => sum + line.quantity, 0),
@@ -112,10 +113,11 @@ function buildProductGroups(payload) {
         const quantity = Number(item?.quantity || 0);
         if (!Number.isInteger(quantity) || quantity <= 0) continue;
         const product = PRODUCT_CATALOG[String(item?.key || "").trim()] || {};
+        const sku = String(item?.sku || product.sku || "").trim().toUpperCase();
         lines.push({
-          sku: String(item?.sku || product.sku || "").trim().toUpperCase(),
+          sku,
           description: String(
-            item?.description || item?.name || product.description || product.label || item?.key || "Product",
+            item?.description || item?.name || product.description || product.label || sku || item?.key || "Product",
           ).trim(),
           quantity,
         });
@@ -123,9 +125,10 @@ function buildProductGroups(payload) {
       for (const item of Array.isArray(area?.otherMaterials) ? area.otherMaterials : []) {
         const quantity = Number(item?.quantity || 0);
         if (!Number.isInteger(quantity) || quantity <= 0) continue;
+        const sku = String(item?.sku || "").trim().toUpperCase();
         lines.push({
-          sku: String(item?.sku || "").trim().toUpperCase(),
-          description: String(item?.description || item?.name || item?.sku || "Product").trim(),
+          sku,
+          description: String(item?.description || item?.name || sku || "Product").trim(),
           quantity,
         });
       }
@@ -136,6 +139,32 @@ function buildProductGroups(payload) {
       };
     })
     .filter((group) => group.lines.length);
+}
+
+async function enrichProductDescriptions(db, groups) {
+  const unresolved = [...new Set(groups.flatMap((group) => group.lines)
+    .filter((line) => line.sku && (!line.description || line.description.toUpperCase() === line.sku))
+    .map((line) => line.sku))];
+  if (!unresolved.length) return;
+
+  const descriptions = new Map();
+  for (let offset = 0; offset < unresolved.length; offset += 50) {
+    const chunk = unresolved.slice(offset, offset + 50);
+    const result = await db.prepare(
+      `SELECT sku, description_raw
+       FROM products
+       WHERE sku COLLATE NOCASE IN (${chunk.map(() => "?").join(", ")})`,
+    ).bind(...chunk).all();
+    for (const row of result.results || []) {
+      const sku = String(row.sku || "").trim().toUpperCase();
+      const description = String(row.description_raw || "").trim();
+      if (sku && description) descriptions.set(sku, description);
+    }
+  }
+
+  groups.forEach((group) => group.lines.forEach((line) => {
+    if (descriptions.has(line.sku)) line.description = descriptions.get(line.sku);
+  }));
 }
 
 function defaultAreaLabel(key, index) {
