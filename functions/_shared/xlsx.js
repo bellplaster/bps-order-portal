@@ -102,16 +102,17 @@ function buildSheetRows(data, productRows, format) {
     });
   } else {
     rows.push(rowXml(11, 3, [
-      textCell("A11", 0, "Stock Code"),
-      textCell("B11", 0, "Description"),
-      textCell("C11", 0, "Quan"),
+      textCell("A11", 5, "Stock Code"),
+      textCell("B11", 5, "Description"),
+      textCell("C11", 6, "Quan"),
     ]));
     productRows.forEach((product, index) => {
       const row = 12 + index;
+      const isNotesRow = String(product[0] || "").trim().toUpperCase() === "NOTES";
       rows.push(rowXml(row, 3, [
-        textCell(`A${row}`, 0, product[0]),
-        textCell(`B${row}`, 0, product[1]),
-        numberCell(`C${row}`, 4, product[2]),
+        textCell(`A${row}`, isNotesRow ? 7 : 0, product[0]),
+        textCell(`B${row}`, isNotesRow ? 7 : 0, product[1]),
+        numberCell(`C${row}`, isNotesRow ? 8 : 4, product[2]),
       ]));
     });
   }
@@ -132,9 +133,9 @@ function sheetLayout(format) {
       '<col min="2" max="2" width="18.14" customWidth="1"/>' +
       '<col min="3" max="3" width="33.29" customWidth="1"/>' +
       '<col min="4" max="4" width="7.14" customWidth="1"/>'
-    : '<col min="1" max="1" width="18.14" customWidth="1"/>' +
-      '<col min="2" max="2" width="33.29" customWidth="1"/>' +
-      '<col min="3" max="3" width="7.14" customWidth="1"/>';
+    : '<col min="1" max="2" width="22.7109375" customWidth="1"/>' +
+      '<col min="3" max="3" width="11.7109375" customWidth="1"/>' +
+      '<col min="4" max="16384" width="9.140625"/>';
   return '<sheetViews><sheetView tabSelected="1" workbookViewId="0">' +
     '<selection activeCell="A1" sqref="A1"/></sheetView></sheetViews>' +
     '<sheetFormatPr defaultRowHeight="15" x14ac:dyDescent="0.25"/>' +
@@ -184,17 +185,30 @@ function stylesXml() {
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
     '<numFmts count="1"><numFmt numFmtId="164" formatCode="dd-mm-yy"/></numFmts>' +
-    '<fonts count="2"><font><sz val="11"/><name val="Aptos Narrow"/></font>' +
-    '<font><b/><sz val="11"/><name val="Aptos Narrow"/></font></fonts>' +
-    '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>' +
+    '<fonts count="4">' +
+    '<font><sz val="10"/><name val="Inter"/></font>' +
+    '<font><b/><sz val="10"/><name val="Inter"/></font>' +
+    '<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Inter"/></font>' +
+    '<font><sz val="10"/><name val="Inter"/></font>' +
+    '</fonts>' +
+    '<fills count="4">' +
+    '<fill><patternFill patternType="none"/></fill>' +
+    '<fill><patternFill patternType="gray125"/></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFA62B45"/><bgColor indexed="64"/></patternFill></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FF006557"/><bgColor indexed="64"/></patternFill></fill>' +
+    '</fills>' +
     '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
     '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
-    '<cellXfs count="5">' +
-    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+    '<cellXfs count="9">' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
     '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
-    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
-    '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
-    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>' +
+    '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyFont="1" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="2" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="2" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="2" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="2" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
     '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
     '</styleSheet>';
 }
