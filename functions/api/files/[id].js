@@ -15,14 +15,17 @@ export async function onRequestGet(context) {
   const viewer = await context.env.DB.prepare(
     `SELECT id, account_id, role, active, is_primary FROM users WHERE id = ? AND active = 1 LIMIT 1`,
   ).bind(auth.userId).first();
-  if (!viewer || (getOrderScope(viewer) !== "all" && !Number(viewer.account_id || 0))) {
+  const scope = getOrderScope(viewer);
+  if (!viewer || (["account", "own"].includes(scope) && !Number(viewer.account_id || 0))) {
     return Response.json({ ok: false, error: "File record not found." }, { status: 404 });
   }
 
   const file = await context.env.DB.prepare(
-    `SELECT f.filename, f.r2_key, o.account_id, o.created_by_user_id
+    `SELECT f.filename, f.r2_key, o.account_id, o.created_by_user_id,
+            o.debtor_code_snapshot, creator.role AS creator_role
      FROM order_files f
      INNER JOIN orders o ON o.submission_id = f.submission_id
+     LEFT JOIN users creator ON creator.id = o.created_by_user_id
      WHERE f.id = ? LIMIT 1`,
   ).bind(fileId).first();
 
