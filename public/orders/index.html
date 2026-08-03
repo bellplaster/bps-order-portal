@@ -18,9 +18,9 @@
       <img src="https://assets.bellplaster.com.au/bell_logo_black.png" alt="Bell Plaster">
     </a>
     <nav class="portal-actions" aria-label="Portal navigation">
-      <a class="header-button" href="/">Order form</a>
+      <a id="orderFormLink" class="header-button" href="/">Order form</a>
       <a class="header-button is-current" href="/orders/" aria-current="page">Orders</a>
-      <a class="header-button" href="/account/">Account</a>
+      <a id="accountLink" class="header-button" href="/account/">Account</a>
       <button id="logoutButton" class="header-button" type="button">Sign out</button>
     </nav>
   </header>
@@ -32,7 +32,7 @@
         <h1>Orders</h1>
         <p id="ordersScopeDescription">Loading your order history…</p>
       </div>
-      <a class="button button-primary" href="/">Create order</a>
+      <a id="createOrderButton" class="button button-primary" href="/">Create order</a>
     </header>
 
     <div id="ordersMessage" class="orders-message" role="alert" hidden></div>
@@ -40,7 +40,7 @@
     <section class="orders-toolbar" aria-label="Order filters">
       <label class="orders-search">
         <span class="sr-only">Search orders</span>
-        <input id="ordersSearch" type="search" autocomplete="off" placeholder="Search reference, customer, address or staff">
+        <input id="ordersSearch" type="search" autocomplete="off" placeholder="Search reference, customer, address or user">
       </label>
       <label id="customerFilterField" class="orders-filter" hidden>
         <span>Customer</span>
@@ -48,7 +48,7 @@
       </label>
       <label id="staffFilterField" class="orders-filter" hidden>
         <span>Placed by</span>
-        <select id="staffFilter"><option value="">All staff</option></select>
+        <select id="staffFilter"><option value="">All users</option></select>
       </label>
       <label class="orders-filter">
         <span>Status</span>
@@ -92,6 +92,6 @@
     </form>
   </dialog>
 
-  <script type="module" src="/orders/orders.js?v=20260803-1"></script>
+  <script type="module" src="/orders/orders.js?v=20260803-2"></script>
 </body>
 </html>
