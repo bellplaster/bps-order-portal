@@ -1,3 +1,5 @@
+import { ensureUserRoleSchema } from "./user-schema.js";
+
 const BPS_DEBTOR_CODE = "BPS BRUNSW17";
 const BPS_COMPANY_NAME = "BPS Brunswick Plastering Services";
 const USER_DEFAULTS_MIGRATION_KEY = "user_order_defaults_v1";
@@ -55,8 +57,10 @@ export async function ensurePortalSchema(db) {
        password_hash TEXT NOT NULL,
        password_salt TEXT NOT NULL,
        password_iterations INTEGER NOT NULL DEFAULT 100000,
-       role TEXT NOT NULL DEFAULT 'customer' CHECK (role IN ('admin', 'customer')),
+       role TEXT NOT NULL DEFAULT 'customer'
+         CHECK (role IN ('admin', 'customer', 'customer_service')),
        active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+       is_primary INTEGER NOT NULL DEFAULT 0 CHECK (is_primary IN (0, 1)),
        default_contact_name TEXT NOT NULL DEFAULT '',
        default_mobile TEXT NOT NULL DEFAULT '',
        order_defaults_json TEXT NOT NULL DEFAULT '{}',
@@ -124,7 +128,9 @@ export async function ensurePortalSchema(db) {
     default_contact_name: "TEXT NOT NULL DEFAULT ''",
     default_mobile: "TEXT NOT NULL DEFAULT ''",
     order_defaults_json: "TEXT NOT NULL DEFAULT '{}'",
+    is_primary: "INTEGER NOT NULL DEFAULT 0",
   });
+  await ensureUserRoleSchema(db);
 
   await ensureColumns(db, "orders", {
     customer_reference: "TEXT NOT NULL DEFAULT ''",
@@ -177,6 +183,7 @@ export async function ensurePortalSchema(db) {
   const indexStatements = [
     `CREATE INDEX IF NOT EXISTS idx_users_account_id ON users(account_id)`,
     `CREATE INDEX IF NOT EXISTS idx_users_active_username ON users(active, username)`,
+    `CREATE INDEX IF NOT EXISTS idx_users_role_active ON users(role, active)`,
     `CREATE INDEX IF NOT EXISTS idx_orders_account_created ON orders(account_id, created_at DESC)`,
     `CREATE INDEX IF NOT EXISTS idx_orders_reference ON orders(customer_reference)`,
     `CREATE INDEX IF NOT EXISTS idx_order_files_submission ON order_files(submission_id)`,
