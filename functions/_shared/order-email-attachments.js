@@ -2,7 +2,7 @@ const XLSX_SUFFIX = /\.xlsx$/i;
 const LEGACY_SUFFIX = /-OLD\.xlsx$/i;
 const SITE_AREA_SUFFIX = /-NEW\.xlsx$/i;
 
-export function prepareOrderEmailFiles(generatedFiles, { isAdmin = false } = {}) {
+export function prepareOrderFilesForViewer(generatedFiles, { isAdmin = false } = {}) {
   const files = Array.isArray(generatedFiles) ? generatedFiles : [];
 
   if (isAdmin) {
@@ -18,9 +18,15 @@ export function prepareOrderEmailFiles(generatedFiles, { isAdmin = false } = {})
     .filter((file) => isLegacyFile(file))
     .map((file) => ({
       ...file,
-      filename: customerServiceFilename(file?.filename),
+      filename: customerFilename(file?.filename),
     }));
 }
+
+export function prepareOrderFileForDownload(file, options = {}) {
+  return prepareOrderFilesForViewer(file ? [file] : [], options)[0] || null;
+}
+
+export const prepareOrderEmailFiles = prepareOrderFilesForViewer;
 
 function isSpreadsheet(file) {
   return XLSX_SUFFIX.test(String(file?.filename || "").trim());
@@ -28,11 +34,11 @@ function isSpreadsheet(file) {
 
 function isLegacyFile(file) {
   const filename = String(file?.filename || "").trim();
-  const format = String(file?.format || file?.type || "").trim().toLowerCase();
-  return LEGACY_SUFFIX.test(filename) || format === "legacy" || format === "old";
+  const format = String(file?.format || file?.type || file?.floor || "").trim().toLowerCase();
+  return LEGACY_SUFFIX.test(filename) || format === "legacy" || format === "old" || format === "combined-old";
 }
 
-function customerServiceFilename(filename) {
+function customerFilename(filename) {
   const value = String(filename || "order.xlsx").trim();
   return LEGACY_SUFFIX.test(value)
     ? value.replace(LEGACY_SUFFIX, ".xlsx")
