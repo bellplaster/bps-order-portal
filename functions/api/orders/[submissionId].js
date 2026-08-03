@@ -125,7 +125,9 @@ async function requireAdministratorOrderContext(context) {
   }
 
   const viewer = await context.env.DB.prepare(
-    `SELECT id, account_id, role, active
+    `SELECT id, account_id,
+            COALESCE(NULLIF(access_role, ''), role) AS role,
+            active
      FROM users
      WHERE id = ? AND active = 1
      LIMIT 1`,
