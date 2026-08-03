@@ -1,5 +1,9 @@
 import { PRODUCT_CATALOG } from "../_shared/catalog.js";
-import { getOrderScope, orderActionPermissions } from "../_shared/order-permissions.js";
+import {
+  ADMIN_TEST_DEBTOR_CODE,
+  getOrderScope,
+  orderActionPermissions,
+} from "../_shared/order-permissions.js";
 
 export async function onRequestGet(context) {
   const requestId = crypto.randomUUID();
@@ -20,7 +24,7 @@ export async function onRequestGet(context) {
 
     const scope = getOrderScope(viewer);
     const accountId = Number(viewer.account_id || 0);
-    if (scope !== "all" && !accountId) {
+    if (["account", "own"].includes(scope) && !accountId) {
       return Response.json({ ok: false, error: "Your login is not assigned to a customer account.", requestId }, { status: 400 });
     }
 
@@ -29,8 +33,10 @@ export async function onRequestGet(context) {
       `SELECT
          o.submission_id, o.customer_reference, o.status, o.created_at, o.updated_at,
          o.payload_json, o.account_id, o.company_name_snapshot, o.debtor_code_snapshot,
-         o.created_by_user_id, o.created_by_username_snapshot, o.created_by_name_snapshot
+         o.created_by_user_id, o.created_by_username_snapshot, o.created_by_name_snapshot,
+         creator.role AS creator_role
        FROM orders o
+       LEFT JOIN users creator ON creator.id = o.created_by_user_id
        ${where}
        ORDER BY o.created_at DESC
        LIMIT 500`,
@@ -99,6 +105,7 @@ export async function onRequestGet(context) {
         created_by_user_id: order.created_by_user_id || null,
         created_by_username: order.created_by_username_snapshot || "",
         created_by_name: order.created_by_name_snapshot || order.created_by_username_snapshot || "Legacy order",
+        created_by_role: order.creator_role || "",
         can_edit: permissions.canEdit,
         can_archive: permissions.canArchive,
         can_restore: permissions.canRestore,
@@ -123,13 +130,7 @@ export async function onRequestGet(context) {
     }
 
     const staffResult = await loadVisibleStaff(context.env.DB, scope, accountId);
-    const accountsResult = scope === "all"
-      ? await context.env.DB.prepare(
-          `SELECT id, debtor_code, company_name, active
-           FROM customer_accounts
-           ORDER BY company_name COLLATE NOCASE, debtor_code COLLATE NOCASE`,
-        ).all()
-      : { results: [] };
+    const accountsResult = await loadVisibleAccounts(context.env.DB, scope);
 
     return Response.json({
       ok: true,
@@ -163,7 +164,7 @@ export async function onRequestGet(context) {
     });
   } catch (error) {
     return Response.json({ ok: false, error: error?.message || String(error), requestId }, {
-      status: 500,
+      status: Number(error?.status || 500),
       headers: { "X-Request-ID": requestId },
     });
   }
@@ -171,6 +172,13 @@ export async function onRequestGet(context) {
 
 function buildOrderScope(scope, viewer) {
   if (scope === "all") return { where: "", bindings: [] };
+  if (scope === "staff") {
+    return {
+      where: `WHERE UPPER(COALESCE(o.debtor_code_snapshot, '')) <> ?
+                AND COALESCE(creator.role, '') <> 'admin'`,
+      bindings: [ADMIN_TEST_DEBTOR_CODE],
+    };
+  }
   if (scope === "account") {
     return { where: "WHERE o.account_id = ?", bindings: [Number(viewer.account_id)] };
   }
@@ -178,6 +186,25 @@ function buildOrderScope(scope, viewer) {
     where: "WHERE o.account_id = ? AND o.created_by_user_id = ?",
     bindings: [Number(viewer.account_id), Number(viewer.id)],
   };
+}
+
+function loadVisibleAccounts(db, scope) {
+  if (scope === "all") {
+    return db.prepare(
+      `SELECT id, debtor_code, company_name, active
+       FROM customer_accounts
+       ORDER BY company_name COLLATE NOCASE, debtor_code COLLATE NOCASE`,
+    ).all();
+  }
+  if (scope === "staff") {
+    return db.prepare(
+      `SELECT id, debtor_code, company_name, active
+       FROM customer_accounts
+       WHERE UPPER(debtor_code) <> ?
+       ORDER BY company_name COLLATE NOCASE, debtor_code COLLATE NOCASE`,
+    ).bind(ADMIN_TEST_DEBTOR_CODE).all();
+  }
+  return Promise.resolve({ results: [] });
 }
 
 function loadVisibleStaff(db, scope, accountId) {
@@ -190,6 +217,17 @@ function loadVisibleStaff(db, scope, accountId) {
        ORDER BY a.company_name COLLATE NOCASE, u.is_primary DESC,
                 u.default_contact_name COLLATE NOCASE, u.username COLLATE NOCASE`,
     ).all();
+  }
+  if (scope === "staff") {
+    return db.prepare(
+      `SELECT u.id, u.account_id, u.username, u.default_contact_name, u.active, u.is_primary,
+              a.company_name
+       FROM users u
+       INNER JOIN customer_accounts a ON a.id = u.account_id
+       WHERE u.role = 'customer' AND UPPER(a.debtor_code) <> ?
+       ORDER BY a.company_name COLLATE NOCASE, u.is_primary DESC,
+                u.default_contact_name COLLATE NOCASE, u.username COLLATE NOCASE`,
+    ).bind(ADMIN_TEST_DEBTOR_CODE).all();
   }
   if (scope === "account") {
     return db.prepare(
