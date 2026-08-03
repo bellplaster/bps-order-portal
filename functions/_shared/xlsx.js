@@ -1,75 +1,49 @@
 /*
  * Minimal Accrivia XLSX generator for Cloudflare Pages Functions.
  *
- * The package skeleton is derived from:
- * reference/Accrivia_Skeleton.xlsx
- *
- * The generated workbook has:
- * A = SiteArea / Grid (optional)
- * B = Stock Code
- * C = Description
- * D = Quan
+ * Two formats are supported during the Accrivia transition:
+ * - legacy: A Stock Code, B Description, C Quan
+ * - site-area: A SiteArea / Grid, B Stock Code, C Description, D Quan
  */
 
 const XLSX_MIME =
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
-const STATIC_XLSX_ENTRIES = [
-  { name: "[Content_Types].xml", base64: "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9InllcyI/Pg0KPFR5cGVzIHhtbG5zPSJodHRwOi8vc2NoZW1hcy5vcGVueG1sZm9ybWF0cy5vcmcvcGFja2FnZS8yMDA2L2NvbnRlbnQtdHlwZXMiPjxEZWZhdWx0IEV4dGVuc2lvbj0icmVscyIgQ29udGVudFR5cGU9ImFwcGxpY2F0aW9uL3ZuZC5vcGVueG1sZm9ybWF0cy1wYWNrYWdlLnJlbGF0aW9uc2hpcHMreG1sIi8+PERlZmF1bHQgRXh0ZW5zaW9uPSJ4bWwiIENvbnRlbnRUeXBlPSJhcHBsaWNhdGlvbi94bWwiLz48T3ZlcnJpZGUgUGFydE5hbWU9Ii94bC93b3JrYm9vay54bWwiIENvbnRlbnRUeXBlPSJhcHBsaWNhdGlvbi92bmQub3BlbnhtbGZvcm1hdHMtb2ZmaWNlZG9jdW1lbnQuc3ByZWFkc2hlZXRtbC5zaGVldC5tYWluK3htbCIvPjxPdmVycmlkZSBQYXJ0TmFtZT0iL3hsL3dvcmtzaGVldHMvc2hlZXQxLnhtbCIgQ29udGVudFR5cGU9ImFwcGxpY2F0aW9uL3ZuZC5vcGVub2ZmaWNlZG9jdW1lbnQuc3ByZWFkc2hlZXRtbC53b3Jrc2hlZXQreG1sIi8+PE92ZXJyaWRlIFBhcnROYW1lPSIveGwvdGhlbWUvdGhlbWUxLnhtbCIgQ29udGVudFR5cGU9ImFwcGxpY2F0aW9uL3ZuZC5vcGVub2ZmaWNlZG9jdW1lbnQudGhlbWUreG1sIi8+PE92ZXJyaWRlIFBhcnROYW1lPSIveGwvc3R5bGVzLnhtbCIgQ29udGVudFR5cGU9ImFwcGxpY2F0aW9uL3ZuZC5vcGVub2ZmaWNlZG9jdW1lbnQuc3R5bGVzK3htbCIvPjxPdmVycmlkZSBQYXJ0TmFtZT0iL3hsL3NoYXJlZFN0cmluZ3MueG1sIiBDb250ZW50VHlwZT0iYXBwbGljYXRpb24vdm5kLm9wZW5vZmZpY2Vkb2N1bWVudC5zcHJlYWRzaGVldG1sLnNoYXJlZFN0cmluZ3MreG1sIi8+PE92ZXJyaWRlIFBhcnROYW1lPSIvZG9jUHJvcHMvY29yZS54bWwiIENvbnRlbnRUeXBlPSJhcHBsaWNhdGlvbi92bmQub3BlbnhtbGZvcm1hdHMtcGFja2FnZS5jb3JlLXByb3BlcnRpZXMreG1sIi8+PE92ZXJyaWRlIFBhcnROYW1lPSIvZG9jUHJvcHMvYXBwLnhtbCIgQ29udGVudFR5cGU9ImFwcGxpY2F0aW9uL3ZuZC5vcGVub2ZmaWNlZG9jdW1lbnQuZXh0ZW5kZWQtcHJvcGVydGllcyt4bWwiLz48L1R5cGVzPg==" },
-  { name: "_rels/.rels", base64: "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9InllcyI/Pg0KPFJlbGF0aW9uc2hpcHMgeG1sbnM9Imh0dHA6Ly9zY2hlbWFzLm9wZW54bWxmb3JtYXRzLm9yZy9wYWNrYWdlLzIwMDYvcmVsYXRpb25zaGlwcyI+PFJlbGF0aW9uc2hpcCBJZD0icklkMyIgVHlwZT0iaHR0cDovL3NjaGVtYXMub3BlbnhtbGZvcm1hdHMub3JnL29mZmljZURvY3VtZW50LzIwMDYvcmVsYXRpb25zaGlwcy9leHRlbmRlZC1wcm9wZXJ0aWVzIiBUYXJnZXQ9ImRvY1Byb3BzL2FwcC54bWwiLz48UmVsYXRpb25zaGlwIElkPSJySWQyIiBUeXBlPSJodHRwOi8vc2NoZW1hcy5vcGVubWwgZm9ybWF0cy5vcmcvcGFja2FnZS8yMDA2L3JlbGF0aW9uc2hpcHMvbWV0YWRhdGEvY29yZS1wcm9wZXJ0aWVzIiBUYXJnZXQ9ImRvY1Byb3BzL2NvcmUueG1sIi8+PFJlbGF0aW9uc2hpcCBJZD0icklkMSIgVHlwZT0iaHR0cDovL3NjaGVtYXMub3Blbm1sZm9ybWF0cy5vcmcvb2ZmaWNlRG9jdW1lbnQvMjAwNi9yZWxhdGlvbnNoaXBzL29mZmljZURvY3VtZW50IiBUYXJnZXQ9InhsL3dvcmtib29rLnhtbCIvPjwvUmVsYXRpb25zaGlwcz4=" },
-];
-
-const SHEET_PREFIX =
-  '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-  '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
-  'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' +
-  'xmlns:x14ac="http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac">';
-
-const SHEET_LAYOUT =
-  '<sheetViews><sheetView tabSelected="1" workbookViewId="0">' +
-  '<selection activeCell="A1" sqref="A1"/>' +
-  '</sheetView></sheetViews>' +
-  '<sheetFormatPr defaultRowHeight="15" x14ac:dyDescent="0.25"/>' +
-  '<cols>' +
-  '<col min="1" max="1" width="18.140625" bestFit="1" customWidth="1"/>' +
-  '<col min="2" max="2" width="18.140625" bestFit="1" customWidth="1"/>' +
-  '<col min="3" max="3" width="33.28515625" bestFit="1" customWidth="1"/>' +
-  '<col min="4" max="4" width="7.140625" bestFit="1" customWidth="1"/>' +
-  '</cols>';
-
-const SHEET_SUFFIX =
-  '<pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" ' +
-  'header="0.3" footer="0.3"/>' +
-  '</worksheet>';
-
 export function createAccriviaXlsx(data) {
-  const productRows = Array.isArray(data.productRows)
-    ? data.productRows
-    : [];
+  return createWorkbook(data, "legacy");
+}
 
-  if (productRows.length === 0) {
+export function createAccriviaSiteAreaXlsx(data) {
+  return createWorkbook(data, "site-area");
+}
+
+function createWorkbook(data, format) {
+  const productRows = Array.isArray(data?.productRows) ? data.productRows : [];
+  if (!productRows.length) {
     throw new Error("No verified Accrivia product rows were supplied.");
   }
 
+  const columnCount = format === "site-area" ? 4 : 3;
   const finalRow = 11 + productRows.length;
-  const sheetRows = buildSheetRows(data, productRows);
-
+  const sheetRows = buildSheetRows(data, productRows, format);
   const sheetXml =
-    SHEET_PREFIX +
-    `<dimension ref="A1:D${finalRow}"/>` +
-    SHEET_LAYOUT +
+    worksheetPrefix() +
+    `<dimension ref="A1:${columnName(columnCount)}${finalRow}"/>` +
+    sheetLayout(format) +
     `<sheetData>${sheetRows}</sheetData>` +
-    SHEET_SUFFIX;
+    '<pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3"/>' +
+    "</worksheet>";
 
-  const entries = STATIC_XLSX_ENTRIES.map((entry) => ({
-    name: entry.name,
-    bytes: decodeBase64(entry.base64),
-  }));
-
-  entries.push({
-    name: "xl/worksheets/sheet1.xml",
-    bytes: new TextEncoder().encode(sheetXml),
-  });
+  const entries = [
+    textEntry("[Content_Types].xml", contentTypesXml()),
+    textEntry("_rels/.rels", rootRelationshipsXml()),
+    textEntry("docProps/app.xml", appPropertiesXml()),
+    textEntry("docProps/core.xml", corePropertiesXml()),
+    textEntry("xl/workbook.xml", workbookXml()),
+    textEntry("xl/_rels/workbook.xml.rels", workbookRelationshipsXml()),
+    textEntry("xl/styles.xml", stylesXml()),
+    textEntry("xl/worksheets/sheet1.xml", sheetXml),
+  ];
 
   return {
     bytes: createStoreOnlyZip(entries),
@@ -78,7 +52,7 @@ export function createAccriviaXlsx(data) {
   };
 }
 
-function buildSheetRows(data, productRows) {
+function buildSheetRows(data, productRows, format) {
   const labels = [
     "Debtor Code",
     "Date",
@@ -90,7 +64,6 @@ function buildSheetRows(data, productRows) {
     "Job Address Line 3",
     "Sales Rep Code",
   ];
-
   const values = [
     data.debtorCode,
     excelDateSerial(data.orderDate),
@@ -102,87 +75,169 @@ function buildSheetRows(data, productRows) {
     data.addressLine3,
     data.salesRepCode,
   ];
-
   const rows = [];
 
   for (let row = 1; row <= 9; row += 1) {
-    const labelCell = textCell(`A${row}`, 1, labels[row - 1]);
-
-    const valueCell =
-      row === 2 || row === 3
-        ? numberCell(`B${row}`, 3, values[row - 1])
-        : textCell(`B${row}`, 2, values[row - 1]);
-
-    rows.push(rowXml(row, [labelCell, valueCell]));
+    const valueCell = row === 2 || row === 3
+      ? numberCell(`B${row}`, 3, values[row - 1])
+      : textCell(`B${row}`, 2, values[row - 1]);
+    rows.push(rowXml(row, 2, [textCell(`A${row}`, 1, labels[row - 1]), valueCell]));
   }
 
-  rows.push(
-    rowXml(11, [
+  if (format === "site-area") {
+    rows.push(rowXml(11, 4, [
       textCell("A11", 0, "SiteArea / Grid"),
       textCell("B11", 0, "Stock Code"),
       textCell("C11", 0, "Description"),
       textCell("D11", 0, "Quan"),
-    ]),
-  );
-
-  productRows.forEach((product, index) => {
-    const row = 12 + index;
-
-    rows.push(
-      rowXml(row, [
+    ]));
+    productRows.forEach((product, index) => {
+      const row = 12 + index;
+      rows.push(rowXml(row, 4, [
         textCell(`A${row}`, 0, product[0]),
         textCell(`B${row}`, 0, product[1]),
         textCell(`C${row}`, 0, product[2]),
         numberCell(`D${row}`, 4, product[3]),
-      ]),
-    );
-  });
+      ]));
+    });
+  } else {
+    rows.push(rowXml(11, 3, [
+      textCell("A11", 0, "Stock Code"),
+      textCell("B11", 0, "Description"),
+      textCell("C11", 0, "Quan"),
+    ]));
+    productRows.forEach((product, index) => {
+      const row = 12 + index;
+      rows.push(rowXml(row, 3, [
+        textCell(`A${row}`, 0, product[0]),
+        textCell(`B${row}`, 0, product[1]),
+        numberCell(`C${row}`, 4, product[2]),
+      ]));
+    });
+  }
 
   return rows.join("");
 }
 
-function rowXml(rowNumber, cells) {
-  return (
-    `<row r="${rowNumber}" spans="1:4" x14ac:dyDescent="0.25">` +
-    cells.join("") +
-    "</row>"
-  );
+function worksheetPrefix() {
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' +
+    'xmlns:x14ac="http://schemas.microsoft.com/office/spreadsheetml/2009/9/ac">';
+}
+
+function sheetLayout(format) {
+  const columns = format === "site-area"
+    ? '<col min="1" max="1" width="18.14" customWidth="1"/>' +
+      '<col min="2" max="2" width="18.14" customWidth="1"/>' +
+      '<col min="3" max="3" width="33.29" customWidth="1"/>' +
+      '<col min="4" max="4" width="7.14" customWidth="1"/>'
+    : '<col min="1" max="1" width="18.14" customWidth="1"/>' +
+      '<col min="2" max="2" width="33.29" customWidth="1"/>' +
+      '<col min="3" max="3" width="7.14" customWidth="1"/>';
+  return '<sheetViews><sheetView tabSelected="1" workbookViewId="0">' +
+    '<selection activeCell="A1" sqref="A1"/></sheetView></sheetViews>' +
+    '<sheetFormatPr defaultRowHeight="15" x14ac:dyDescent="0.25"/>' +
+    `<cols>${columns}</cols>`;
+}
+
+function contentTypesXml() {
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+    '<Default Extension="xml" ContentType="application/xml"/>' +
+    '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+    '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+    '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+    '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>' +
+    '<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>' +
+    '</Types>';
+}
+
+function rootRelationshipsXml() {
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+    '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/>' +
+    '<Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/>' +
+    '</Relationships>';
+}
+
+function workbookXml() {
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ' +
+    'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+    '<bookViews><workbookView/></bookViews>' +
+    '<sheets><sheet name="Sheet1" sheetId="1" r:id="rId1"/></sheets>' +
+    '<calcPr calcId="191029"/></workbook>';
+}
+
+function workbookRelationshipsXml() {
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>' +
+    '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
+    '</Relationships>';
+}
+
+function stylesXml() {
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<numFmts count="1"><numFmt numFmtId="164" formatCode="dd-mm-yy"/></numFmts>' +
+    '<fonts count="2"><font><sz val="11"/><name val="Aptos Narrow"/></font>' +
+    '<font><b/><sz val="11"/><name val="Aptos Narrow"/></font></fonts>' +
+    '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>' +
+    '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+    '<cellXfs count="5">' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+    '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+    '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+    '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+    '</styleSheet>';
+}
+
+function appPropertiesXml() {
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" ' +
+    'xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes">' +
+    '<Application>Bell Plaster Order Portal</Application></Properties>';
+}
+
+function corePropertiesXml() {
+  const now = new Date().toISOString();
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" ' +
+    'xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" ' +
+    'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">' +
+    '<dc:creator>Bell Plaster Order Portal</dc:creator>' +
+    `<dcterms:created xsi:type="dcterms:W3CDTF">${now}</dcterms:created>` +
+    `<dcterms:modified xsi:type="dcterms:W3CDTF">${now}</dcterms:modified>` +
+    '</cp:coreProperties>';
+}
+
+function textEntry(name, text) {
+  return { name, bytes: new TextEncoder().encode(text) };
+}
+
+function rowXml(rowNumber, span, cells) {
+  return `<row r="${rowNumber}" spans="1:${span}" x14ac:dyDescent="0.25">${cells.join("")}</row>`;
 }
 
 function textCell(reference, styleId, value) {
-  const text = value === null || value === undefined
-    ? ""
-    : String(value);
-
-  if (text === "") {
-    return blankCell(reference, styleId);
-  }
-
+  const text = value === null || value === undefined ? "" : String(value);
+  if (!text) return blankCell(reference, styleId);
   const style = styleId > 0 ? ` s="${styleId}"` : "";
-
-  return (
-    `<c r="${reference}"${style} t="inlineStr">` +
-    "<is>" +
-    `<t xml:space="preserve">${xmlEscape(text)}</t>` +
-    "</is>" +
-    "</c>"
-  );
+  return `<c r="${reference}"${style} t="inlineStr"><is><t xml:space="preserve">${xmlEscape(text)}</t></is></c>`;
 }
 
 function numberCell(reference, styleId, value) {
   const number = Number(value);
-
-  if (!Number.isFinite(number)) {
-    return blankCell(reference, styleId);
-  }
-
+  if (!Number.isFinite(number)) return blankCell(reference, styleId);
   const style = styleId > 0 ? ` s="${styleId}"` : "";
-
-  return (
-    `<c r="${reference}"${style}>` +
-    `<v>${number}</v>` +
-    "</c>"
-  );
+  return `<c r="${reference}"${style}><v>${number}</v></c>`;
 }
 
 function blankCell(reference, styleId) {
@@ -191,25 +246,13 @@ function blankCell(reference, styleId) {
 }
 
 function excelDateSerial(value) {
-  const match = String(value || "").match(
-    /^(\d{4})-(\d{2})-(\d{2})$/,
-  );
+  const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) throw new Error(`Invalid Accrivia date: ${value || "blank"}`);
+  return Math.floor((Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])) - Date.UTC(1899, 11, 30)) / 86400000);
+}
 
-  if (!match) {
-    throw new Error(`Invalid Accrivia date: ${value || "blank"}`);
-  }
-
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-
-  return Math.floor(
-    (
-      Date.UTC(year, month - 1, day) -
-      Date.UTC(1899, 11, 30)
-    ) /
-    86400000,
-  );
+function columnName(number) {
+  return String.fromCharCode(64 + number);
 }
 
 function xmlEscape(value) {
@@ -219,17 +262,6 @@ function xmlEscape(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;");
-}
-
-function decodeBase64(value) {
-  const binary = atob(value);
-  const output = new Uint8Array(binary.length);
-
-  for (let index = 0; index < binary.length; index += 1) {
-    output[index] = binary.charCodeAt(index);
-  }
-
-  return output;
 }
 
 function createStoreOnlyZip(entries) {
@@ -258,7 +290,6 @@ function createStoreOnlyZip(entries) {
     appendBytes(output, dataBytes);
 
     const central = [];
-
     pushUInt32LE(central, 0x02014b50);
     pushUInt16LE(central, 20);
     pushUInt16LE(central, 20);
@@ -277,17 +308,12 @@ function createStoreOnlyZip(entries) {
     pushUInt32LE(central, 0x01800000);
     pushUInt32LE(central, localOffset);
     appendBytes(central, nameBytes);
-    appendBytes(central, dataBytes);
-
     centralRecords.push(central);
   });
 
   const centralOffset = output.length;
-
   centralRecords.forEach((record) => appendBytes(output, record));
-
   const centralSize = output.length - centralOffset;
-
   pushUInt32LE(output, 0x06054b50);
   pushUInt16LE(output, 0);
   pushUInt16LE(output, 0);
@@ -296,14 +322,11 @@ function createStoreOnlyZip(entries) {
   pushUInt32LE(output, centralSize);
   pushUInt32LE(output, centralOffset);
   pushUInt16LE(output, 0);
-
   return Uint8Array.from(output);
 }
 
 function appendBytes(target, source) {
-  for (const byte of source) {
-    target.push(byte & 0xff);
-  }
+  for (const byte of source) target.push(byte & 0xff);
 }
 
 function pushUInt16LE(target, value) {
@@ -311,52 +334,31 @@ function pushUInt16LE(target, value) {
 }
 
 function pushUInt32LE(target, value) {
-  target.push(
-    value & 0xff,
-    (value >>> 8) & 0xff,
-    (value >>> 16) & 0xff,
-    (value >>> 24) & 0xff,
-  );
+  target.push(value & 0xff, (value >>> 8) & 0xff, (value >>> 16) & 0xff, (value >>> 24) & 0xff);
 }
 
 function getZipDosDateTime(date) {
   const year = Math.max(1980, date.getFullYear());
-  const month = date.getMonth() + 1;
-  const day = date.getDate();
-  const hours = date.getHours();
-  const minutes = date.getMinutes();
-  const seconds = Math.floor(date.getSeconds() / 2);
-
   return {
-    time: (hours << 11) | (minutes << 5) | seconds,
-    date: ((year - 1980) << 9) | (month << 5) | day,
+    time: (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2),
+    date: ((year - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate(),
   };
 }
 
-const CRC32_TABLE = (() => {
+const CRC_TABLE = (() => {
   const table = new Uint32Array(256);
-
-  for (let value = 0; value < 256; value += 1) {
-    let current = value;
-
+  for (let index = 0; index < 256; index += 1) {
+    let value = index;
     for (let bit = 0; bit < 8; bit += 1) {
-      current = (current & 1) !== 0
-        ? 0xedb88320 ^ (current >>> 1)
-        : current >>> 1;
+      value = value & 1 ? 0xedb88320 ^ (value >>> 1) : value >>> 1;
     }
-
-    table[value] = current >>> 0;
+    table[index] = value >>> 0;
   }
-
   return table;
 })();
 
 function crc32(bytes) {
   let crc = 0xffffffff;
-
-  for (const byte of bytes) {
-    crc = CRC32_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8);
-  }
-
+  for (const byte of bytes) crc = CRC_TABLE[(crc ^ byte) & 0xff] ^ (crc >>> 8);
   return (crc ^ 0xffffffff) >>> 0;
 }
