@@ -1,3 +1,8 @@
+import {
+  isSupportedUserRole,
+  parseUserRole,
+} from "./user-roles.js";
+
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
@@ -15,13 +20,16 @@ export function readCookie(request, name) {
 }
 
 export async function createSessionToken(secret, claims = {}) {
+  const role = parseUserRole(claims.role);
+  if (!role) throw new Error("Unsupported portal user role.");
+
   const payload = {
     exp: Math.floor(Date.now() / 1000) + SESSION_MAX_AGE_SECONDS,
     nonce: crypto.randomUUID(),
     userId: Number(claims.userId || 0) || null,
     accountId: Number(claims.accountId || 0) || null,
     username: String(claims.username || ""),
-    role: claims.role === "admin" ? "admin" : "customer",
+    role,
   };
   const encodedPayload = toBase64Url(encoder.encode(JSON.stringify(payload)));
   const signature = await sign(secret, encodedPayload);
@@ -37,7 +45,7 @@ export async function verifySessionToken(secret, token) {
   try {
     const payload = JSON.parse(decoder.decode(fromBase64Url(encodedPayload)));
     if (Number(payload.exp) <= Math.floor(Date.now() / 1000)) return null;
-    if (!payload.userId || !payload.username || !["admin", "customer"].includes(payload.role)) return null;
+    if (!payload.userId || !payload.username || !isSupportedUserRole(payload.role)) return null;
     return payload;
   } catch (_error) {
     return null;
