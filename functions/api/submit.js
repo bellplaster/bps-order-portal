@@ -78,15 +78,12 @@ export async function onRequestPost(context) {
     });
 
     let email = { sent: false, reason: "not_attempted" };
-    if (shouldSendProductionOrderEmail(actor)) {
-      try {
-        email = await sendOrderFilesEmail(context.env, payload, result, { ...auth, accountId });
-      } catch (error) {
-        email = { sent: false, reason: "send_failed", error: error?.message || String(error) };
-        console.error("Order email could not be sent.", error);
-      }
-    } else {
-      email = { sent: false, reason: "admin_test_excluded" };
+    try {
+      const emailEnv = orderEmailEnvironment(context.env, actor);
+      email = await sendOrderFilesEmail(emailEnv, payload, result, { ...auth, accountId });
+    } catch (error) {
+      email = { sent: false, reason: "send_failed", error: error?.message || String(error) };
+      console.error("Order email could not be sent.", error);
     }
 
     return Response.json({
@@ -110,8 +107,13 @@ export async function onRequestPost(context) {
   }
 }
 
-function shouldSendProductionOrderEmail(actor) {
-  return String(actor?.role || "").toLowerCase() !== "admin";
+function orderEmailEnvironment(env, actor) {
+  if (String(actor?.role || "").toLowerCase() !== "admin") return env;
+  return {
+    ...env,
+    ORDER_EMAIL_TO: "marketing@bellplaster.com.au",
+    ORDER_EMAIL_CC: "",
+  };
 }
 
 function assertPayloadHasProducts(payload) {
