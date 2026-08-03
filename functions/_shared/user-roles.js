@@ -23,6 +23,15 @@ export function parseUserRole(value, fallback = null) {
     : null;
 }
 
+export function effectiveUserRole(storedRole, accessRole = "") {
+  return parseUserRole(accessRole) || parseUserRole(storedRole, USER_ROLES.CUSTOMER);
+}
+
+export function storedUserRole(value) {
+  const role = parseUserRole(value, USER_ROLES.CUSTOMER);
+  return role === USER_ROLES.CUSTOMER_SERVICE ? USER_ROLES.ADMIN : role;
+}
+
 export function isAdministratorRole(value) {
   return normaliseUserRole(value) === USER_ROLES.ADMIN;
 }
