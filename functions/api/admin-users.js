@@ -2,9 +2,11 @@ import { hashPassword } from "../_shared/auth.js";
 import { normaliseAustralianPhone } from "../_shared/phone.js";
 import { json } from "../_shared/responses.js";
 import {
+  effectiveUserRole,
   isAdministratorRole,
   parseUserRole,
   roleRequiresCustomerAccount,
+  storedUserRole,
   USER_ROLES,
 } from "../_shared/user-roles.js";
 import { ensureUserRoleSchema } from "../_shared/user-schema.js";
@@ -15,12 +17,14 @@ export async function onRequestGet(context) {
     await ensureSchema(context.env.DB);
     const [accounts, users] = await Promise.all([
       context.env.DB.prepare(`SELECT id, debtor_code, company_name, active FROM customer_accounts ORDER BY company_name COLLATE NOCASE`).all(),
-      context.env.DB.prepare(`SELECT u.id, u.account_id, u.username, u.role, u.active, u.is_primary,
+      context.env.DB.prepare(`SELECT u.id, u.account_id, u.username,
+                                    COALESCE(NULLIF(u.access_role, ''), u.role) AS role,
+                                    u.active, u.is_primary,
                                     u.default_contact_name, u.default_mobile, u.last_login_at,
                                     a.company_name, a.debtor_code
                              FROM users u
                              LEFT JOIN customer_accounts a ON a.id = u.account_id
-                             ORDER BY CASE u.role
+                             ORDER BY CASE COALESCE(NULLIF(u.access_role, ''), u.role)
                                         WHEN 'admin' THEN 0
                                         WHEN 'customer_service' THEN 1
                                         ELSE 2
@@ -54,6 +58,7 @@ export async function onRequestPost(context) {
     if (!userId) throw badRequest("Choose a portal user.");
     const existing = await context.env.DB.prepare(`SELECT * FROM users WHERE id = ? LIMIT 1`).bind(userId).first();
     if (!existing) throw notFound("Portal user not found.");
+    const existingRole = effectiveUserRole(existing.role, existing.access_role);
 
     if (action === "delete") {
       if (userId === Number(auth.userId)) throw badRequest("You cannot delete your own administrator account.");
@@ -66,14 +71,14 @@ export async function onRequestPost(context) {
     const username = normaliseUsername(body.username ?? existing.username);
     await assertUniqueUsername(context.env.DB, username, userId);
 
-    const role = requireSupportedRole(body.role ?? existing.role);
-    if (userId === Number(auth.userId) && isAdministratorRole(existing.role) && role !== USER_ROLES.ADMIN) {
+    const role = requireSupportedRole(body.role ?? existingRole);
+    if (userId === Number(auth.userId) && isAdministratorRole(existingRole) && role !== USER_ROLES.ADMIN) {
       throw badRequest("You cannot remove your own administrator access.");
     }
 
     const accountId = role === USER_ROLES.CUSTOMER
       ? Number(body.accountId || existing.account_id || 0)
-      : role === USER_ROLES.ADMIN && isAdministratorRole(existing.role)
+      : role === USER_ROLES.ADMIN && isAdministratorRole(existingRole)
         ? (Number(existing.account_id || 0) || null)
         : null;
     if (roleRequiresCustomerAccount(role)) await assertCustomerAccount(context.env.DB, accountId, false);
@@ -84,7 +89,7 @@ export async function onRequestPost(context) {
       error: "Enter a valid Australian phone number.",
     });
     const active = body.active === false ? 0 : 1;
-    if (userId === Number(auth.userId) && isAdministratorRole(existing.role) && !active) {
+    if (userId === Number(auth.userId) && isAdministratorRole(existingRole) && !active) {
       throw badRequest("You cannot deactivate your own administrator account.");
     }
     const primary = role === USER_ROLES.CUSTOMER && active === 1 && body.primary === true ? 1 : 0;
@@ -93,11 +98,22 @@ export async function onRequestPost(context) {
     if (primary) await clearPrimary(context.env.DB, accountId, now);
 
     await context.env.DB.prepare(`UPDATE users
-                                  SET username = ?, role = ?, account_id = ?,
+                                  SET username = ?, role = ?, access_role = ?, account_id = ?,
                                       default_contact_name = ?, default_mobile = ?,
                                       active = ?, is_primary = ?, updated_at = ?
                                   WHERE id = ?`)
-      .bind(username, role, accountId, contactName, mobile, active, primary, now, userId).run();
+      .bind(
+        username,
+        storedUserRole(role),
+        role,
+        accountId,
+        contactName,
+        mobile,
+        active,
+        primary,
+        now,
+        userId,
+      ).run();
 
     const newPassword = String(body.newPassword || "");
     if (newPassword) await updatePassword(context.env.DB, userId, newPassword, now);
@@ -131,15 +147,16 @@ async function createUser(db, body) {
 
   const result = await db.prepare(`INSERT INTO users (
       account_id, username, password_hash, password_salt, password_iterations,
-      role, active, is_primary, default_contact_name, default_mobile,
+      role, access_role, active, is_primary, default_contact_name, default_mobile,
       order_defaults_json, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, '{}', ?, ?)`)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, '{}', ?, ?)`)
     .bind(
       accountId,
       username,
       password.hash,
       password.salt,
       password.iterations,
+      storedUserRole(role),
       role,
       primary,
       contactName,
