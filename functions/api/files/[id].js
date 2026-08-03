@@ -1,4 +1,6 @@
+import { prepareOrderFileForDownload } from "../../_shared/order-email-attachments.js";
 import { canViewOrder, getOrderScope } from "../../_shared/order-permissions.js";
+import { effectiveUserRole, isAdministratorRole } from "../../_shared/user-roles.js";
 
 export async function onRequestGet(context) {
   const fileId = Number(context.params.id);
@@ -13,23 +15,39 @@ export async function onRequestGet(context) {
 
   await ensureOrderTrackingSchema(context.env.DB);
   const viewer = await context.env.DB.prepare(
-    `SELECT id, account_id, role, active, is_primary FROM users WHERE id = ? AND active = 1 LIMIT 1`,
+    `SELECT id, account_id, role, access_role, active, is_primary
+     FROM users WHERE id = ? AND active = 1 LIMIT 1`,
   ).bind(auth.userId).first();
-  const scope = getOrderScope(viewer);
+  const scope = getOrderScope({
+    ...viewer,
+    role: effectiveUserRole(viewer?.role, viewer?.access_role),
+  });
   if (!viewer || (["account", "own"].includes(scope) && !Number(viewer.account_id || 0))) {
     return Response.json({ ok: false, error: "File record not found." }, { status: 404 });
   }
 
   const file = await context.env.DB.prepare(
-    `SELECT f.filename, f.r2_key, o.account_id, o.created_by_user_id,
-            o.debtor_code_snapshot, creator.role AS creator_role
+    `SELECT f.filename, f.floor, f.floor_label, f.r2_key,
+            o.account_id, o.created_by_user_id, o.debtor_code_snapshot,
+            COALESCE(NULLIF(creator.access_role, ''), creator.role) AS creator_role
      FROM order_files f
      INNER JOIN orders o ON o.submission_id = f.submission_id
      LEFT JOIN users creator ON creator.id = o.created_by_user_id
      WHERE f.id = ? LIMIT 1`,
   ).bind(fileId).first();
 
-  if (!file || !canViewOrder(viewer, file)) {
+  const effectiveViewer = {
+    ...viewer,
+    role: effectiveUserRole(viewer?.role, viewer?.access_role),
+  };
+  if (!file || !canViewOrder(effectiveViewer, file)) {
+    return Response.json({ ok: false, error: "File record not found." }, { status: 404 });
+  }
+
+  const presentedFile = prepareOrderFileForDownload(file, {
+    isAdmin: isAdministratorRole(effectiveViewer.role),
+  });
+  if (!presentedFile) {
     return Response.json({ ok: false, error: "File record not found." }, { status: 404 });
   }
 
@@ -38,7 +56,7 @@ export async function onRequestGet(context) {
   const headers = new Headers();
   object.writeHttpMetadata(headers);
   headers.set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-  headers.set("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(file.filename)}`);
+  headers.set("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(presentedFile.filename)}`);
   headers.set("Cache-Control", "private, no-store");
   headers.set("ETag", object.httpEtag);
   return new Response(object.body, { headers });
