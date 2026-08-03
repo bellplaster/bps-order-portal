@@ -11,6 +11,7 @@ import {
   ensurePortalSchema,
   getOrCreateSessionSecret,
 } from "../_shared/setup.js";
+import { roleRequiresCustomerAccount } from "../_shared/user-roles.js";
 
 export async function onRequestPost(context) {
   try {
@@ -45,7 +46,7 @@ export async function onRequestPost(context) {
     );
 
     if (!valid) return json({ ok: false, error: "Incorrect username or password." }, 401);
-    if (user.role !== "admin" && (!user.account_id || user.account_active !== 1)) {
+    if (roleRequiresCustomerAccount(user.role) && (!user.account_id || user.account_active !== 1)) {
       return json({ ok: false, error: "This customer account is inactive." }, 403);
     }
 
