@@ -3,12 +3,13 @@ import test from "node:test";
 
 import { ensureUserRoleSchema } from "../functions/_shared/user-schema.js";
 
-test("user role table rebuild defers foreign-key checks before replacing users", async () => {
-  const batches = [];
+test("user role migration preserves the live users table and adds an access role", async () => {
+  const prepared = [];
   const runs = [];
 
   const db = {
     prepare(sql) {
+      prepared.push(sql);
       const statement = {
         sql,
         bind() { return statement; },
@@ -38,17 +39,14 @@ test("user role table rebuild defers foreign-key checks before replacing users",
       };
       return statement;
     },
-    async batch(statements) {
-      batches.push(statements.map((statement) => statement.sql));
-      return statements.map(() => ({ success: true }));
-    },
   };
 
   await ensureUserRoleSchema(db);
 
-  assert.equal(batches.length, 1);
-  assert.match(batches[0][0], /PRAGMA defer_foreign_keys\s*=\s*ON/i);
-  assert.ok(batches[0].findIndex((sql) => /DROP TABLE users$/i.test(sql.trim())) > 0);
-  assert.ok(batches[0].findIndex((sql) => /ALTER TABLE users_role_upgrade RENAME TO users/i.test(sql)) > 0);
-  assert.ok(runs.some((sql) => /idx_users_role_active/.test(sql)));
+  assert.ok(runs.some((sql) => /ALTER TABLE users ADD COLUMN access_role/i.test(sql)));
+  assert.ok(runs.some((sql) => /SET access_role = CASE/i.test(sql)));
+  assert.ok(runs.some((sql) => /idx_users_access_role_active/.test(sql)));
+  assert.equal(prepared.some((sql) => /DROP TABLE users/i.test(sql)), false);
+  assert.equal(prepared.some((sql) => /ALTER TABLE users_role_upgrade RENAME TO users/i.test(sql)), false);
+  assert.equal("batch" in db, false);
 });
