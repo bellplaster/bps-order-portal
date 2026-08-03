@@ -5,11 +5,16 @@ import {
   assertAdministrator,
   canViewOrder,
   getOrderScope,
+  isInternalTestOrder,
   orderActionPermissions,
 } from "../functions/_shared/order-permissions.js";
 
 test("administrator receives all-account order scope", () => {
   assert.equal(getOrderScope({ role: "admin", account_id: 1, is_primary: 0 }), "all");
+});
+
+test("customer service receives genuine-customer order scope without an account", () => {
+  assert.equal(getOrderScope({ role: "customer_service", account_id: null, is_primary: 0 }), "staff");
 });
 
 test("primary customer receives account order scope", () => {
@@ -27,6 +32,28 @@ test("administrator can view an order from another account", () => {
   ), true);
 });
 
+test("customer service can view genuine orders across accounts", () => {
+  const viewer = { id: 3, role: "customer_service", account_id: null };
+  assert.equal(canViewOrder(viewer, {
+    account_id: 99,
+    created_by_user_id: 55,
+    debtor_code_snapshot: "BPS BRUNSW17",
+    creator_role: "customer",
+  }), true);
+});
+
+test("customer service cannot view administrator test orders", () => {
+  const viewer = { id: 3, role: "customer_service", account_id: null };
+  assert.equal(canViewOrder(viewer, {
+    account_id: 1,
+    created_by_user_id: 1,
+    debtor_code_snapshot: "STAFF",
+    creator_role: "admin",
+  }), false);
+  assert.equal(isInternalTestOrder({ debtor_code_snapshot: "staff" }), true);
+  assert.equal(isInternalTestOrder({ creator_role: "admin" }), true);
+});
+
 test("customer cannot view an order from another account", () => {
   assert.equal(canViewOrder(
     { id: 7, role: "customer", account_id: 2, is_primary: 1 },
@@ -41,12 +68,14 @@ test("secondary customer can only view orders they placed", () => {
 });
 
 test("only administrators receive order-management actions", () => {
-  assert.deepEqual(orderActionPermissions({ role: "customer" }, "completed"), {
+  const readOnly = {
     canEdit: false,
     canArchive: false,
     canRestore: false,
     canDelete: false,
-  });
+  };
+  assert.deepEqual(orderActionPermissions({ role: "customer" }, "completed"), readOnly);
+  assert.deepEqual(orderActionPermissions({ role: "customer_service" }, "completed"), readOnly);
   assert.deepEqual(orderActionPermissions({ role: "admin" }, "completed"), {
     canEdit: false,
     canArchive: true,
@@ -61,9 +90,13 @@ test("only administrators receive order-management actions", () => {
   });
 });
 
-test("administrator assertion rejects customer roles", () => {
+test("administrator assertion rejects non-administrator roles", () => {
   assert.throws(
     () => assertAdministrator({ role: "customer" }),
+    (error) => error.status === 403 && /administrator/i.test(error.message),
+  );
+  assert.throws(
+    () => assertAdministrator({ role: "customer_service" }),
     (error) => error.status === 403 && /administrator/i.test(error.message),
   );
   assert.doesNotThrow(() => assertAdministrator({ role: "admin" }));
