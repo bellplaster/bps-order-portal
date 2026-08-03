@@ -15,8 +15,8 @@ bucket_name = "bps-order-files"
 [vars]
 CLOUDFLARE_ACCOUNT_ID = "04c258cc46908ca4df613ce563c1df55"
 ORDER_EMAIL_FROM = "portal@orders.bellplaster.com.au"
-ORDER_EMAIL_TO = "marketing@bellplaster.com.au"
-ORDER_EMAIL_CC = ""
+ORDER_EMAIL_TO = "info@bellplaster.com.au"
+ORDER_EMAIL_CC = "bps@saadgroup.com.au,zac@bellplaster.com.au,maria@bellplaster.com.au,marketing@bellplaster.com.au"
 ORDER_EMAIL_REPLY_TO = "info@bellplaster.com.au"
 
 [secrets]
