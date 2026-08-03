@@ -71,9 +71,11 @@ export async function onRequestPost(context) {
       throw badRequest("You cannot remove your own administrator access.");
     }
 
-    const accountId = roleRequiresCustomerAccount(role)
+    const accountId = role === USER_ROLES.CUSTOMER
       ? Number(body.accountId || existing.account_id || 0)
-      : null;
+      : role === USER_ROLES.ADMIN
+        ? (Number(existing.account_id || 0) || null)
+        : null;
     if (roleRequiresCustomerAccount(role)) await assertCustomerAccount(context.env.DB, accountId, false);
 
     const contactName = cleanOptional(body.contactName, 100);
