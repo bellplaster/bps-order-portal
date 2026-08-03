@@ -50,6 +50,7 @@ export async function ensureUserRoleSchema(db) {
 
 async function rebuildUsersTable(db) {
   const statements = [
+    db.prepare(`PRAGMA defer_foreign_keys = ON`),
     db.prepare(`DROP TABLE IF EXISTS users_role_upgrade`),
     db.prepare(`CREATE TABLE users_role_upgrade (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
