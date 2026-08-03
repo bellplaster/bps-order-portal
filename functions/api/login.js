@@ -12,6 +12,7 @@ import {
   getOrCreateSessionSecret,
 } from "../_shared/setup.js";
 import { roleRequiresCustomerAccount } from "../_shared/user-roles.js";
+import { normalisePortalUsername } from "../_shared/user-username.js";
 
 export async function onRequestPost(context) {
   try {
@@ -22,12 +23,13 @@ export async function onRequestPost(context) {
     const sessionSecret = await getOrCreateSessionSecret(context.env);
 
     const body = await context.request.json().catch(() => null);
-    const username = String(body?.username || "").trim().toLowerCase();
-    const password = String(body?.password || "");
-
-    if (!/^[a-z0-9._-]{3,60}$/.test(username)) {
+    let username;
+    try {
+      username = normalisePortalUsername(body?.username);
+    } catch (_error) {
       return json({ ok: false, error: "Enter a valid username." }, 400);
     }
+    const password = String(body?.password || "");
 
     let user = await findUser(context.env.DB, username);
 
