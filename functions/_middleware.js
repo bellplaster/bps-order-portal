@@ -6,6 +6,7 @@ import {
 
 import { json } from "./_shared/responses.js";
 import { getOrCreateSessionSecret } from "./_shared/setup.js";
+import { isCustomerServiceRole } from "./_shared/user-roles.js";
 
 const PUBLIC_PATHS = new Set([
   "/signin",
@@ -18,6 +19,8 @@ const PUBLIC_PATHS = new Set([
   "/responsive.css",
   "/api/login",
 ]);
+
+const CUSTOMER_SERVICE_REDIRECT_PATHS = new Set(["/", "/account", "/account/"]);
 
 export async function onRequest(context) {
   const url = new URL(context.request.url);
@@ -34,6 +37,10 @@ export async function onRequest(context) {
         return json({ ok: false, error: "Authentication required." }, 401);
       }
       return Response.redirect(new URL("/signin/", url), 302);
+    }
+
+    if (isCustomerServiceRole(session.role) && CUSTOMER_SERVICE_REDIRECT_PATHS.has(url.pathname)) {
+      return Response.redirect(new URL("/orders/", url), 302);
     }
 
     context.data.auth = session;
