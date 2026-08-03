@@ -1,5 +1,6 @@
 import { processOrderSubmission } from "../_shared/orders-v2.js";
 import { sendOrderFilesEmail } from "../_shared/order-email.js";
+import { prepareOrderEmailFiles } from "../_shared/order-email-attachments.js";
 import { reconcileStandardProductItems } from "../_shared/product-payload.js";
 import { createMatrixAwareDb } from "../_shared/matrix-catalog-db.js";
 import { replaceAreaExportsWithCombined } from "../_shared/combined-accrivia-export.js";
@@ -79,8 +80,13 @@ export async function onRequestPost(context) {
 
     let email = { sent: false, reason: "not_attempted" };
     try {
+      const isAdminOrder = String(actor?.role || "").toLowerCase() === "admin";
       const emailEnv = orderEmailEnvironment(context.env, actor);
-      email = await sendOrderFilesEmail(emailEnv, payload, result, { ...auth, accountId });
+      const emailResult = {
+        ...result,
+        generatedFiles: prepareOrderEmailFiles(result.generatedFiles, { isAdmin: isAdminOrder }),
+      };
+      email = await sendOrderFilesEmail(emailEnv, payload, emailResult, { ...auth, accountId });
     } catch (error) {
       email = { sent: false, reason: "send_failed", error: error?.message || String(error) };
       console.error("Order email could not be sent.", error);
