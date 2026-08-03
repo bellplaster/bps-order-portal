@@ -1,4 +1,5 @@
 import { PRODUCT_CATALOG } from "../_shared/catalog.js";
+import { getOrderScope, orderActionPermissions } from "../_shared/order-permissions.js";
 
 export async function onRequestGet(context) {
   const requestId = crypto.randomUUID();
@@ -12,25 +13,29 @@ export async function onRequestGet(context) {
       `SELECT id, account_id, username, role, active, is_primary, default_contact_name
        FROM users WHERE id = ? AND active = 1 LIMIT 1`,
     ).bind(auth.userId).first();
-    const accountId = Number(viewer?.account_id || 0);
-    if (!viewer || !accountId) {
+
+    if (!viewer) {
+      return Response.json({ ok: false, error: "Authentication required.", requestId }, { status: 401 });
+    }
+
+    const scope = getOrderScope(viewer);
+    const accountId = Number(viewer.account_id || 0);
+    if (scope !== "all" && !accountId) {
       return Response.json({ ok: false, error: "Your login is not assigned to a customer account.", requestId }, { status: 400 });
     }
 
-    const canViewAccountOrders = viewer.role === "admin" || Number(viewer.is_primary) === 1;
-    const where = canViewAccountOrders
-      ? "WHERE o.account_id = ?"
-      : "WHERE o.account_id = ? AND o.created_by_user_id = ?";
-    const sql = `SELECT
-       o.submission_id, o.customer_reference, o.status, o.created_at, o.updated_at,
-       o.payload_json, o.account_id, o.company_name_snapshot, o.debtor_code_snapshot,
-       o.created_by_user_id, o.created_by_username_snapshot, o.created_by_name_snapshot
-     FROM orders o ${where}
-     ORDER BY o.created_at DESC LIMIT 200`;
-    const query = context.env.DB.prepare(sql);
-    const ordersResult = canViewAccountOrders
-      ? await query.bind(accountId).all()
-      : await query.bind(accountId, Number(viewer.id)).all();
+    const { where, bindings } = buildOrderScope(scope, viewer);
+    const query = context.env.DB.prepare(
+      `SELECT
+         o.submission_id, o.customer_reference, o.status, o.created_at, o.updated_at,
+         o.payload_json, o.account_id, o.company_name_snapshot, o.debtor_code_snapshot,
+         o.created_by_user_id, o.created_by_username_snapshot, o.created_by_name_snapshot
+       FROM orders o
+       ${where}
+       ORDER BY o.created_at DESC
+       LIMIT 500`,
+    );
+    const ordersResult = bindings.length ? await query.bind(...bindings).all() : await query.all();
 
     const orders = [];
     for (const order of ordersResult.results || []) {
@@ -38,14 +43,22 @@ export async function onRequestGet(context) {
         `SELECT id, floor, floor_label, filename, r2_key, item_count, created_at
          FROM order_files WHERE submission_id = ? ORDER BY id DESC`,
       ).bind(order.submission_id).all();
+
       const files = (filesResult.results || []).map((file) => ({
         ...file,
         revision: inferRevision(file.filename),
         download_url: `/api/files/${file.id}`,
       }));
+
       let payload = {};
-      try { payload = JSON.parse(order.payload_json || "{}"); } catch (_error) { payload = {}; }
-      const areaLabel = (floor, details) => details?.label || (floor === "first" ? "1st Floor" : floor === "ground" ? "Ground Floor" : floor);
+      try {
+        payload = JSON.parse(order.payload_json || "{}");
+      } catch (_error) {
+        payload = {};
+      }
+
+      const areaLabel = (floor, details) => details?.label
+        || (floor === "first" ? "1st Floor" : floor === "ground" ? "Ground Floor" : floor);
       const otherProducts = Object.entries(payload?.floors || {}).map(([floor, details]) => ({
         floor,
         floor_label: areaLabel(floor, details),
@@ -57,21 +70,27 @@ export async function onRequestGet(context) {
         items: Array.isArray(details?.otherMaterials) ? details.otherMaterials : [],
       })).filter((item) => item.items.length);
       const pendingMapping = [];
+
       Object.entries(payload?.floors || {}).forEach(([floor, details]) => {
         const pendingItems = (Array.isArray(details?.items) ? details.items : []).map((item) => {
           const product = PRODUCT_CATALOG[item?.key];
           if (!product || String(product.sku || "").trim()) return null;
           return { key: item.key, label: product.label, quantity: Number(item.quantity || 0) };
         }).filter(Boolean);
-        if (pendingItems.length) pendingMapping.push({
-          floor,
-          floor_label: areaLabel(floor, details),
-          items: pendingItems,
-        });
+        if (pendingItems.length) {
+          pendingMapping.push({
+            floor,
+            floor_label: areaLabel(floor, details),
+            items: pendingItems,
+          });
+        }
       });
+
+      const permissions = orderActionPermissions(viewer, order.status);
       orders.push({
         submission_id: order.submission_id,
         customer_reference: order.customer_reference,
+        account_id: Number(order.account_id || 0),
         company_name: order.company_name_snapshot || payload.customer || "",
         debtor_code: order.debtor_code_snapshot || payload.debtorCode || "",
         status: order.status,
@@ -80,10 +99,10 @@ export async function onRequestGet(context) {
         created_by_user_id: order.created_by_user_id || null,
         created_by_username: order.created_by_username_snapshot || "",
         created_by_name: order.created_by_name_snapshot || order.created_by_username_snapshot || "Legacy order",
-        can_edit: false,
-        can_archive: false,
-        can_restore: false,
-        can_delete: false,
+        can_edit: permissions.canEdit,
+        can_archive: permissions.canArchive,
+        can_restore: permissions.canRestore,
+        can_delete: permissions.canDelete,
         other_products: otherProducts,
         other_materials: otherMaterials,
         order_details: {
@@ -103,11 +122,13 @@ export async function onRequestGet(context) {
       });
     }
 
-    const staff = canViewAccountOrders
+    const staffResult = await loadVisibleStaff(context.env.DB, scope, accountId);
+    const accountsResult = scope === "all"
       ? await context.env.DB.prepare(
-          `SELECT id, username, default_contact_name, active, is_primary
-           FROM users WHERE account_id = ? ORDER BY is_primary DESC, default_contact_name COLLATE NOCASE, username COLLATE NOCASE`,
-        ).bind(accountId).all()
+          `SELECT id, debtor_code, company_name, active
+           FROM customer_accounts
+           ORDER BY company_name COLLATE NOCASE, debtor_code COLLATE NOCASE`,
+        ).all()
       : { results: [] };
 
     return Response.json({
@@ -119,14 +140,22 @@ export async function onRequestGet(context) {
         name: viewer.default_contact_name || viewer.username,
         role: viewer.role,
         isAccountSupervisor: Number(viewer.is_primary) === 1,
-        scope: canViewAccountOrders ? "account" : "own",
+        scope,
       },
-      staff: (staff.results || []).map((user) => ({
+      staff: (staffResult.results || []).map((user) => ({
         id: Number(user.id),
+        accountId: Number(user.account_id || 0),
+        companyName: user.company_name || "",
         username: user.username,
         name: user.default_contact_name || user.username,
         active: Number(user.active) === 1,
         isAccountSupervisor: Number(user.is_primary) === 1,
+      })),
+      accounts: (accountsResult.results || []).map((account) => ({
+        id: Number(account.id),
+        debtorCode: account.debtor_code,
+        companyName: account.company_name,
+        active: Number(account.active) === 1,
       })),
       requestId,
     }, {
@@ -140,6 +169,41 @@ export async function onRequestGet(context) {
   }
 }
 
+function buildOrderScope(scope, viewer) {
+  if (scope === "all") return { where: "", bindings: [] };
+  if (scope === "account") {
+    return { where: "WHERE o.account_id = ?", bindings: [Number(viewer.account_id)] };
+  }
+  return {
+    where: "WHERE o.account_id = ? AND o.created_by_user_id = ?",
+    bindings: [Number(viewer.account_id), Number(viewer.id)],
+  };
+}
+
+function loadVisibleStaff(db, scope, accountId) {
+  if (scope === "all") {
+    return db.prepare(
+      `SELECT u.id, u.account_id, u.username, u.default_contact_name, u.active, u.is_primary,
+              a.company_name
+       FROM users u
+       LEFT JOIN customer_accounts a ON a.id = u.account_id
+       ORDER BY a.company_name COLLATE NOCASE, u.is_primary DESC,
+                u.default_contact_name COLLATE NOCASE, u.username COLLATE NOCASE`,
+    ).all();
+  }
+  if (scope === "account") {
+    return db.prepare(
+      `SELECT u.id, u.account_id, u.username, u.default_contact_name, u.active, u.is_primary,
+              a.company_name
+       FROM users u
+       LEFT JOIN customer_accounts a ON a.id = u.account_id
+       WHERE u.account_id = ?
+       ORDER BY u.is_primary DESC, u.default_contact_name COLLATE NOCASE, u.username COLLATE NOCASE`,
+    ).bind(accountId).all();
+  }
+  return Promise.resolve({ results: [] });
+}
+
 async function ensureOrderTrackingSchema(db) {
   const columns = await db.prepare(`PRAGMA table_info(orders)`).all();
   const names = new Set((columns.results || []).map((row) => String(row.name)));
@@ -151,7 +215,10 @@ async function ensureOrderTrackingSchema(db) {
   for (const [name, definition] of Object.entries(additions)) {
     if (!names.has(name)) await db.prepare(`ALTER TABLE orders ADD COLUMN ${name} ${definition}`).run();
   }
-  await db.prepare(`CREATE INDEX IF NOT EXISTS idx_orders_account_creator_created ON orders(account_id, created_by_user_id, created_at DESC)`).run();
+  await db.prepare(
+    `CREATE INDEX IF NOT EXISTS idx_orders_account_creator_created
+     ON orders(account_id, created_by_user_id, created_at DESC)`,
+  ).run();
 }
 
 function inferRevision(filename) {
