@@ -73,7 +73,7 @@ export async function onRequestPost(context) {
 
     const accountId = role === USER_ROLES.CUSTOMER
       ? Number(body.accountId || existing.account_id || 0)
-      : role === USER_ROLES.ADMIN
+      : role === USER_ROLES.ADMIN && isAdministratorRole(existing.role)
         ? (Number(existing.account_id || 0) || null)
         : null;
     if (roleRequiresCustomerAccount(role)) await assertCustomerAccount(context.env.DB, accountId, false);
