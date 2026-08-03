@@ -1,3 +1,5 @@
+import { canViewOrder, getOrderScope } from "../../_shared/order-permissions.js";
+
 export async function onRequestGet(context) {
   const fileId = Number(context.params.id);
   if (!Number.isInteger(fileId) || fileId <= 0) {
@@ -13,8 +15,9 @@ export async function onRequestGet(context) {
   const viewer = await context.env.DB.prepare(
     `SELECT id, account_id, role, active, is_primary FROM users WHERE id = ? AND active = 1 LIMIT 1`,
   ).bind(auth.userId).first();
-  const accountId = Number(viewer?.account_id || 0);
-  if (!viewer || !accountId) return Response.json({ ok: false, error: "File record not found." }, { status: 404 });
+  if (!viewer || (getOrderScope(viewer) !== "all" && !Number(viewer.account_id || 0))) {
+    return Response.json({ ok: false, error: "File record not found." }, { status: 404 });
+  }
 
   const file = await context.env.DB.prepare(
     `SELECT f.filename, f.r2_key, o.account_id, o.created_by_user_id
@@ -23,10 +26,7 @@ export async function onRequestGet(context) {
      WHERE f.id = ? LIMIT 1`,
   ).bind(fileId).first();
 
-  const canViewAccountOrders = viewer.role === "admin" || Number(viewer.is_primary) === 1;
-  const ownsFile = Number(file?.account_id || 0) === accountId
-    && (canViewAccountOrders || Number(file?.created_by_user_id || 0) === Number(viewer.id));
-  if (!file || !ownsFile) {
+  if (!file || !canViewOrder(viewer, file)) {
     return Response.json({ ok: false, error: "File record not found." }, { status: 404 });
   }
 
