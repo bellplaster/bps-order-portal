@@ -38,6 +38,9 @@ function cacheElements() {
     "ordersUpdated",
     "ordersList",
     "logoutButton",
+    "createOrderButton",
+    "orderFormLink",
+    "accountLink",
     "deleteOrderDialog",
     "deleteOrderForm",
     "deleteOrderMessage",
@@ -94,13 +97,22 @@ async function loadOrders() {
 function configureScope() {
   const scope = state.viewer?.scope || "own";
   const administrator = scope === "all";
-  elements.ordersScopeDescription.textContent = administrator
-    ? "View and manage orders across every customer account."
-    : scope === "account"
-      ? "View all orders placed under your customer account."
-      : "View orders placed using your username.";
+  const customerService = scope === "staff";
+  const globalScope = administrator || customerService;
 
-  populateCustomerFilter(administrator);
+  elements.ordersScopeDescription.textContent = administrator
+    ? "View and manage orders across every customer account, including administrator tests."
+    : customerService
+      ? "Review genuine customer orders across every customer account. Administrator test orders are excluded."
+      : scope === "account"
+        ? "View all orders placed under your customer account."
+        : "View orders placed using your username.";
+
+  if (elements.createOrderButton) elements.createOrderButton.hidden = customerService;
+  if (elements.orderFormLink) elements.orderFormLink.hidden = customerService;
+  if (elements.accountLink) elements.accountLink.hidden = customerService;
+
+  populateCustomerFilter(globalScope);
   populateStaffFilter(scope !== "own");
 }
 
@@ -130,11 +142,12 @@ function updateStaffFilterForCustomer() {
   const staff = accountId
     ? state.staff.filter((user) => Number(user.accountId) === accountId)
     : state.staff;
+  const globalScope = ["all", "staff"].includes(state.viewer?.scope);
 
-  elements.staffFilter.replaceChildren(option("", "All staff"));
+  elements.staffFilter.replaceChildren(option("", "All users"));
   staff.forEach((user) => {
     const name = displayUsername(user.username || user.name);
-    const suffix = state.viewer?.scope === "all" && user.companyName ? ` · ${user.companyName}` : "";
+    const suffix = globalScope && user.companyName ? ` · ${user.companyName}` : "";
     elements.staffFilter.append(option(String(user.id), `${name}${suffix}`));
   });
 
@@ -268,7 +281,7 @@ function openDeleteDialog(order) {
   elements.deleteOrderLabel.textContent = `Type ${order.customer_reference} to confirm`;
   elements.deleteOrderConfirmation.value = "";
   elements.deleteOrderDialog.showModal();
-  window.setTimeout(() => elements.deleteOrderConfirmation.focus(), 0);
+  elements.deleteOrderConfirmation.focus();
 }
 
 function closeDeleteDialog() {
@@ -309,7 +322,7 @@ async function logout() {
   } catch (_error) {
     // A stale session may already be invalid. Redirecting still clears the visible portal state.
   }
-  window.location.assign("/login/");
+  window.location.assign("/signin/");
 }
 
 function latestFilesByArea(files) {
