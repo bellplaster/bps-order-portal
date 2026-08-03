@@ -2,6 +2,7 @@ import { PRODUCT_CATALOG } from "./catalog.js";
 import { createAccriviaXlsx } from "./xlsx.js";
 
 const MAX_PRODUCT_QUANTITY = 99999;
+const MAX_FILENAME_LENGTH = 100;
 
 export async function replaceAreaExportsWithCombined(env, payload, result, auth) {
   if (!result?.ok || result?.duplicate || !Array.isArray(result.generatedFiles) || !result.generatedFiles.length) {
@@ -72,8 +73,7 @@ export async function replaceAreaExportsWithCombined(env, payload, result, auth)
   });
 
   const revisionNo = Number(result.revisionNo || 1);
-  const safeReference = safeFilename(reference);
-  const filename = revisionNo === 1 ? `${safeReference}.xlsx` : `${safeReference}-R${revisionNo}.xlsx`;
+  const filename = buildCombinedExportFilename(account.company_name, reference, revisionNo);
   const firstOldKey = String(result.generatedFiles[0]?.r2Key || "");
   const directory = firstOldKey.includes("/")
     ? firstOldKey.slice(0, firstOldKey.lastIndexOf("/"))
@@ -236,8 +236,29 @@ function upper(value) {
   return String(value || "").trim().replace(/\s+/g, " ").toUpperCase();
 }
 
-function safeFilename(value) {
-  return String(value || "ORDER").trim().replace(/[^a-z0-9._-]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 100) || "ORDER";
+export function buildCombinedExportFilename(companyName, reference, revisionNo = 1) {
+  const revisionNumber = Math.trunc(Number(revisionNo));
+  const revisionSuffix = revisionNumber > 1 ? `-R${revisionNumber}` : "";
+  const safeReference = trimFilenamePart(filenamePart(reference, "ORDER"), 40, "ORDER");
+  const reservedLength = safeReference.length + revisionSuffix.length + ".xlsx".length + 1;
+  const companyLimit = Math.max(1, MAX_FILENAME_LENGTH - reservedLength);
+  const safeCompany = trimFilenamePart(filenamePart(companyName, "CUSTOMER"), companyLimit, "CUSTOMER");
+  return `${safeCompany}-${safeReference}${revisionSuffix}.xlsx`;
+}
+
+function filenamePart(value, fallback) {
+  const normalised = String(value || "")
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-");
+  return normalised || fallback;
+}
+
+function trimFilenamePart(value, maximumLength, fallback) {
+  return value.slice(0, maximumLength).replace(/-+$/g, "") || fallback;
 }
 
 function todayInMelbourne() {
