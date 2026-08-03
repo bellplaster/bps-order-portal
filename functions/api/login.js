@@ -89,7 +89,7 @@ async function findUser(db, username) {
        u.password_hash,
        u.password_salt,
        u.password_iterations,
-       u.role,
+       COALESCE(NULLIF(u.access_role, ''), u.role) AS role,
        u.active,
        a.debtor_code,
        a.company_name,
@@ -119,14 +119,15 @@ async function bootstrapUser(db, username, password) {
   await db.prepare(
     `INSERT INTO users (
        account_id, username, password_hash, password_salt, password_iterations,
-       role, active, created_at, updated_at
-     ) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)`,
+       role, access_role, active, created_at, updated_at
+     ) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
   ).bind(
     accountId,
     username,
     passwordRecord.hash,
     passwordRecord.salt,
     passwordRecord.iterations,
+    role,
     role,
     now,
     now,
