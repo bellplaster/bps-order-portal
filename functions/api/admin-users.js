@@ -1,6 +1,13 @@
 import { hashPassword } from "../_shared/auth.js";
 import { normaliseAustralianPhone } from "../_shared/phone.js";
 import { json } from "../_shared/responses.js";
+import {
+  isAdministratorRole,
+  parseUserRole,
+  roleRequiresCustomerAccount,
+  USER_ROLES,
+} from "../_shared/user-roles.js";
+import { ensureUserRoleSchema } from "../_shared/user-schema.js";
 
 export async function onRequestGet(context) {
   try {
@@ -13,8 +20,12 @@ export async function onRequestGet(context) {
                                     a.company_name, a.debtor_code
                              FROM users u
                              LEFT JOIN customer_accounts a ON a.id = u.account_id
-                             ORDER BY COALESCE(a.company_name, '') COLLATE NOCASE,
-                                      CASE WHEN u.role = 'admin' THEN 0 ELSE 1 END,
+                             ORDER BY CASE u.role
+                                        WHEN 'admin' THEN 0
+                                        WHEN 'customer_service' THEN 1
+                                        ELSE 2
+                                      END,
+                                      COALESCE(a.company_name, '') COLLATE NOCASE,
                                       u.is_primary DESC,
                                       u.username COLLATE NOCASE`).all(),
     ]);
@@ -55,9 +66,15 @@ export async function onRequestPost(context) {
     const username = normaliseUsername(body.username ?? existing.username);
     await assertUniqueUsername(context.env.DB, username, userId);
 
-    const role = existing.role === "admin" ? "admin" : "customer";
-    const accountId = Number(body.accountId || existing.account_id || 0);
-    await assertCustomerAccount(context.env.DB, accountId, false);
+    const role = requireSupportedRole(body.role ?? existing.role);
+    if (userId === Number(auth.userId) && isAdministratorRole(existing.role) && role !== USER_ROLES.ADMIN) {
+      throw badRequest("You cannot remove your own administrator access.");
+    }
+
+    const accountId = roleRequiresCustomerAccount(role)
+      ? Number(body.accountId || existing.account_id || 0)
+      : null;
+    if (roleRequiresCustomerAccount(role)) await assertCustomerAccount(context.env.DB, accountId, false);
 
     const contactName = cleanOptional(body.contactName, 100);
     const mobile = normaliseAustralianPhone(body.mobile, {
@@ -65,19 +82,20 @@ export async function onRequestPost(context) {
       error: "Enter a valid Australian phone number.",
     });
     const active = body.active === false ? 0 : 1;
-    if (userId === Number(auth.userId) && role === "admin" && !active) {
+    if (userId === Number(auth.userId) && isAdministratorRole(existing.role) && !active) {
       throw badRequest("You cannot deactivate your own administrator account.");
     }
-    const primary = role === "customer" && active === 1 && body.primary === true ? 1 : 0;
+    const primary = role === USER_ROLES.CUSTOMER && active === 1 && body.primary === true ? 1 : 0;
     const now = new Date().toISOString();
 
     if (primary) await clearPrimary(context.env.DB, accountId, now);
 
     await context.env.DB.prepare(`UPDATE users
-                                  SET username = ?, account_id = ?, default_contact_name = ?, default_mobile = ?,
+                                  SET username = ?, role = ?, account_id = ?,
+                                      default_contact_name = ?, default_mobile = ?,
                                       active = ?, is_primary = ?, updated_at = ?
                                   WHERE id = ?`)
-      .bind(username, accountId, contactName, mobile, active, primary, now, userId).run();
+      .bind(username, role, accountId, contactName, mobile, active, primary, now, userId).run();
 
     const newPassword = String(body.newPassword || "");
     if (newPassword) await updatePassword(context.env.DB, userId, newPassword, now);
@@ -92,9 +110,9 @@ async function createUser(db, body) {
   const username = normaliseUsername(body.username);
   await assertUniqueUsername(db, username, 0);
 
-  const role = body.role === "admin" ? "admin" : "customer";
-  const accountId = Number(body.accountId || 0);
-  await assertCustomerAccount(db, accountId, true);
+  const role = requireSupportedRole(body.role);
+  const accountId = roleRequiresCustomerAccount(role) ? Number(body.accountId || 0) : null;
+  if (roleRequiresCustomerAccount(role)) await assertCustomerAccount(db, accountId, true);
 
   const passwordValue = String(body.password || "");
   if (passwordValue.length < 8) throw badRequest("Password must contain at least 8 characters.");
@@ -104,7 +122,7 @@ async function createUser(db, body) {
     optional: true,
     error: "Enter a valid Australian phone number.",
   });
-  const primary = role === "customer" && body.primary === true ? 1 : 0;
+  const primary = role === USER_ROLES.CUSTOMER && body.primary === true ? 1 : 0;
   const now = new Date().toISOString();
 
   if (primary) await clearPrimary(db, accountId, now);
@@ -162,26 +180,18 @@ async function updatePassword(db, userId, value, now) {
 function requireAdmin(context) {
   const auth = context.data?.auth;
   if (!auth?.userId) throw Object.assign(new Error("Authentication required."), { status: 401 });
-  if (auth.role !== "admin") throw Object.assign(new Error("Administrator access required."), { status: 403 });
+  if (!isAdministratorRole(auth.role)) throw Object.assign(new Error("Administrator access required."), { status: 403 });
   return auth;
 }
 
 async function ensureSchema(db) {
-  const columns = await db.prepare(`PRAGMA table_info(users)`).all();
-  const names = new Set((columns.results || []).map((row) => String(row.name)));
-  if (!names.has("is_primary")) {
-    await db.prepare(`ALTER TABLE users ADD COLUMN is_primary INTEGER NOT NULL DEFAULT 0`).run();
-  }
-  await db.prepare(`UPDATE users SET is_primary = 0 WHERE role <> 'customer' OR account_id IS NULL OR active <> 1`).run();
-  await db.prepare(`UPDATE users
-                    SET is_primary = 0
-                    WHERE is_primary = 1
-                      AND id NOT IN (
-                        SELECT MIN(id) FROM users WHERE is_primary = 1 GROUP BY account_id
-                      )`).run();
-  await db.prepare(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_one_primary_per_account
-                    ON users(account_id)
-                    WHERE is_primary = 1 AND role = 'customer'`).run();
+  await ensureUserRoleSchema(db);
+}
+
+function requireSupportedRole(value) {
+  const role = parseUserRole(value);
+  if (!role) throw badRequest("Choose a valid portal role.");
+  return role;
 }
 
 function normaliseUsername(value) {
