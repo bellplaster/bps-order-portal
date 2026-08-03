@@ -481,10 +481,12 @@ function toggleUserAccount() {
   const role = document.getElementById("newUserRole");
   const account = document.getElementById("newUserAccount");
   if (!role || !account) return;
-  const admin = role.value === "admin";
-  account.disabled = admin;
-  account.required = !admin;
-  if (admin) account.value = "";
+  const customer = role.value === "customer";
+  account.disabled = !customer;
+  account.required = customer;
+  if (!customer) account.value = "";
+  const empty = account.options[0];
+  if (empty) empty.textContent = customer ? "Choose customer account" : "No customer account required";
 }
 
 function handlePagination(event) {
