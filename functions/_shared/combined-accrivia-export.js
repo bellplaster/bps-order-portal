@@ -44,7 +44,7 @@ export async function replaceAreaExportsWithCombined(env, payload, result, auth)
 
   const notes = buildDeliveryNotesDescription(payload);
   legacyRows.push(["NOTES", notes, 1]);
-  siteAreaRows.push(["NOTES", "", notes, 1]);
+  siteAreaRows.push(["", "NOTES", notes, 1]);
 
   const pickup = isPickup(payload?.deliveryType);
   const addresses = buildExportAddresses(payload, areaEntries.map(([, area]) => String(area?.label || "")), pickup);
