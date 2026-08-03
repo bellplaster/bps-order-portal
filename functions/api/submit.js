@@ -1,6 +1,7 @@
 import { processOrderSubmission } from "../_shared/orders-v2.js";
 import { sendOrderFilesEmail } from "../_shared/order-email.js";
 import { prepareOrderEmailFiles } from "../_shared/order-email-attachments.js";
+import { effectiveUserRole, isAdministratorRole } from "../_shared/user-roles.js";
 import { reconcileStandardProductItems } from "../_shared/product-payload.js";
 import { createMatrixAwareDb } from "../_shared/matrix-catalog-db.js";
 import { replaceAreaExportsWithCombined } from "../_shared/combined-accrivia-export.js";
@@ -23,7 +24,7 @@ export async function onRequestPost(context) {
     const auth = context.data?.auth || {};
     await ensureOrderTrackingSchema(context.env.DB);
     actor = await context.env.DB.prepare(
-      `SELECT id, account_id, username, role, active, default_contact_name
+      `SELECT id, account_id, username, role, access_role, active, default_contact_name
        FROM users WHERE id = ? AND active = 1 LIMIT 1`,
     ).bind(auth.userId).first();
     const accountId = Number(actor?.account_id || 0);
@@ -80,8 +81,9 @@ export async function onRequestPost(context) {
 
     let email = { sent: false, reason: "not_attempted" };
     try {
-      const isAdminOrder = String(actor?.role || "").toLowerCase() === "admin";
-      const emailEnv = orderEmailEnvironment(context.env, actor);
+      const actorRole = effectiveUserRole(actor?.role, actor?.access_role);
+      const isAdminOrder = isAdministratorRole(actorRole);
+      const emailEnv = orderEmailEnvironment(context.env, actorRole);
       const emailResult = {
         ...result,
         generatedFiles: prepareOrderEmailFiles(result.generatedFiles, { isAdmin: isAdminOrder }),
@@ -113,8 +115,8 @@ export async function onRequestPost(context) {
   }
 }
 
-function orderEmailEnvironment(env, actor) {
-  if (String(actor?.role || "").toLowerCase() !== "admin") return env;
+function orderEmailEnvironment(env, actorRole) {
+  if (!isAdministratorRole(actorRole)) return env;
   return {
     ...env,
     ORDER_EMAIL_TO: "marketing@bellplaster.com.au",
