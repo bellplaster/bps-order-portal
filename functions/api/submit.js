@@ -78,11 +78,15 @@ export async function onRequestPost(context) {
     });
 
     let email = { sent: false, reason: "not_attempted" };
-    try {
-      email = await sendOrderFilesEmail(context.env, payload, result, { ...auth, accountId });
-    } catch (error) {
-      email = { sent: false, reason: "send_failed", error: error?.message || String(error) };
-      console.error("Order email could not be sent.", error);
+    if (shouldSendProductionOrderEmail(actor)) {
+      try {
+        email = await sendOrderFilesEmail(context.env, payload, result, { ...auth, accountId });
+      } catch (error) {
+        email = { sent: false, reason: "send_failed", error: error?.message || String(error) };
+        console.error("Order email could not be sent.", error);
+      }
+    } else {
+      email = { sent: false, reason: "admin_test_excluded" };
     }
 
     return Response.json({
@@ -104,6 +108,10 @@ export async function onRequestPost(context) {
     const status = Number(error?.status || inferredStatus);
     return Response.json({ ok: false, error: message, diagnostic: error?.diagnostic || null, requestId }, { status, headers: { "X-Request-ID": requestId } });
   }
+}
+
+function shouldSendProductionOrderEmail(actor) {
+  return String(actor?.role || "").toLowerCase() !== "admin";
 }
 
 function assertPayloadHasProducts(payload) {
