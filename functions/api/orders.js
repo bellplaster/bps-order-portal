@@ -1,9 +1,11 @@
 import { PRODUCT_CATALOG } from "../_shared/catalog.js";
+import { prepareOrderFilesForViewer } from "../_shared/order-email-attachments.js";
 import {
   ADMIN_TEST_DEBTOR_CODE,
   getOrderScope,
   orderActionPermissions,
 } from "../_shared/order-permissions.js";
+import { isAdministratorRole } from "../_shared/user-roles.js";
 
 export async function onRequestGet(context) {
   const requestId = crypto.randomUUID();
@@ -52,11 +54,14 @@ export async function onRequestGet(context) {
          FROM order_files WHERE submission_id = ? ORDER BY id DESC`,
       ).bind(order.submission_id).all();
 
-      const files = (filesResult.results || []).map((file) => ({
+      const rawFiles = (filesResult.results || []).map((file) => ({
         ...file,
         revision: inferRevision(file.filename),
         download_url: `/api/files/${file.id}`,
       }));
+      const files = prepareOrderFilesForViewer(rawFiles, {
+        isAdmin: isAdministratorRole(viewer.role),
+      });
 
       let payload = {};
       try {

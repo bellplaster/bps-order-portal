@@ -1,6 +1,6 @@
 import { processOrderSubmission } from "../_shared/orders-v2.js";
 import { sendOrderFilesEmail } from "../_shared/order-email.js";
-import { prepareOrderEmailFiles } from "../_shared/order-email-attachments.js";
+import { prepareOrderFilesForViewer } from "../_shared/order-email-attachments.js";
 import { effectiveUserRole, isAdministratorRole } from "../_shared/user-roles.js";
 import { reconcileStandardProductItems } from "../_shared/product-payload.js";
 import { createMatrixAwareDb } from "../_shared/matrix-catalog-db.js";
@@ -79,14 +79,16 @@ export async function onRequestPost(context) {
       console.warn("Pickup site reference could not be stored.", error);
     });
 
+    const actorRole = effectiveUserRole(actor?.role, actor?.access_role);
+    const isAdminOrder = isAdministratorRole(actorRole);
+    const presentedFiles = prepareOrderFilesForViewer(result.generatedFiles, { isAdmin: isAdminOrder });
+
     let email = { sent: false, reason: "not_attempted" };
     try {
-      const actorRole = effectiveUserRole(actor?.role, actor?.access_role);
-      const isAdminOrder = isAdministratorRole(actorRole);
       const emailEnv = orderEmailEnvironment(context.env, actorRole);
       const emailResult = {
         ...result,
-        generatedFiles: prepareOrderEmailFiles(result.generatedFiles, { isAdmin: isAdminOrder }),
+        generatedFiles: presentedFiles,
       };
       email = await sendOrderFilesEmail(emailEnv, payload, emailResult, { ...auth, accountId });
     } catch (error) {
@@ -96,6 +98,8 @@ export async function onRequestPost(context) {
 
     return Response.json({
       ...result,
+      generatedFiles: presentedFiles,
+      viewerRole: actorRole,
       emailSent: email.sent === true,
       emailMessageId: email.messageId || null,
       emailStatus: email.reason || (email.sent ? "sent" : "not_sent"),
