@@ -14,7 +14,9 @@ export async function onRequestGet(context) {
 
     await ensureOrderTrackingSchema(context.env.DB);
     const viewer = await context.env.DB.prepare(
-      `SELECT id, account_id, username, role, active, is_primary, default_contact_name
+      `SELECT id, account_id, username,
+              COALESCE(NULLIF(access_role, ''), role) AS role,
+              active, is_primary, default_contact_name
        FROM users WHERE id = ? AND active = 1 LIMIT 1`,
     ).bind(auth.userId).first();
 
@@ -34,7 +36,7 @@ export async function onRequestGet(context) {
          o.submission_id, o.customer_reference, o.status, o.created_at, o.updated_at,
          o.payload_json, o.account_id, o.company_name_snapshot, o.debtor_code_snapshot,
          o.created_by_user_id, o.created_by_username_snapshot, o.created_by_name_snapshot,
-         creator.role AS creator_role
+         COALESCE(NULLIF(creator.access_role, ''), creator.role) AS creator_role
        FROM orders o
        LEFT JOIN users creator ON creator.id = o.created_by_user_id
        ${where}
@@ -175,7 +177,7 @@ function buildOrderScope(scope, viewer) {
   if (scope === "staff") {
     return {
       where: `WHERE UPPER(COALESCE(o.debtor_code_snapshot, '')) <> ?
-                AND COALESCE(creator.role, '') <> 'admin'`,
+                AND COALESCE(NULLIF(creator.access_role, ''), creator.role, '') <> 'admin'`,
       bindings: [ADMIN_TEST_DEBTOR_CODE],
     };
   }
@@ -224,7 +226,8 @@ function loadVisibleStaff(db, scope, accountId) {
               a.company_name
        FROM users u
        INNER JOIN customer_accounts a ON a.id = u.account_id
-       WHERE u.role = 'customer' AND UPPER(a.debtor_code) <> ?
+       WHERE COALESCE(NULLIF(u.access_role, ''), u.role) = 'customer'
+         AND UPPER(a.debtor_code) <> ?
        ORDER BY a.company_name COLLATE NOCASE, u.is_primary DESC,
                 u.default_contact_name COLLATE NOCASE, u.username COLLATE NOCASE`,
     ).bind(ADMIN_TEST_DEBTOR_CODE).all();
