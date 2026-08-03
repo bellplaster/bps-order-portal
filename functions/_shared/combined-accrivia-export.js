@@ -24,6 +24,10 @@ export async function replaceAreaExportsWithCombined(env, payload, result, auth)
   const legacyRows = [];
   const siteAreaRows = [];
   const includeLegacySeparators = areaEntries.length > 1;
+  const onlyAreaLabel = areaEntries.length === 1
+    ? upper(areaEntries[0][1]?.label || areaEntries[0][0] || "AREA")
+    : "";
+  const omitDefaultSingleTab = areaEntries.length === 1 && isDefaultTabLabel(onlyAreaLabel);
 
   for (const [areaKey, area] of areaEntries) {
     const label = upper(area.label || areaKey || "AREA");
@@ -34,7 +38,7 @@ export async function replaceAreaExportsWithCombined(env, payload, result, auth)
     legacyRows.push(...combinedRows.map((row) => [row.sku, "", row.quantity]));
 
     combinedRows.forEach((row, index) => {
-      siteAreaRows.push([index === 0 ? label : "", row.sku, "", row.quantity]);
+      siteAreaRows.push([index === 0 && !omitDefaultSingleTab ? label : "", row.sku, "", row.quantity]);
     });
   }
 
@@ -216,6 +220,9 @@ function buildExportAddresses(payload, labels, pickup) {
   return { line1: [prefix, street].filter(Boolean).join(" "), line2: suburbFull, line3: "" };
 }
 
+function isDefaultTabLabel(value) {
+  return /^TAB\s*0*1$/i.test(String(value || "").trim());
+}
 function parseUnitLabel(value) {
   const match = String(value || "").trim().match(/^UNIT\s*0*(\d+)$/i);
   return match ? Number(match[1]) : null;
