@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
+// This regression protects the Account page from hidden-attribute observer feedback loops.
 const experience = await readFile(new URL("../public/account-experience-v2.js", import.meta.url), "utf8");
 const roleUx = await readFile(new URL("../public/account-role-ux.js", import.meta.url), "utf8");
 
