@@ -1,4 +1,8 @@
 /* Account profile header and default-field polish */
+.account-experience-v2 .account-profile-card-v2:not([data-profile-polished="true"]) {
+  visibility: hidden;
+}
+
 .account-experience-v2 .account-profile-card-v2 {
   display: flex;
   flex-direction: column;
