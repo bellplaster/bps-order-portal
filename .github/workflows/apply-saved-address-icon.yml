@@ -1,7 +1,10 @@
 name: Apply saved address icon
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/apply-saved-address-icon.yml
 
 permissions:
   contents: write
@@ -12,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: refine-saved-address-icon
+          ref: main
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -40,11 +43,10 @@ jobs:
           js.write_text(text.replace(old, new))
 
           html = Path('public/account/index.html')
-          html_text = html.read_text().replace(
+          html.write_text(html.read_text().replace(
               '/account-interaction-polish.js?v=20260804-2',
               '/account-interaction-polish.js?v=20260804-3'
-          )
-          html.write_text(html_text)
+          ))
 
           test = Path('tests/account-interaction-polish.test.mjs')
           test_text = test.read_text().replace(
@@ -62,4 +64,4 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add public/account-interaction-polish.js public/account/index.html tests/account-interaction-polish.test.mjs
           git commit -m "Use supplied line-house icon for saved addresses"
-          git push origin HEAD:refine-saved-address-icon
+          git push origin HEAD:main
