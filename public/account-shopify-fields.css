@@ -14,7 +14,7 @@
 }
 
 .account-page .account-section-bar{
-  min-height:70px;
+  min-height:72px;
   padding:18px 22px 15px;
 }
 
@@ -40,7 +40,12 @@
 .saved-contact-actions button,
 .saved-address-actions button,
 .security-toggle b{
-  font-size:13px!important;
+  min-height:40px!important;
+  height:40px!important;
+  padding:0 16px!important;
+  border-radius:12px!important;
+  font-size:14px!important;
+  line-height:1!important;
 }
 
 .account-page .order-default-grid{
@@ -53,7 +58,7 @@
   position:relative!important;
   display:block!important;
   min-width:0!important;
-  min-height:50px!important;
+  min-height:56px!important;
   gap:0!important;
   border:0!important;
   background:transparent!important;
@@ -66,6 +71,7 @@
   left:14px!important;
   display:block!important;
   max-width:calc(100% - 34px)!important;
+  height:20px!important;
   margin:0!important;
   padding:0!important;
   overflow:hidden!important;
@@ -74,27 +80,19 @@
   color:var(--account-shopify-label)!important;
   font-size:14px!important;
   font-weight:400!important;
-  line-height:1!important;
+  line-height:20px!important;
   text-overflow:ellipsis!important;
   white-space:nowrap!important;
   pointer-events:none!important;
-  transition:top .14s ease,transform .14s ease,font-size .14s ease,color .14s ease!important;
+  transition:top .14s ease,transform .14s ease,font-size .14s ease,color .14s ease,line-height .14s ease!important;
 }
 
 .account-shopify-field.is-floating>span{
-  top:8px!important;
+  top:9px!important;
+  height:auto!important;
   transform:none!important;
   font-size:11px!important;
-  line-height:1!important;
-}
-
-.account-shopify-field.is-textarea>span{
-  top:16px!important;
-  transform:none!important;
-}
-
-.account-shopify-field.is-textarea.is-floating>span{
-  top:8px!important;
+  line-height:14px!important;
 }
 
 .account-page .account-shopify-field>input,
@@ -107,8 +105,8 @@
   display:block!important;
   width:100%!important;
   min-width:0!important;
-  height:50px!important;
-  min-height:50px!important;
+  height:56px!important;
+  min-height:56px!important;
   margin:0!important;
   padding:0 14px!important;
   box-sizing:border-box!important;
@@ -120,7 +118,7 @@
   box-shadow:none!important;
   font-size:14px!important;
   font-weight:400!important;
-  line-height:1.35!important;
+  line-height:20px!important;
   transition:border-color .14s ease,box-shadow .14s ease,background-color .14s ease!important;
 }
 
@@ -129,8 +127,8 @@
 .saved-contact-fields .account-shopify-field.is-floating>input,
 .saved-address-fields .account-shopify-field.is-floating>input,
 .password-modal-form-v2 .account-shopify-field.is-floating>input{
-  padding-top:15px!important;
-  padding-bottom:3px!important;
+  padding-top:18px!important;
+  padding-bottom:4px!important;
 }
 
 .account-page .account-shopify-field>select{
@@ -139,14 +137,14 @@
 
 .account-page .account-shopify-field>textarea{
   height:auto!important;
-  min-height:104px!important;
-  padding:13px 14px!important;
+  min-height:112px!important;
+  padding:16px 14px!important;
   resize:vertical!important;
 }
 
 .account-page .account-shopify-field.is-floating>textarea{
-  padding-top:23px!important;
-  padding-bottom:10px!important;
+  padding-top:27px!important;
+  padding-bottom:11px!important;
 }
 
 .account-shopify-field>input::placeholder,
@@ -179,6 +177,35 @@
   box-shadow:0 0 0 1px rgba(200,50,76,.08)!important;
 }
 
+/* Align card actions to the same right edge */
+.saved-contact-row,
+.saved-address-row{
+  padding-right:22px!important;
+  padding-left:22px!important;
+}
+
+.saved-contact-actions,
+.saved-address-actions{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:8px!important;
+}
+
+.saved-contact-actions button,
+.saved-address-actions button{
+  display:inline-flex!important;
+  min-width:0!important;
+  min-height:40px!important;
+  height:40px!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:0 16px!important;
+  border-radius:12px!important;
+  font-size:14px!important;
+  line-height:1!important;
+}
+
 /* Dialog scale and spacing */
 .saved-contact-dialog-card h2,
 .saved-address-dialog-card h2,
@@ -203,6 +230,10 @@
 .saved-address-dialog-card>footer .button,
 .account-prototype-dialog-card>footer .button,
 .account-page .account-form-actions .button{
+  min-height:40px!important;
+  height:40px!important;
+  padding:0 16px!important;
+  border-radius:12px!important;
   font-size:14px!important;
 }
 
@@ -267,7 +298,7 @@
 
 .account-page .order-detail-suggestions[data-group="account"] .order-detail-suggestion{
   display:flex!important;
-  min-height:40px!important;
+  min-height:42px!important;
   align-items:baseline!important;
   gap:4px!important;
   padding:10px 12px!important;
@@ -358,6 +389,12 @@
 
   .account-page .account-section-bar{
     padding:17px 16px 14px;
+  }
+
+  .saved-contact-row,
+  .saved-address-row{
+    padding-right:16px!important;
+    padding-left:16px!important;
   }
 
   .account-page .account-form-actions{
