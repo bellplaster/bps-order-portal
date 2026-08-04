@@ -20,8 +20,7 @@
       heading.textContent = "Accounts";
     }
 
-    const description = brand.querySelector("span");
-    if (description) description.remove();
+    brand.querySelector("span")?.remove();
 
     if (brand.dataset.accountsHeading !== "true") {
       brand.dataset.accountsHeading = "true";
