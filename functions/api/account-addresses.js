@@ -302,7 +302,10 @@ async function seedAddressFromOrderDefaults(db, auth) {
 }
 
 async function userCanManage(db, auth) {
-  if (!auth?.userId || !auth?.accountId || auth.role !== "customer") return false;
+  if (!auth?.userId || !auth?.accountId) return false;
+  if (auth.role === "admin") return true;
+  if (auth.role !== "customer") return false;
+
   const user = await db.prepare(
     `SELECT is_primary FROM users
      WHERE id = ? AND account_id = ? AND role = 'customer' AND active = 1
@@ -313,7 +316,7 @@ async function userCanManage(db, auth) {
 
 async function requireManager(db, auth) {
   if (!await userCanManage(db, auth)) {
-    throw forbidden("Only the account supervisor can manage saved addresses.");
+    throw forbidden("Only the account supervisor or an administrator can manage saved addresses.");
   }
 }
 
