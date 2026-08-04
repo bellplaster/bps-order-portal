@@ -97,6 +97,12 @@ jobs:
           ];
           await writeFile('export/layout-placements.csv', placementRows.map(row => row.map(quote).join(',')).join('\n'));
           NODE
+          cp public/rondo-hebel-catalogue.js export/
+          cp public/sku-source-truth.js export/
+          cp public/lower-products-refinement.js export/
+          cp public/board-refinement.js export/
+          cp public/order-selection-source.js export/
+          cp public/payload-sku-bridge.js export/
       - name: Upload catalogue export
         uses: actions/upload-artifact@v4
         with:
