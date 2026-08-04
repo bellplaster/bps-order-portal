@@ -41,16 +41,12 @@ jobs:
 
           experience_path = Path('public/account-experience-v2.js')
           experience = experience_path.read_text()
-          old_start = '''  async function start() {
-            profile = await loadProfile();
-            document.body.classList.add("account-experience-v2");
-            buildLayout();
-            decorateSections();
-            reorderSections();
-            installNavigation();
-            installDynamicSectionSync();
-            scrollToRequestedSection();
-          }'''
+          start_marker = '  async function start() {'
+          end_marker = '\n\n  async function loadProfile()'
+          start_index = experience.find(start_marker)
+          end_index = experience.find(end_marker, start_index)
+          if start_index < 0 or end_index < 0:
+              raise SystemExit('Account start function boundaries were not found.')
           new_start = '''  async function start() {
             profile = await loadProfile();
             try {
@@ -64,9 +60,8 @@ jobs:
               document.body.classList.add("account-experience-v2");
             }
           }'''
-          if old_start not in experience:
-              raise SystemExit('Expected Account start function was not found.')
-          experience_path.write_text(experience.replace(old_start, new_start, 1))
+          experience = experience[:start_index] + new_start + experience[end_index:]
+          experience_path.write_text(experience)
 
           index_path = Path('public/account/index.html')
           index = index_path.read_text()
@@ -88,7 +83,7 @@ jobs:
                   'const adminDefaults = await readFile(new URL("../public/admin-defaults.js", import.meta.url), "utf8");',
                   'const adminDefaults = await readFile(new URL("../public/admin-defaults.js", import.meta.url), "utf8");\nconst accountCss = await readFile(new URL("../public/account-final-refinement.css", import.meta.url), "utf8");\nconst accountPage = await readFile(new URL("../public/account/index.html", import.meta.url), "utf8");',
               )
-              test += '''\n\ntest("account shell remains hidden until the redesigned layout is ready", () => {
+              test += r'''\n\ntest("account shell remains hidden until the redesigned layout is ready", () => {
             assert.match(accountCss, /\.account-page:not\(\.account-experience-v2\) \.account-shell\{visibility:hidden\}/);
             assert.match(accountCss, /account-bootstrap-spin/);
             const buildPosition = experience.indexOf("buildLayout();");
@@ -112,6 +107,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/account-final-refinement.css public/account-experience-v2.js public/account/index.html public/account-role-ux.js public/admin-defaults.js tests/account-observer-loop.test.mjs .github/workflows/apply-account-loading-flash.yml
+          git add -A
           git commit -m "Prevent legacy Account page loading flash"
           git push origin HEAD:fix-account-loading-flash
