@@ -34,10 +34,6 @@
     "deliveryStreet",
     "deliveryAddressSearch",
     "deliveryInstructions",
-    "defaultContactName",
-    "defaultStreet",
-    "defaultSuburb",
-    "defaultInstructions",
     "newDebtorCode",
     "newCompanyName",
     "editDebtorCode",
@@ -68,6 +64,11 @@
 
   function uppercase(value) {
     return String(value || "").toLocaleUpperCase("en-AU");
+  }
+
+  function addressDisplayValue(value, group) {
+    const text = String(value || "").trim();
+    return group?.name === "account" ? text : uppercase(text);
   }
 
   function replaceFieldValue(field) {
@@ -141,6 +142,7 @@
     const panel = document.createElement("div");
     panel.className = "order-detail-suggestions";
     panel.dataset.owner = input.id;
+    panel.dataset.group = group.name;
     panel.hidden = true;
     panel.id = `${input.id}Suggestions`;
     panel.setAttribute("role", "listbox");
@@ -191,8 +193,8 @@
         const postcode = document.getElementById(group.postcodeId);
         const state = group.stateId ? document.getElementById(group.stateId) : null;
 
-        if (mode === "street" && street && place.street) street.value = uppercase(place.street);
-        if (suburb && place.suburb) suburb.value = uppercase(place.suburb);
+        if (mode === "street" && street && place.street) street.value = addressDisplayValue(place.street, group);
+        if (suburb && place.suburb) suburb.value = addressDisplayValue(place.suburb, group);
         if (postcode) postcode.value = String(place.postcode || "").replace(/\D/g, "").slice(0, 4);
         if (state) state.value = "VIC";
 
@@ -229,12 +231,12 @@
         button.setAttribute("aria-selected", String(index === activeIndex));
 
         const main = document.createElement("strong");
-        main.textContent = uppercase(suggestion.mainText || suggestion.text || "");
+        main.textContent = addressDisplayValue(suggestion.mainText || suggestion.text || "", group);
         button.append(main);
 
         if (suggestion.secondaryText) {
           const secondary = document.createElement("span");
-          secondary.textContent = uppercase(suggestion.secondaryText);
+          secondary.textContent = addressDisplayValue(suggestion.secondaryText, group);
           button.append(secondary);
         }
 
@@ -318,6 +320,7 @@
       .order-detail-suggestions{position:absolute;z-index:100002;top:100%;left:-1px;right:-1px;max-height:260px;overflow-y:auto;background:#fff;border:1px solid #cfd7d4;box-shadow:0 8px 20px rgba(23,33,31,.12)}
       .order-detail-suggestions[hidden]{display:none!important}
       .order-detail-suggestion{box-sizing:border-box;width:100%;display:grid;gap:2px;margin:0;padding:8px 10px;text-align:left;text-transform:uppercase;color:#17211f;background:#fff;border:0;border-bottom:1px solid #e1e6e4;border-radius:0;cursor:pointer;font-family:inherit}
+      .account-page .order-detail-suggestions[data-group="account"] .order-detail-suggestion{text-transform:none}
       .order-detail-suggestion:last-child{border-bottom:0}
       .order-detail-suggestion:hover,.order-detail-suggestion.is-active{background:#eef6f3}
       .order-detail-suggestion strong{font-size:11px;font-weight:650;line-height:1.25}
