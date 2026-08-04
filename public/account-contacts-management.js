@@ -104,8 +104,14 @@
     list.querySelectorAll("[data-remove]").forEach((button) => button.addEventListener("click", () => removeContact(Number(button.dataset.remove))));
   }
 
+  function resetContactForm() {
+    const form = document.getElementById("savedContactForm");
+    if (form instanceof HTMLFormElement) form.reset();
+  }
+
   function openDialog(id = null) {
     const contact = contacts.find((item) => Number(item.id) === Number(id));
+    resetContactForm();
     editingId = contact ? Number(contact.id) : null;
     document.getElementById("savedContactTitle").textContent = contact ? "Edit saved contact" : "Add saved contact";
     document.getElementById("savedContactName").value = contact?.contactName || "";
@@ -118,6 +124,7 @@
   function closeDialog() {
     const dialog = document.getElementById("savedContactDialog");
     if (dialog?.open && typeof dialog.close === "function") dialog.close(); else dialog?.removeAttribute("open");
+    resetContactForm();
     editingId = null;
   }
 

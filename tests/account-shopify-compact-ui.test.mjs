@@ -18,10 +18,13 @@ test("order defaults use compact row spacing and a real 52px control height", ()
   assert.match(css, /is-floating>span,[\s\S]*top:7px!important/);
 });
 
-test("saved contact actions are pinned to the same right edge as addresses", () => {
-  assert.match(css, /saved-contact-row\{[\s\S]*padding:12px 170px 12px 18px!important/);
-  assert.match(css, /saved-contact-actions\{[\s\S]*position:absolute!important[\s\S]*right:18px!important/);
-  assert.match(css, /saved-address-row\{[\s\S]*padding:12px 18px!important/);
+test("saved contact actions share the same grid edge as addresses", () => {
+  assert.match(css, /saved-contact-row\{[^}]*grid-template-columns:minmax\(0,1fr\) auto!important/);
+  assert.match(css, /saved-contact-row\{[^}]*padding:12px 18px!important/);
+  assert.match(css, /saved-contact-actions\{[^}]*position:static!important/);
+  assert.match(css, /saved-contact-actions\{[^}]*justify-self:end!important/);
+  assert.match(css, /saved-address-row\{[^}]*padding:12px 18px!important/);
+  assert.doesNotMatch(css, /padding:12px 170px/);
 });
 
 test("modal and card spacing is reduced without shrinking action buttons", () => {

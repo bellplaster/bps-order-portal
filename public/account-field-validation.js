@@ -149,6 +149,24 @@
     return error;
   }
 
+  function clearFieldValidation(field) {
+    if (!configs[field?.id]) return;
+    field.setCustomValidity("");
+    field.classList.remove("is-account-field-invalid");
+    field.removeAttribute("aria-invalid");
+    field.closest("label, .account-field")?.classList.remove("is-invalid");
+    const error = document.getElementById(`${field.id}ValidationMessage`);
+    if (error) {
+      error.textContent = "";
+      error.hidden = true;
+    }
+  }
+
+  function resetFormValidation(form) {
+    if (!(form instanceof HTMLFormElement)) return;
+    form.querySelectorAll("input, textarea").forEach(clearFieldValidation);
+  }
+
   function validateForm(form) {
     const fields = Array.from(form.querySelectorAll("input, textarea")).filter((field) => configs[field.id]);
     fields.forEach((field) => {
@@ -186,12 +204,17 @@
     event.stopImmediatePropagation();
   }
 
+  function onReset(event) {
+    if (event.target instanceof HTMLFormElement) resetFormValidation(event.target);
+  }
+
   function start() {
     document.querySelectorAll("input, textarea").forEach(configureField);
     document.addEventListener("focusin", (event) => configureField(event.target));
     document.addEventListener("input", onInput, true);
     document.addEventListener("blur", onBlur, true);
     document.addEventListener("submit", onSubmit, true);
+    document.addEventListener("reset", onReset, true);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
