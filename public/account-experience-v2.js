@@ -10,15 +10,18 @@
   let lastDynamicSignature = "";
 
   async function start() {
-    profile = await loadProfile();
-    document.body.classList.add("account-experience-v2");
+  profile = await loadProfile();
+  try {
     buildLayout();
     decorateSections();
     reorderSections();
     installNavigation();
     installDynamicSectionSync();
     scrollToRequestedSection();
+  } finally {
+    document.body.classList.add("account-experience-v2");
   }
+}
 
   async function loadProfile() {
     try {

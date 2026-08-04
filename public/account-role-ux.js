@@ -91,7 +91,7 @@
 
     if (!document.querySelector('script[data-account-experience-v2="true"]')) {
       const experience = document.createElement("script");
-      experience.src = "/account-experience-v2.js?v=20260804-3";
+      experience.src = "/account-experience-v2.js?v=20260804-4";
       experience.defer = true;
       experience.dataset.accountExperienceV2 = "true";
       document.body.append(experience);
