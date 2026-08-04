@@ -5,8 +5,9 @@
   let profile = null;
   let main = null;
   let nav = null;
-  let observer = null;
+  let sectionObserver = null;
   let requestedHashHandled = false;
+  let lastDynamicSignature = "";
 
   async function start() {
     profile = await loadProfile();
@@ -14,8 +15,8 @@
     buildLayout();
     decorateSections();
     reorderSections();
-    installDynamicSectionObserver();
     installNavigation();
+    installDynamicSectionSync();
     scrollToRequestedSection();
   }
 
@@ -90,7 +91,6 @@
 
     const company = profile?.companyName || (profile?.role === "admin" ? "Bell Plaster Administration" : "Account");
     const initials = company.split(/\s+/).filter(Boolean).slice(0, 2).map((word) => word[0]).join("").toUpperCase() || "BP";
-    const role = roleLabel(profile?.role);
     const descriptor = profile?.role === "admin"
       ? "Manage portal users, customer accounts and your administrator order defaults."
       : "Your shared ordering profile, defaults, contacts and delivery locations.";
@@ -105,7 +105,7 @@
           ${profile?.username ? `<span>${escapeHtml(profile.username)}</span>` : ""}
         </div>
       </div>
-      <span class="account-profile-role-v2">${escapeHtml(role)}</span>`;
+      <span class="account-profile-role-v2">${escapeHtml(roleLabel(profile?.role))}</span>`;
     return card;
   }
 
@@ -120,10 +120,10 @@
       enhanceHeader(defaults, "Order defaults", "Pre-fill the details you use most often. You can still change them on each order.");
     }
 
-    const contacts = root.querySelector?.("#savedContactsSection");
+    const contacts = root.querySelector?.("#savedContactsSection") || document.getElementById("savedContactsSection");
     if (contacts) enhanceHeader(contacts, "Saved contacts", "Shared people your team regularly orders for.");
 
-    const addresses = root.querySelector?.("#savedAddressesSection");
+    const addresses = root.querySelector?.("#savedAddressesSection") || document.getElementById("savedAddressesSection");
     if (addresses) enhanceHeader(addresses, "Saved addresses", "Frequently used delivery sites available from the order form.");
 
     const security = document.querySelector(".security-card");
@@ -153,9 +153,8 @@
     copy.textContent = description;
   }
 
-  function reorderSections() {
-    if (!main) return;
-    const order = [
+  function desiredSections() {
+    return [
       document.getElementById("accountProfileV2"),
       document.getElementById("accountMessage"),
       document.getElementById("accountForm"),
@@ -163,43 +162,60 @@
       document.getElementById("savedAddressesSection"),
       document.getElementById("adminSection"),
       document.getElementById("securitySection"),
-    ];
-    order.filter(Boolean).forEach((element) => main.append(element));
-    updateNavigationVisibility();
-    scrollToRequestedSection();
+    ].filter(Boolean);
   }
 
-  function installDynamicSectionObserver() {
-    if (!main || observer) return;
-    observer = new MutationObserver((mutations) => {
-      let structureChanged = false;
-      let visibilityChanged = false;
-      mutations.forEach((mutation) => {
-        if (mutation.type === "attributes") {
-          if (mutation.target instanceof Element && mutation.target.id === "adminSection") visibilityChanged = true;
-          return;
-        }
-        mutation.addedNodes.forEach((node) => {
-          if (!(node instanceof Element)) return;
-          if (node.matches?.("#savedContactsSection, #savedAddressesSection") || node.querySelector?.("#savedContactsSection, #savedAddressesSection")) structureChanged = true;
-        });
-      });
+  function reorderSections() {
+    if (!main) return false;
+    const desired = desiredSections();
+    const current = Array.from(main.children).filter((element) => desired.includes(element));
+    const alreadyOrdered = desired.length === current.length && desired.every((element, index) => current[index] === element);
+    if (!alreadyOrdered) desired.forEach((element) => main.append(element));
+    updateNavigationVisibility();
+    scrollToRequestedSection();
+    return !alreadyOrdered;
+  }
 
-      if (structureChanged) {
-        decorateSections();
-        reorderSections();
-        refreshObservedSections();
-      } else if (visibilityChanged) {
-        updateNavigationVisibility();
-        refreshObservedSections();
-      }
-    });
-    observer.observe(main, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ["hidden"],
-    });
+  function dynamicSignature() {
+    const contacts = document.getElementById("savedContactsSection");
+    const addresses = document.getElementById("savedAddressesSection");
+    const admin = document.getElementById("adminSection");
+    return [
+      contacts ? "contacts:1" : "contacts:0",
+      addresses ? "addresses:1" : "addresses:0",
+      admin ? `admin:${admin.hidden ? 0 : 1}` : "admin:missing",
+    ].join("|");
+  }
+
+  function syncDynamicSections(force = false) {
+    if (!main) return false;
+    const signature = dynamicSignature();
+    if (!force && signature === lastDynamicSignature) return false;
+    lastDynamicSignature = signature;
+    decorateSections();
+    reorderSections();
+    refreshObservedSections();
+    return true;
+  }
+
+  function installDynamicSectionSync() {
+    const sync = () => syncDynamicSections(true);
+    [
+      "bps:account-addresses-ready",
+      "bps:account-addresses-updated",
+      "bps:account-contacts-ready",
+      "bps:account-loaded",
+    ].forEach((eventName) => document.addEventListener(eventName, sync));
+
+    syncDynamicSections(true);
+    let attempts = 0;
+    let unchangedChecks = 0;
+    const timer = window.setInterval(() => {
+      attempts += 1;
+      if (syncDynamicSections()) unchangedChecks = 0;
+      else unchangedChecks += 1;
+      if (attempts >= 100 || unchangedChecks >= 30) window.clearInterval(timer);
+    }, 100);
   }
 
   function installNavigation() {
@@ -216,7 +232,6 @@
     refreshObservedSections();
   }
 
-  let sectionObserver = null;
   function refreshObservedSections() {
     sectionObserver?.disconnect();
     if (!("IntersectionObserver" in window) || !nav) return;
