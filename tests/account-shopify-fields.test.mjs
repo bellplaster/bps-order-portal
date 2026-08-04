@@ -8,9 +8,9 @@ const script = await readFile(new URL("../public/account-shopify-fields.js", imp
 
 test("Account page loads the Shopify-style field assets last", () => {
   const prototypeCss = index.indexOf("account-prototype-refinement.css?v=20260804-1");
-  const shopifyCss = index.indexOf("account-shopify-fields.css?v=20260804-1");
+  const shopifyCss = index.indexOf("account-shopify-fields.css?v=20260804-2");
   const prototypeJs = index.indexOf("account-prototype-interactions.js?v=20260804-1");
-  const shopifyJs = index.indexOf("account-shopify-fields.js?v=20260804-1");
+  const shopifyJs = index.indexOf("account-shopify-fields.js?v=20260804-2");
   assert.ok(prototypeCss >= 0 && shopifyCss > prototypeCss);
   assert.ok(prototypeJs >= 0 && shopifyJs > prototypeJs);
 });
