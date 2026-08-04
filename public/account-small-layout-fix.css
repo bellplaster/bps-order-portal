@@ -1,0 +1,24 @@
+/* Small Account layout corrections loaded after the existing refinement layers. */
+
+.account-page .account-sidebar-brand-v2 strong{
+  display:block!important;
+  margin:0!important;
+  font-size:20px!important;
+  font-weight:700!important;
+  line-height:1.2!important;
+  letter-spacing:-.025em!important;
+}
+
+.account-page .account-sidebar-brand-v2 span{
+  display:none!important;
+}
+
+.account-page #orderDefaultsSection{
+  margin-top:14px!important;
+}
+
+@media (max-width:800px){
+  .account-page #orderDefaultsSection{
+    margin-top:14px!important;
+  }
+}
