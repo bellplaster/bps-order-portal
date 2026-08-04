@@ -7,19 +7,10 @@
 
   if (!document.body.classList.contains("order-form-page")) return;
 
-  if (!document.querySelector('link[data-saved-address-picker="true"]')) {
-    const stylesheet = document.createElement("link");
-    stylesheet.rel = "stylesheet";
-    stylesheet.href = "/saved-address-picker.css?v=20260804-1";
-    stylesheet.dataset.savedAddressPicker = "true";
-    document.head.append(stylesheet);
-  }
-
-  if (!document.querySelector('script[data-saved-address-picker="true"]')) {
-    const script = document.createElement("script");
-    script.src = "/saved-address-picker.js?v=20260804-1";
-    script.defer = true;
-    script.dataset.savedAddressPicker = "true";
-    document.body.append(script);
-  }
+  // Saved addresses remain available from the Account page, but the order-form
+  // picker is intentionally unpublished until the workflow is approved.
+  document.getElementById("savedAddressPickerButton")?.remove();
+  document.getElementById("savedAddressPickerMenu")?.remove();
+  document.querySelector(".address-control")?.classList.remove("has-saved-address-picker");
+  document.querySelectorAll('[data-saved-address-picker="true"]').forEach((element) => element.remove());
 })();

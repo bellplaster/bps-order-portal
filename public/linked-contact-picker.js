@@ -103,17 +103,33 @@
     menu.id = "linkedContactMenu";
     menu.className = "linked-contact-menu";
     menu.setAttribute("role", "listbox");
+    menu.setAttribute("aria-label", "Saved contacts");
     menu.hidden = true;
+    menu.innerHTML = `
+      <div class="linked-contact-menu-heading">
+        <span>Saved contacts</span>
+        <span>${contacts.length}</span>
+      </div>
+      <div class="linked-contact-options"></div>
+      <div class="linked-contact-menu-footer">
+        <a href="/account/#savedContactsSection">Manage contacts</a>
+      </div>`;
 
+    const optionsRoot = menu.querySelector(".linked-contact-options");
     contacts.forEach((contact, index) => {
       const option = document.createElement("button");
       option.type = "button";
       option.className = "linked-contact-option";
       option.dataset.contactIndex = String(index);
       option.setAttribute("role", "option");
-      option.innerHTML = `<strong>${escapeHtml(contact.contactName)}</strong>${contact.mobile ? `<span>${escapeHtml(contact.mobile)}</span>` : ""}`;
+      option.innerHTML = `
+        <span class="linked-contact-avatar" aria-hidden="true">${escapeHtml(initials(contact.contactName))}</span>
+        <span class="linked-contact-copy">
+          <strong>${escapeHtml(contact.contactName)}</strong>
+          ${contact.mobile ? `<span>${escapeHtml(contact.mobile)}</span>` : '<span>No phone number</span>'}
+        </span>`;
       option.addEventListener("click", () => chooseContact(index));
-      menu.append(option);
+      optionsRoot.append(option);
     });
 
     const openMenu = () => {
@@ -160,8 +176,6 @@
       } else if (event.key === "Escape") {
         event.preventDefault();
         closeMenu(true);
-      } else if (event.key === "Tab") {
-        closeMenu();
       }
     });
     document.addEventListener("mousedown", (event) => {
@@ -169,6 +183,12 @@
     });
 
     wrapper.append(button, menu);
+  }
+
+  function initials(value) {
+    const parts = String(value || "").trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "C";
+    return parts.slice(0, 2).map((part) => part[0]).join("").toUpperCase();
   }
 
   function escapeHtml(value) {
@@ -195,19 +215,26 @@
       .linked-contact-button{display:grid;place-items:center;width:38px;min-width:38px;height:38px;margin:0;padding:0;border:0;border-radius:0;outline:0;background:#fff;cursor:pointer;box-sizing:border-box}
       .linked-contact-button img{display:block;width:15px;height:15px}
       .linked-contact-button:hover{background:#f5f8f7}
-      .linked-contact-button:focus-visible,.linked-contact-control.is-open .linked-contact-button{box-shadow:inset 0 0 0 1px var(--bell-green,#006557)}
-      .linked-contact-menu{position:absolute;z-index:100003;top:100%;right:0;width:240px;max-height:280px;overflow:auto;margin:0;padding:6px;border:1px solid #cfd7d4;border-radius:0 0 4px 4px;background:#fff;box-shadow:0 10px 24px rgba(23,33,31,.16);box-sizing:border-box}
+      .linked-contact-button:focus-visible,.linked-contact-control.is-open .linked-contact-button{position:relative;z-index:3;box-shadow:inset 0 0 0 1px var(--bell-green,#006557)}
+      .linked-contact-menu{position:absolute;z-index:100003;top:calc(100% + 6px);right:0;width:300px;max-height:360px;overflow:hidden;margin:0;padding:0;border:1px solid #d4d7d6;border-radius:12px;background:#fff;box-shadow:0 14px 34px rgba(23,33,31,.17);box-sizing:border-box}
       .linked-contact-menu[hidden]{display:none!important}
       .linked-contact-menu::before,.linked-contact-menu::after{display:none!important;content:none!important}
-      .linked-contact-option{position:relative;z-index:1;display:grid;gap:2px;width:100%;margin:0;padding:9px 10px;border:0;border-radius:3px;background:#fff;color:#17211f;text-align:left;cursor:pointer;font-family:inherit;box-sizing:border-box}
-      .linked-contact-option:hover,.linked-contact-option:focus{outline:0;background:#eef6f3}
-      .linked-contact-option strong{font-size:11px;font-weight:600;line-height:1.3}
-      .linked-contact-option span{font-size:10px;font-weight:400;line-height:1.3;color:#687471}
+      .linked-contact-menu-heading{display:flex;min-height:38px;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid #eceeed;background:#fff;color:#687471;font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+      .linked-contact-options{max-height:250px;overflow:auto;padding:5px}
+      .linked-contact-option{position:relative;z-index:1;display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px;width:100%;min-height:52px;align-items:center;margin:0;padding:8px 9px;border:0;border-radius:8px;background:#fff;color:#17211f;text-align:left;cursor:pointer;font-family:inherit;box-sizing:border-box}
+      .linked-contact-option:hover,.linked-contact-option:focus-visible{outline:0;background:#eef6f3}
+      .linked-contact-avatar{display:grid;width:34px;height:34px;place-items:center;border-radius:10px;background:#f0f3f2;color:#40504b;font-size:10px;font-weight:700;letter-spacing:.01em}
+      .linked-contact-copy{display:grid;min-width:0;gap:3px}
+      .linked-contact-copy strong{overflow:hidden;color:#17211f;font-size:12px;font-weight:650;line-height:1.3;text-overflow:ellipsis;white-space:nowrap}
+      .linked-contact-copy span{overflow:hidden;color:#687471;font-size:10px;font-weight:400;line-height:1.3;text-overflow:ellipsis;white-space:nowrap}
+      .linked-contact-menu-footer{display:flex;min-height:38px;align-items:center;justify-content:flex-end;padding:0 12px;border-top:1px solid #eceeed;background:#fff}
+      .linked-contact-menu-footer a{color:var(--bell-green,#006557);font-size:10px;font-weight:650;line-height:1.2;text-decoration:none}
+      .linked-contact-menu-footer a:hover,.linked-contact-menu-footer a:focus-visible{text-decoration:underline;text-underline-offset:3px;outline:0}
       .sheet-field-row:has(>#requiredDate){position:relative!important}
       .sheet-field-row:has(>#requiredDate)::after{content:"";position:absolute;z-index:3;right:12px;top:50%;width:14px;height:14px;pointer-events:none;background:url('/calendar.svg?v=20260731-2') center/14px 14px no-repeat;transform:translateY(-50%)}
       .sheet-details-grid #requiredDate{padding-right:44px!important;background-image:none!important}
       .sheet-details-grid #requiredDate::-webkit-calendar-picker-indicator{position:absolute!important;z-index:4!important;right:0!important;top:0!important;width:38px!important;height:38px!important;margin:0!important;padding:0!important;opacity:0!important;cursor:pointer!important}
-      @media(max-width:760px){.linked-contact-control{grid-template-columns:minmax(0,1fr) 38px}.linked-contact-menu{right:0;width:min(240px,calc(100vw - 32px))}}
+      @media(max-width:760px){.linked-contact-control{grid-template-columns:minmax(0,1fr) 38px}.linked-contact-menu{right:0;width:min(300px,calc(100vw - 32px))}}
     `;
     document.head.append(style);
   }
