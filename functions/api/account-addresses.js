@@ -7,16 +7,16 @@ export async function onRequestGet(context) {
     const accountId = Number(auth.accountId || 0);
     if (!accountId) return json({ ok: true, addresses: [], canManage: false });
 
-    const [canManage, result] = await Promise.all([
-      userCanManage(context.env.DB, auth),
-      context.env.DB.prepare(
-        `SELECT id, label, address_line_1, suburb, state, postcode,
-                formatted_address, is_default, created_at, updated_at
-         FROM account_addresses
-         WHERE account_id = ? AND active = 1
-         ORDER BY is_default DESC, label COLLATE NOCASE, formatted_address COLLATE NOCASE`,
-      ).bind(accountId).all(),
-    ]);
+    const canManage = await userCanManage(context.env.DB, auth);
+    if (canManage) await seedAddressFromOrderDefaults(context.env.DB, auth);
+
+    const result = await context.env.DB.prepare(
+      `SELECT id, label, address_line_1, suburb, state, postcode,
+              formatted_address, is_default, created_at, updated_at
+       FROM account_addresses
+       WHERE account_id = ? AND active = 1
+       ORDER BY is_default DESC, label COLLATE NOCASE, formatted_address COLLATE NOCASE`,
+    ).bind(accountId).all();
 
     return json({
       ok: true,
@@ -241,6 +241,62 @@ async function ensureAddressSchema(db) {
   await db.prepare(
     `CREATE INDEX IF NOT EXISTS idx_account_addresses_active_default
      ON account_addresses(account_id, active, is_default DESC, label COLLATE NOCASE)`,
+  ).run();
+}
+
+async function seedAddressFromOrderDefaults(db, auth) {
+  const accountId = Number(auth.accountId || 0);
+  if (!accountId) return;
+
+  const existing = await db.prepare(
+    `SELECT id FROM account_addresses WHERE account_id = ? AND active = 1 LIMIT 1`,
+  ).bind(accountId).first();
+  if (existing?.id) return;
+
+  const user = await db.prepare(
+    `SELECT order_defaults_json FROM users
+     WHERE id = ? AND account_id = ? AND active = 1 LIMIT 1`,
+  ).bind(Number(auth.userId), accountId).first();
+  if (!user?.order_defaults_json) return;
+
+  let defaults = {};
+  try {
+    defaults = JSON.parse(String(user.order_defaults_json || "{}"));
+  } catch (_error) {
+    return;
+  }
+
+  let address;
+  try {
+    address = cleanAddressInput({
+      label: "Default delivery address",
+      street: defaults.street,
+      suburb: defaults.suburb,
+      postcode: defaults.postcode,
+      isDefault: true,
+    });
+  } catch (_error) {
+    return;
+  }
+
+  const now = new Date().toISOString();
+  await db.prepare(
+    `INSERT INTO account_addresses (
+       account_id, label, address_line_1, suburb, state, postcode,
+       formatted_address, is_default, active,
+       created_by_user_id, updated_by_user_id, created_at, updated_at
+     ) VALUES (?, ?, ?, ?, 'VIC', ?, ?, 1, 1, ?, ?, ?, ?)`,
+  ).bind(
+    accountId,
+    address.label,
+    address.street,
+    address.suburb,
+    address.postcode,
+    address.formattedAddress,
+    Number(auth.userId),
+    Number(auth.userId),
+    now,
+    now,
   ).run();
 }
 
