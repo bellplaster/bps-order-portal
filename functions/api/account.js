@@ -2,7 +2,7 @@ import { hashPassword, verifyPassword } from "../_shared/auth.js";
 import { normaliseAustralianPhone } from "../_shared/phone.js";
 import { json } from "../_shared/responses.js";
 
-const TIME_SLOTS = new Set(["", "1ST", "2ND", "AM", "PM"]);
+const TIME_SLOTS = new Set(["", "1ST", "2ND", "AM", "PM", "ANY"]);
 const DELIVERY_TYPES = new Set(["", "Hand Unload", "Forklift Delivery", "Crane Delivery", "Delivery (No Assistance)", "Pickup (Customer to collect)"]);
 const DELIVERY_EXTRAS = new Set(["Downstairs", "Upstairs", "Wrap", "Strap", "Extra Labour"]);
 const USER_DEFAULTS_MIGRATION_KEY = "user_order_defaults_v1";
@@ -317,12 +317,12 @@ async function migrateLegacyAccountDefaults(db) {
   ).bind(USER_DEFAULTS_MIGRATION_KEY, nowIso()).run();
 }
 
-function cleanOrderDefaults(input) {
+export function cleanOrderDefaults(input) {
   const source = input && typeof input === "object" ? input : {};
   const requiredDate = /^\d{4}-\d{2}-\d{2}$/.test(String(source.requiredDate || "")) ? String(source.requiredDate) : "";
   const postcode = cleanOptional(source.postcode, 4);
   if (postcode && !/^(?:3\d{3}|8\d{3})$/.test(postcode)) throw badRequest("Default postcode must be a Victorian postcode.");
-  const timeSlot = String(source.timeSlot || "");
+  const timeSlot = String(source.timeSlot || "").trim().toUpperCase();
   if (!TIME_SLOTS.has(timeSlot)) throw badRequest("Choose a valid default time slot.");
   const deliveryType = String(source.deliveryType || "");
   if (!DELIVERY_TYPES.has(deliveryType)) throw badRequest("Choose a valid default delivery type.");
