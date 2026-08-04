@@ -19,6 +19,15 @@
     "createUserForm",
   ]);
 
+  const COMPACT_ACTION_LABELS = new Map(Object.entries({
+    "Save changes": "Save",
+    "Save contact": "Save",
+    "Save address": "Save",
+    "Update password": "Save",
+    "Add contact": "Add",
+    "Add address": "Add",
+  }));
+
   const processingForms = new Map();
   let resyncTimer = 0;
 
@@ -32,7 +41,6 @@
 
   function controlHasValue(control) {
     if (!control) return false;
-    if (control instanceof HTMLSelectElement) return String(control.value || "").trim() !== "";
     return String(control.value || "").trim() !== "";
   }
 
@@ -43,7 +51,10 @@
   function syncFloatingField(field) {
     const control = directControl(field);
     if (!control) return;
-    const active = document.activeElement === control || controlHasValue(control) || shouldAlwaysFloat(control);
+    // Shopify leaves an empty focused field's label at full placeholder size.
+    // The label moves only once a real value exists. Native date fields stay floated
+    // because the browser renders its own date placeholder/value inside the control.
+    const active = controlHasValue(control) || shouldAlwaysFloat(control);
     field.classList.toggle("is-floating", active);
   }
 
@@ -93,6 +104,21 @@
     resyncTimer = window.setTimeout(syncAllFloatingFields, 0);
     window.setTimeout(syncAllFloatingFields, 60);
     window.setTimeout(syncAllFloatingFields, 180);
+  }
+
+  function compactActionLabel(button) {
+    if (!(button instanceof HTMLButtonElement)) return;
+    if (button.dataset.processing === "true") return;
+    const current = (button.textContent || "").trim();
+    const replacement = COMPACT_ACTION_LABELS.get(current);
+    if (!replacement) return;
+    button.textContent = replacement;
+    button.dataset.compactAccountLabel = "true";
+  }
+
+  function compactActionLabels(root = document) {
+    if (root instanceof HTMLButtonElement) compactActionLabel(root);
+    root.querySelectorAll?.("button").forEach(compactActionLabel);
   }
 
   function closeSuggestionPanel(panel) {
@@ -146,6 +172,7 @@
 
   function startProcessing(form, button) {
     if (!form || !button || processingForms.has(form)) return;
+    compactActionLabel(button);
     const state = {
       button,
       label:(button.textContent || "Save").trim(),
@@ -200,6 +227,7 @@
         if (record.type === "attributes") {
           if (record.target instanceof HTMLDialogElement) {
             enhanceWithin(record.target);
+            compactActionLabels(record.target);
             scheduleFloatingSync();
             if (!record.target.open) {
               record.target.querySelectorAll("form").forEach(restoreProcessing);
@@ -211,6 +239,7 @@
         record.addedNodes.forEach((node) => {
           if (!(node instanceof Element)) return;
           enhanceWithin(node);
+          compactActionLabels(node);
           decorateSuggestionPanels(node);
           if (node.matches?.("input,select,textarea") || node.querySelector?.("input,select,textarea")) shouldSync = true;
         });
@@ -244,6 +273,7 @@
 
   function start() {
     enhanceWithin();
+    compactActionLabels();
     decorateSuggestionPanels();
     installProcessingStates();
     installDynamicEnhancement();
@@ -253,6 +283,7 @@
     const timer = window.setInterval(() => {
       checks += 1;
       enhanceWithin();
+      compactActionLabels();
       decorateSuggestionPanels();
       syncAllFloatingFields();
       if (checks >= 50) window.clearInterval(timer);
