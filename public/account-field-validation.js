@@ -82,7 +82,7 @@
     field.dataset.accountValidationConfigured = "true";
     field.autocapitalize = config.type === "person" || config.type === "street" || config.type === "suburb" || config.type === "label" ? "words" : "off";
     if (config.type === "reference") {
-      field.inputMode = "numeric";
+      field.inputMode = "text";
       field.setAttribute("pattern", "[0-9]+(?:-[0-9]+)*");
       field.setAttribute("title", config.message);
     }
