@@ -1,7 +1,7 @@
 /* Account field validation */
 .account-field-validation-message {
   display: block;
-  margin: -1px 0 0;
+  margin: 4px 0 0;
   color: #a62b45;
   font: 500 10px/1.4 Inter, system-ui, sans-serif;
 }
@@ -22,7 +22,9 @@
   box-shadow: 0 0 0 3px rgba(166, 43, 69, 0.13) !important;
 }
 
+.account-experience-v2 .account-field,
 .saved-contact-fields label,
 .saved-address-fields label {
   align-content: start;
+  align-self: start;
 }
