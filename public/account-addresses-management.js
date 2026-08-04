@@ -71,7 +71,7 @@
     dialog.innerHTML = `
       <form id="savedAddressForm" class="saved-address-dialog-card">
         <header>
-          <div><h2 id="savedAddressTitle">Add saved address</h2><p>Shared with all order users under this debtor account.</p></div>
+          <div><h2 id="savedAddressTitle">Add saved address</h2><p>Shared with all order users under this account.</p></div>
           <button type="button" data-close-address aria-label="Close">×</button>
         </header>
         <div class="saved-address-fields">
@@ -125,7 +125,7 @@
         </div>
         ${canManage ? `
           <div class="saved-address-actions">
-            ${address.isDefault ? "" : `<button type="button" data-default="${Number(address.id)}">Set default</button>`}
+            ${address.isDefault ? "" : `<button type="button" data-default="${Number(address.id)}">Set as default</button>`}
             <button type="button" data-edit="${Number(address.id)}">Edit</button>
             <button type="button" class="danger" data-remove="${Number(address.id)}">Remove</button>
           </div>` : ""}
@@ -195,7 +195,13 @@
 
   async function removeAddress(id) {
     const address = addresses.find((item) => Number(item.id) === Number(id));
-    if (!address || !window.confirm(`Remove ${address.label} from the shared saved addresses?`)) return;
+    if (!address) return;
+    const approved = await confirmRemoval({
+      title: `Remove ${address.label}?`,
+      message: "This address will no longer be available from the order form.",
+      confirmLabel: "Remove address",
+    });
+    if (!approved) return;
     try {
       await request(`?id=${encodeURIComponent(id)}`, { method: "DELETE" });
       await refresh();
@@ -203,6 +209,11 @@
     } catch (error) {
       showMessage(error.message || String(error), false);
     }
+  }
+
+  async function confirmRemoval(options) {
+    if (window.BPSAccountDialogs?.confirm) return window.BPSAccountDialogs.confirm(options);
+    return window.confirm(`${options.title}\n\n${options.message}`);
   }
 
   async function refresh() {
@@ -219,7 +230,6 @@
     root.textContent = text;
     root.hidden = false;
     root.className = `portal-message ${success ? "is-success" : "is-error"}`;
-    root.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
 
   function escapeHtml(value) {

@@ -1,0 +1,720 @@
+:root{
+  --account-prototype-text:#1d1d1f;
+  --account-prototype-muted:#6e6e73;
+  --account-prototype-line:#dedfe2;
+  --account-prototype-soft:#f5f5f7;
+  --account-prototype-green:#006557;
+  --account-prototype-maroon:#b52b49;
+  --account-prototype-danger:#b4233d;
+}
+
+.account-page{
+  background:#f5f5f7;
+  color:var(--account-prototype-text);
+  font-size:14px;
+}
+
+.account-page .account-shell{
+  width:min(1180px,calc(100% - 32px));
+  padding-top:34px;
+}
+
+.account-page .account-layout-v2{
+  grid-template-columns:220px minmax(0,1fr);
+  gap:32px;
+}
+
+.account-sidebar-brand-v2 strong{
+  font-size:16px;
+  line-height:1.25;
+  letter-spacing:-.015em;
+}
+
+.account-sidebar-brand-v2 span{
+  margin-top:6px;
+  color:var(--account-prototype-muted);
+  font-size:12px;
+  line-height:1.5;
+}
+
+.account-nav-v2{
+  gap:8px;
+}
+
+.account-nav-v2 a{
+  min-height:42px;
+  gap:12px;
+  padding:0 13px;
+  border-radius:12px;
+  color:var(--account-prototype-muted);
+  font-size:13px;
+  font-weight:600;
+}
+
+.account-nav-v2 a:hover,
+.account-nav-v2 a.is-active{
+  background:#e8efec;
+  color:var(--account-prototype-text);
+}
+
+.account-sidebar-actions-v2 a{
+  min-height:44px;
+  border-radius:12px;
+  font-size:13px;
+  font-weight:700;
+}
+
+.account-main-v2{
+  gap:18px;
+}
+
+.account-profile-card-v2,
+.account-page .account-section{
+  border:1px solid rgba(0,0,0,.08);
+  border-radius:18px;
+  background:#fff;
+  box-shadow:0 2px 10px rgba(0,0,0,.035);
+  overflow:hidden;
+}
+
+.account-profile-card-v2{
+  padding:24px;
+}
+
+.account-profile-copy-v2 h1{
+  font-size:21px;
+  line-height:1.18;
+  letter-spacing:-.025em;
+}
+
+.account-profile-copy-v2 p{
+  margin-top:7px;
+  color:var(--account-prototype-muted);
+  font-size:13px;
+  line-height:1.45;
+}
+
+.account-page .account-section-bar{
+  min-height:76px;
+  height:auto;
+  align-items:center;
+  padding:20px 24px 16px;
+  border:0;
+  border-bottom:1px solid #ececef;
+  background:#fff;
+  color:var(--account-prototype-text);
+}
+
+.account-page .account-section-bar>div{
+  display:grid;
+  gap:5px;
+}
+
+.account-page .account-section-bar h2{
+  margin:0;
+  color:var(--account-prototype-text);
+  font-size:18px;
+  font-weight:700;
+  line-height:1.2;
+  letter-spacing:-.02em;
+  text-transform:none;
+}
+
+.account-page .account-section-bar p{
+  margin:0;
+  color:var(--account-prototype-muted);
+  font-size:12px;
+  line-height:1.45;
+}
+
+.account-page .account-section-bar>button,
+.account-page .saved-contacts-bar>button,
+.account-page .saved-addresses-bar>button{
+  min-height:36px;
+  padding:0 14px;
+  border:1px solid var(--account-prototype-line);
+  border-radius:10px;
+  background:#fff;
+  color:var(--account-prototype-text);
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.account-page .account-section-bar>button:hover,
+.account-page .saved-contacts-bar>button:hover,
+.account-page .saved-addresses-bar>button:hover{
+  background:#f7f7f8;
+}
+
+/* Order defaults */
+.account-page .order-default-grid{
+  gap:16px 18px;
+  padding:22px 24px 8px;
+  border:0;
+  background:#fff;
+}
+
+.account-page .order-default-grid .account-field{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:8px;
+  min-height:0;
+  border:0;
+  background:transparent;
+}
+
+.account-page .order-default-grid .account-field>span{
+  display:block;
+  padding:0;
+  border:0;
+  color:#45484b;
+  font-size:12px;
+  font-weight:700;
+}
+
+.account-page .order-default-grid .account-field input,
+.account-page .order-default-grid .account-field select,
+.account-page .order-default-grid .account-field textarea{
+  position:static!important;
+  width:100%!important;
+  min-height:44px!important;
+  height:44px!important;
+  padding:0 13px!important;
+  border:1px solid #cfd2d4!important;
+  border-radius:11px!important;
+  background:#fff!important;
+  color:var(--account-prototype-text)!important;
+  font-size:13px!important;
+  line-height:1.35!important;
+}
+
+.account-page .order-default-grid .account-field textarea{
+  min-height:102px!important;
+  height:auto!important;
+  padding-top:12px!important;
+  padding-bottom:12px!important;
+}
+
+.account-page .order-default-grid .account-field:focus-within::after{
+  display:none!important;
+}
+
+.account-page .order-default-grid .account-field input:focus,
+.account-page .order-default-grid .account-field select:focus,
+.account-page .order-default-grid .account-field textarea:focus{
+  border-color:var(--account-prototype-green)!important;
+  box-shadow:0 0 0 3px rgba(0,101,87,.12)!important;
+}
+
+.account-page .account-form-actions{
+  min-height:68px;
+  height:auto;
+  padding:14px 24px 22px;
+  border:0;
+  background:#fff;
+}
+
+.account-page .account-form-actions .button{
+  min-height:40px;
+  height:40px;
+  padding:0 18px;
+  border-radius:10px;
+  font-size:12px;
+  font-weight:700;
+}
+
+/* Saved contact rows */
+.saved-contacts-table{
+  border:0!important;
+}
+
+.saved-contacts-header{
+  display:none!important;
+}
+
+.saved-contact-row{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  grid-template-areas:"contact actions"!important;
+  align-items:center!important;
+  gap:20px!important;
+  min-height:76px!important;
+  padding:18px 24px!important;
+  border-top:1px solid #ececef!important;
+  background:#fff!important;
+}
+
+.saved-contact-main{
+  grid-area:contact;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  min-width:0;
+}
+
+.saved-contact-avatar{
+  display:grid;
+  width:38px;
+  height:38px;
+  flex:0 0 38px;
+  place-items:center;
+  border-radius:11px;
+  background:#f0f2f1;
+  color:#4f5956;
+  font-size:12px;
+  font-weight:600;
+}
+
+.saved-contact-copy{
+  display:grid;
+  gap:5px;
+  min-width:0;
+}
+
+.saved-contact-copy strong{
+  color:var(--account-prototype-text);
+  font-size:14px;
+  font-weight:650;
+  line-height:1.2;
+}
+
+.saved-contact-copy span{
+  color:var(--account-prototype-muted);
+  font-size:12px;
+  line-height:1.35;
+}
+
+.saved-contact-actions{
+  grid-area:actions;
+  display:flex!important;
+  align-items:center;
+  justify-content:flex-end;
+  gap:8px!important;
+  white-space:nowrap;
+}
+
+/* Saved address rows */
+.saved-address-row{
+  min-height:82px!important;
+  padding:18px 24px!important;
+  border-top:1px solid #ececef!important;
+  background:#fff!important;
+}
+
+.saved-address-icon{
+  width:38px!important;
+  height:38px!important;
+  flex:0 0 38px!important;
+  border-radius:11px!important;
+  background:#f0f2f1!important;
+}
+
+.saved-address-copy{
+  gap:5px!important;
+}
+
+.saved-address-title strong{
+  font-size:14px!important;
+  font-weight:650!important;
+}
+
+.saved-address-title span{
+  min-height:21px!important;
+  padding:0 8px!important;
+  border-radius:999px!important;
+  background:#e6f3ef!important;
+  color:var(--account-prototype-green)!important;
+  font-size:10px!important;
+  font-weight:700!important;
+}
+
+.saved-address-copy p{
+  margin-top:5px!important;
+  color:var(--account-prototype-muted)!important;
+  font-size:12px!important;
+  line-height:1.35!important;
+}
+
+.saved-address-actions{
+  gap:8px!important;
+}
+
+.saved-contact-actions button,
+.saved-address-actions button,
+.security-toggle b{
+  display:inline-flex!important;
+  min-height:34px!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:0 12px!important;
+  border:1px solid var(--account-prototype-line)!important;
+  border-radius:9px!important;
+  background:#fff!important;
+  color:var(--account-prototype-text)!important;
+  font-size:12px!important;
+  font-weight:700!important;
+  line-height:1!important;
+  text-decoration:none!important;
+  cursor:pointer!important;
+}
+
+.saved-contact-actions button:hover,
+.saved-address-actions button:hover,
+.security-toggle:hover b{
+  background:#f7f7f8!important;
+}
+
+.saved-contact-actions button.danger,
+.saved-address-actions button.danger{
+  border-color:#efccd4!important;
+  background:#fffafb!important;
+  color:var(--account-prototype-danger)!important;
+}
+
+/* Security row */
+.security-toggle{
+  min-height:76px!important;
+  padding:18px 24px!important;
+  border:0!important;
+  background:#fff!important;
+}
+
+.security-toggle span{
+  gap:5px!important;
+}
+
+.security-toggle strong{
+  font-size:14px!important;
+  font-weight:650!important;
+}
+
+.security-toggle small{
+  color:var(--account-prototype-muted)!important;
+  font-size:12px!important;
+  line-height:1.35!important;
+}
+
+.security-toggle b{
+  font-size:12px!important;
+}
+
+.security-toggle[aria-expanded="true"] b{
+  font-size:12px!important;
+}
+
+.security-toggle[aria-expanded="true"] b::after{
+  content:none!important;
+}
+
+.password-panel{
+  display:none!important;
+}
+
+/* Shared modal system */
+.saved-contact-dialog,
+.saved-address-dialog,
+.account-prototype-dialog{
+  width:min(560px,calc(100% - 28px))!important;
+  max-width:560px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:20px!important;
+  background:#fff!important;
+  box-shadow:0 18px 45px rgba(0,0,0,.14)!important;
+  overflow:hidden!important;
+}
+
+.saved-contact-dialog::backdrop,
+.saved-address-dialog::backdrop,
+.account-prototype-dialog::backdrop{
+  background:rgba(20,22,24,.38)!important;
+  backdrop-filter:blur(7px)!important;
+}
+
+.saved-contact-dialog-card,
+.saved-address-dialog-card,
+.account-prototype-dialog-card{
+  width:100%;
+  margin:0;
+  background:#fff;
+}
+
+.saved-contact-dialog-card>header,
+.saved-address-dialog-card>header,
+.account-prototype-dialog-card>header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:20px;
+  min-height:0;
+  padding:24px 26px 18px;
+  border-bottom:1px solid #ececef;
+}
+
+.saved-contact-dialog-card h2,
+.saved-address-dialog-card h2,
+.account-prototype-dialog-card h2{
+  margin:0 0 6px;
+  color:var(--account-prototype-text);
+  font-size:20px;
+  font-weight:700;
+  line-height:1.2;
+  letter-spacing:-.025em;
+}
+
+.saved-contact-dialog-card header p,
+.saved-address-dialog-card header p,
+.account-prototype-dialog-card header p{
+  margin:0;
+  color:var(--account-prototype-muted);
+  font-size:12px;
+  line-height:1.5;
+}
+
+.saved-contact-dialog-card>header>button,
+.saved-address-dialog-card>header>button,
+.account-prototype-dialog-close{
+  display:grid;
+  width:32px;
+  height:32px;
+  flex:0 0 32px;
+  place-items:center;
+  padding:0;
+  border:0;
+  border-radius:50%;
+  background:#f2f2f4;
+  color:var(--account-prototype-muted);
+  font-size:19px;
+  line-height:1;
+  cursor:pointer;
+}
+
+.saved-contact-fields,
+.saved-address-fields,
+.account-prototype-dialog-fields{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:16px;
+  padding:22px 26px;
+}
+
+.saved-contact-fields label,
+.saved-address-fields label,
+.account-prototype-dialog-field{
+  display:grid;
+  gap:7px;
+  min-width:0;
+}
+
+.saved-contact-fields label>span,
+.saved-address-fields label>span,
+.account-prototype-dialog-field>span{
+  color:#45484b;
+  font-size:12px;
+  font-weight:700;
+}
+
+.saved-contact-fields input,
+.saved-address-fields input,
+.account-prototype-dialog-field input{
+  width:100%;
+  height:44px;
+  padding:0 13px;
+  border:1px solid #cfd2d4;
+  border-radius:11px;
+  outline:0;
+  background:#fff;
+  color:var(--account-prototype-text);
+  font-size:13px;
+}
+
+.saved-contact-fields input:focus,
+.saved-address-fields input:focus,
+.account-prototype-dialog-field input:focus{
+  border-color:var(--account-prototype-green);
+  box-shadow:0 0 0 3px rgba(0,101,87,.12);
+}
+
+.saved-contact-fields label:first-child,
+.saved-address-field-wide,
+.account-prototype-dialog-field.is-wide{
+  grid-column:1/-1;
+}
+
+.saved-address-default{
+  display:flex!important;
+  grid-column:1/-1;
+  align-items:center;
+  gap:10px!important;
+}
+
+.saved-address-default input{
+  width:18px!important;
+  height:18px!important;
+  padding:0!important;
+}
+
+.saved-contact-dialog-card>footer,
+.saved-address-dialog-card>footer,
+.account-prototype-dialog-card>footer{
+  display:flex;
+  min-height:72px;
+  align-items:center;
+  justify-content:flex-end;
+  gap:14px;
+  padding:16px 26px 20px;
+  border-top:1px solid #ececef;
+}
+
+.saved-contact-dialog-card>footer .button,
+.saved-address-dialog-card>footer .button,
+.account-prototype-dialog-card>footer .button{
+  min-height:40px;
+  height:40px;
+  padding:0 16px;
+  border-radius:10px;
+  font-size:12px;
+  font-weight:700;
+}
+
+.saved-contact-dialog-card>footer [data-close-contact],
+.saved-address-dialog-card>footer [data-close-address],
+.account-prototype-cancel{
+  min-height:0!important;
+  height:auto!important;
+  padding:4px 0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:#3b3d40!important;
+  text-decoration:underline!important;
+  text-underline-offset:3px!important;
+}
+
+.account-prototype-confirm-copy{
+  padding:24px 26px 4px;
+}
+
+.account-prototype-confirm-copy h2{
+  margin:0 0 8px;
+  font-size:20px;
+  letter-spacing:-.025em;
+}
+
+.account-prototype-confirm-copy p{
+  margin:0;
+  color:var(--account-prototype-muted);
+  font-size:13px;
+  line-height:1.55;
+}
+
+.account-prototype-danger{
+  border-color:var(--account-prototype-danger)!important;
+  background:var(--account-prototype-danger)!important;
+  color:#fff!important;
+}
+
+.password-modal-form-v2{
+  margin:0;
+}
+
+.password-modal-form-v2 .password-fields{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:16px;
+  padding:22px 26px;
+  border:0;
+  background:#fff;
+}
+
+.password-modal-form-v2 .account-field{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:7px;
+  min-height:0;
+  border:0;
+}
+
+.password-modal-form-v2 .account-field>span{
+  display:block;
+  padding:0;
+  border:0;
+  color:#45484b;
+  font-size:12px;
+  font-weight:700;
+}
+
+.password-modal-form-v2 .account-field input{
+  width:100%;
+  height:44px;
+  padding:0 13px;
+  border:1px solid #cfd2d4;
+  border-radius:11px;
+  background:#fff;
+  font-size:13px;
+}
+
+.password-modal-form-v2 .current-password-field{
+  grid-column:1/-1;
+}
+
+.password-modal-form-v2 .password-actions{
+  min-height:72px;
+  padding:16px 26px 20px;
+  border:0;
+  border-top:1px solid #ececef;
+  background:#fff;
+}
+
+.password-modal-form-v2 #cancelPasswordChange{
+  min-height:0;
+  height:auto;
+  padding:4px 0;
+  border:0;
+  background:transparent;
+  color:#3b3d40;
+  text-decoration:underline;
+  text-underline-offset:3px;
+}
+
+@media (max-width:800px){
+  .account-page .account-layout-v2{
+    grid-template-columns:1fr;
+    gap:18px;
+  }
+
+  .account-page .account-sidebar-v2{
+    position:static;
+  }
+
+  .account-nav-v2{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  .saved-contact-row,
+  .saved-address-row,
+  .security-toggle{
+    grid-template-columns:1fr!important;
+    align-items:flex-start!important;
+  }
+
+  .saved-contact-actions,
+  .saved-address-actions{
+    justify-content:flex-start!important;
+  }
+
+  .saved-contact-fields,
+  .saved-address-fields,
+  .account-prototype-dialog-fields,
+  .password-modal-form-v2 .password-fields{
+    grid-template-columns:1fr;
+  }
+
+  .saved-contact-fields label:first-child,
+  .saved-address-field-wide,
+  .account-prototype-dialog-field.is-wide,
+  .password-modal-form-v2 .current-password-field{
+    grid-column:auto;
+  }
+}

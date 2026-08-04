@@ -33,6 +33,7 @@
       installSection();
       installDialog();
       render();
+      document.dispatchEvent(new CustomEvent("bps:account-contacts-ready"));
     } catch (error) {
       message(error.message || String(error), false);
     }
@@ -86,11 +87,19 @@
       return;
     }
     list.innerHTML = contacts.map((contact) => `
-      <div class="saved-contact-row" role="row">
-        <strong>${escapeHtml(contact.contactName)}</strong>
-        <span>${escapeHtml(contact.mobile || "—")}</span>
-        <div class="saved-contact-actions"><button type="button" data-edit="${Number(contact.id)}">Edit</button><button type="button" class="danger" data-remove="${Number(contact.id)}">Remove</button></div>
-      </div>`).join("");
+      <article class="saved-contact-row" role="row">
+        <div class="saved-contact-main">
+          <span class="saved-contact-avatar" aria-hidden="true">${escapeHtml(initials(contact.contactName))}</span>
+          <div class="saved-contact-copy">
+            <strong>${escapeHtml(contact.contactName)}</strong>
+            <span>${escapeHtml(contact.mobile || "—")}</span>
+          </div>
+        </div>
+        <div class="saved-contact-actions">
+          <button type="button" data-edit="${Number(contact.id)}">Edit</button>
+          <button type="button" class="danger" data-remove="${Number(contact.id)}">Remove</button>
+        </div>
+      </article>`).join("");
     list.querySelectorAll("[data-edit]").forEach((button) => button.addEventListener("click", () => openDialog(Number(button.dataset.edit))));
     list.querySelectorAll("[data-remove]").forEach((button) => button.addEventListener("click", () => removeContact(Number(button.dataset.remove))));
   }
@@ -130,12 +139,23 @@
 
   async function removeContact(id) {
     const contact = contacts.find((item) => Number(item.id) === Number(id));
-    if (!contact || !window.confirm(`Remove ${contact.contactName} from the shared saved contacts?`)) return;
+    if (!contact) return;
+    const approved = await confirmRemoval({
+      title: `Remove ${contact.contactName}?`,
+      message: "This contact will no longer be available to order users under this account.",
+      confirmLabel: "Remove contact",
+    });
+    if (!approved) return;
     try {
       await api(`?id=${encodeURIComponent(id)}`, { method: "DELETE" });
       await refresh();
       message("Saved contact removed.", true);
     } catch (error) { message(error.message || String(error), false); }
+  }
+
+  async function confirmRemoval(options) {
+    if (window.BPSAccountDialogs?.confirm) return window.BPSAccountDialogs.confirm(options);
+    return window.confirm(`${options.title}\n\n${options.message}`);
   }
 
   async function refresh() {
@@ -150,7 +170,17 @@
     root.textContent = text;
     root.hidden = false;
     root.className = `portal-message ${success ? "is-success" : "is-error"}`;
-    root.scrollIntoView({ block: "nearest" });
+  }
+
+  function initials(value) {
+    return String(value || "")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase() || "BP";
   }
 
   function escapeHtml(value) {
