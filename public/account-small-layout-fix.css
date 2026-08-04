@@ -17,6 +17,48 @@
   margin-top:14px!important;
 }
 
+/* Setting a default address belongs inside Edit, not in every address row. */
+.account-page #savedAddressesList [data-default]{
+  display:none!important;
+}
+
+/* Match the Administration card's single-pixel dividers. The first address
+   row previously added a second line directly below the header. */
+.account-page #savedAddressesSection{
+  border:1px solid rgba(0,0,0,.08)!important;
+}
+
+.account-page #savedAddressesSection>.account-section-bar{
+  border-bottom:1px solid #ececef!important;
+}
+
+.account-page #savedAddressesList .saved-address-row:first-child{
+  border-top:0!important;
+}
+
+/* Keep floating-field placeholders centred within the 52px input itself,
+   even when a validation message increases the label's total height. */
+body.account-page .saved-address-fields label.account-shopify-field:not(.is-floating)>span{
+  top:26px!important;
+  height:20px!important;
+  line-height:20px!important;
+  transform:translateY(-50%)!important;
+}
+
+body.account-page .saved-address-fields label.account-shopify-field:not(.is-floating)>input{
+  padding-top:0!important;
+  padding-bottom:0!important;
+}
+
+/* Centre the Status heading and badges on one shared axis. */
+.account-page #adminSection .admin-table-header.admin-account-columns>span:nth-child(3),
+.account-page #adminSection .admin-table-row.admin-account-columns>div:nth-child(3){
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  text-align:center!important;
+}
+
 @media (max-width:800px){
   .account-page #orderDefaultsSection{
     margin-top:14px!important;
