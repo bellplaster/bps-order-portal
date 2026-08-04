@@ -32,6 +32,18 @@ test("saved address modal state and floating placeholders are reset cleanly", as
   assert.match(polishCss, /saved-address-row:first-child[\s\S]*border-top:0!important/);
 });
 
+test("Account dynamic reconciliation is idempotent and cannot observe its own heading writes forever", async () => {
+  const polishJs = await read("public/account-small-layout-fix.js");
+
+  assert.match(polishJs, /heading\.textContent \|\| ""\)\.trim\(\) !== "Accounts"/);
+  assert.match(polishJs, /brand\.dataset\.accountsHeading !== "true"/);
+  assert.match(polishJs, /let reconcileScheduled = false/);
+  assert.match(polishJs, /requestAnimationFrame/);
+  assert.match(polishJs, /mutation\.addedNodes/);
+  assert.match(polishJs, /nodeNeedsReconcile/);
+  assert.doesNotMatch(polishJs, /new MutationObserver\(\(mutations\) => \{\s*removeInlineDefaultActions\(\);\s*applySidebarHeading\(\);/);
+});
+
 test("admin confirmation wiring and status alignment are repaired", async () => {
   const [polishJs, polishCss] = await Promise.all([
     read("public/account-small-layout-fix.js"),

@@ -9,14 +9,22 @@
     "savedAddressPostcode",
   ];
 
+  let reconcileScheduled = false;
+
   function applySidebarHeading() {
     const brand = document.querySelector(".account-sidebar-brand-v2");
     if (!(brand instanceof HTMLElement)) return false;
 
     const heading = brand.querySelector("strong");
-    if (heading) heading.textContent = "Accounts";
+    if (heading && (heading.textContent || "").trim() !== "Accounts") {
+      heading.textContent = "Accounts";
+    }
+
     brand.querySelector("span")?.remove();
-    brand.dataset.accountsHeading = "true";
+
+    if (brand.dataset.accountsHeading !== "true") {
+      brand.dataset.accountsHeading = "true";
+    }
     return true;
   }
 
@@ -98,17 +106,48 @@
     }, true);
   }
 
+  function reconcileDynamicAccountUi() {
+    applySidebarHeading();
+    repairAdminConfirmationDialog();
+    removeInlineDefaultActions();
+  }
+
+  function scheduleReconcile() {
+    if (reconcileScheduled) return;
+    reconcileScheduled = true;
+    window.requestAnimationFrame(() => {
+      reconcileScheduled = false;
+      reconcileDynamicAccountUi();
+    });
+  }
+
+  function nodeNeedsReconcile(node) {
+    if (!(node instanceof Element)) return false;
+    return node.matches(
+      ".account-sidebar-brand-v2, #savedAddressesList, #adminConfirmSubmit, #adminConfirmFieldLabel",
+    ) || Boolean(node.querySelector(
+      ".account-sidebar-brand-v2, #savedAddressesList [data-default], #adminConfirmSubmit, #adminConfirmFieldLabel",
+    ));
+  }
+
   function observeDynamicAccountUi() {
     const observer = new MutationObserver((mutations) => {
-      removeInlineDefaultActions();
-      applySidebarHeading();
-      repairAdminConfirmationDialog();
+      let shouldReconcile = false;
 
       mutations.forEach((mutation) => {
-        if (mutation.type === "attributes" && mutation.target?.id === "savedAddressDialog" && !mutation.target.hasAttribute("open")) {
-          clearSavedAddressForm();
+        if (mutation.type === "attributes") {
+          if (mutation.target?.id === "savedAddressDialog" && !mutation.target.hasAttribute("open")) {
+            clearSavedAddressForm();
+          }
+          return;
+        }
+
+        if ([...mutation.addedNodes].some(nodeNeedsReconcile)) {
+          shouldReconcile = true;
         }
       });
+
+      if (shouldReconcile) scheduleReconcile();
     });
 
     observer.observe(document.body, {
@@ -120,9 +159,7 @@
   }
 
   function start() {
-    applySidebarHeading();
-    repairAdminConfirmationDialog();
-    removeInlineDefaultActions();
+    reconcileDynamicAccountUi();
     installAddressInteractionReset();
     observeDynamicAccountUi();
   }
