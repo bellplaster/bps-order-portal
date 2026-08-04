@@ -26,7 +26,7 @@ test("saved addresses are normalised into a Victorian formatted address", () => 
 test("saved addresses reject non-Victorian postcodes", () => {
   assert.throws(
     () => cleanAddressInput({ label: "Sydney", street: "1 George Street", suburb: "Sydney", postcode: "2000" }),
-    /valid Victorian postcode/,
+    /four-digit Victorian postcode/,
   );
 });
 
