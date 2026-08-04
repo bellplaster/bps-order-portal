@@ -2,6 +2,13 @@
   if (window.__bpsAccountPrototypeInteractionsStarted) return;
   window.__bpsAccountPrototypeInteractionsStarted = true;
 
+  const messageReplacements = new Map([
+    ["Saved contact added.", "Contact saved"],
+    ["Saved contact updated.", "Contact updated"],
+    ["Saved contact removed.", "Contact removed"],
+    ["Password changed.", "Password updated"],
+  ]);
+
   let confirmResolver = null;
   let passwordDialog = null;
 
@@ -78,6 +85,10 @@
     const toggle = document.getElementById("togglePasswordPanel");
     if (!form || !panel || !toggle) return null;
 
+    document.getElementById("currentPassword")?.closest(".account-field")?.classList.add("current-password-field");
+    document.getElementById("newPassword")?.closest(".account-field")?.classList.add("new-password-field");
+    document.getElementById("confirmPassword")?.closest(".account-field")?.classList.add("confirm-password-field");
+
     const dialog = document.createElement("dialog");
     dialog.id = "passwordDialogV2";
     dialog.className = "account-prototype-dialog password-dialog-v2";
@@ -143,15 +154,6 @@
       close();
     }, true);
 
-    const message = document.getElementById("accountMessage");
-    if (message) {
-      const observer = new MutationObserver(() => {
-        const text = (message.textContent || "").trim().toLowerCase();
-        if (!message.hidden && (text === "password changed." || text === "password updated")) close();
-      });
-      observer.observe(message, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ["hidden"] });
-    }
-
     passwordDialog = dialog;
     return dialog;
   }
@@ -165,9 +167,41 @@
     }, 100);
   }
 
+  function installMessageRefinements() {
+    const root = document.getElementById("accountMessage");
+    if (!root || root.dataset.prototypeMessageRefinement === "true") return;
+    root.dataset.prototypeMessageRefinement = "true";
+
+    let normalising = false;
+    const sync = () => {
+      if (normalising || root.hidden) return;
+      const current = (root.textContent || "").trim();
+      const replacement = messageReplacements.get(current);
+      if (replacement && replacement !== current) {
+        normalising = true;
+        root.textContent = replacement;
+        normalising = false;
+      }
+      if ((root.textContent || "").trim() === "Password updated") {
+        window.BPSAccountDialogs?.password?.close?.();
+      }
+    };
+
+    const observer = new MutationObserver(() => queueMicrotask(sync));
+    observer.observe(root, {
+      attributes:true,
+      attributeFilter:["hidden"],
+      childList:true,
+      characterData:true,
+      subtree:true,
+    });
+    sync();
+  }
+
   function start() {
     installConfirmDialog();
     installPasswordDialog();
+    installMessageRefinements();
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
