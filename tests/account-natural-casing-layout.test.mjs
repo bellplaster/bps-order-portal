@@ -18,5 +18,5 @@ test("Account defaults preserve user-entered casing", () => {
 test("validation messages do not vertically centre adjacent Account fields", () => {
   assert.match(validationStyles, /\.account-experience-v2 \.account-field,[\s\S]*align-content: start;[\s\S]*align-self: start;/);
   assert.match(accountPage, /account-field-validation\.css\?v=20260804-2/);
-  assert.match(accountPage, /order-detail-fields\.js\?v=20260804-1/);
+  assert.match(accountPage, /order-detail-fields\.js\?v=20260804-3/);
 });
