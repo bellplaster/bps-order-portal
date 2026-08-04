@@ -90,6 +90,24 @@
     }
   }
 
+  function loadAccountFieldValidation() {
+    if (!document.querySelector('link[data-account-field-validation="true"]')) {
+      const stylesheet = document.createElement("link");
+      stylesheet.rel = "stylesheet";
+      stylesheet.href = "/account-field-validation.css?v=20260804-1";
+      stylesheet.dataset.accountFieldValidation = "true";
+      document.head.append(stylesheet);
+    }
+
+    if (!document.querySelector('script[data-account-field-validation="true"]')) {
+      const script = document.createElement("script");
+      script.src = "/account-field-validation.js?v=20260804-1";
+      script.defer = true;
+      script.dataset.accountFieldValidation = "true";
+      document.body.append(script);
+    }
+  }
+
   function loadAccountExperience() {
     if (!document.querySelector('link[data-account-experience-v2="true"]')) {
       const stylesheet = document.createElement("link");
@@ -163,6 +181,7 @@
     if (!document.body.classList.contains("account-page")) return;
     installStyles();
     loadAccountProfilePolish();
+    loadAccountFieldValidation();
     loadAccountExperience();
     installHelp();
     patchRoleLabels();
