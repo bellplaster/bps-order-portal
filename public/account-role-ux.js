@@ -48,7 +48,7 @@
     const help = document.createElement("p");
     help.id = "portal-role-help";
     help.className = "portal-role-help";
-    help.textContent = "Account supervisors see all account orders and manage the shared contact book from their Account page. Portal-user contact details remain separate.";
+    help.textContent = "Account supervisors see all account orders and manage the shared contact and address books from their Account page. Portal-user contact details remain separate.";
     panel.append(help);
   }
 
@@ -66,6 +66,32 @@
     script.defer = true;
     script.dataset.accountContactsManagement = "true";
     document.body.append(script);
+  }
+
+  function loadAccountExperience() {
+    if (!document.querySelector('link[data-account-experience-v2="true"]')) {
+      const stylesheet = document.createElement("link");
+      stylesheet.rel = "stylesheet";
+      stylesheet.href = "/account-experience-v2.css?v=20260804-1";
+      stylesheet.dataset.accountExperienceV2 = "true";
+      document.head.append(stylesheet);
+    }
+
+    if (!document.querySelector('script[data-account-addresses-management="true"]')) {
+      const addresses = document.createElement("script");
+      addresses.src = "/account-addresses-management.js?v=20260804-1";
+      addresses.defer = true;
+      addresses.dataset.accountAddressesManagement = "true";
+      document.body.append(addresses);
+    }
+
+    if (!document.querySelector('script[data-account-experience-v2="true"]')) {
+      const experience = document.createElement("script");
+      experience.src = "/account-experience-v2.js?v=20260804-1";
+      experience.defer = true;
+      experience.dataset.accountExperienceV2 = "true";
+      document.body.append(experience);
+    }
   }
 
   function clearAdminOnlyMessage() {
@@ -95,7 +121,7 @@
     const heading = document.querySelector(".account-heading h1");
     const copy = document.querySelector(".account-heading p");
     if (heading) heading.textContent = "Account";
-    if (copy) copy.textContent = "Manage order defaults, shared contacts and sign-in security.";
+    if (copy) copy.textContent = "Manage order defaults, shared contacts, saved addresses and sign-in security.";
 
     clearAdminOnlyMessage();
     loadSavedContactManager();
@@ -114,6 +140,7 @@
   function install() {
     if (!document.body.classList.contains("account-page")) return;
     installStyles();
+    loadAccountExperience();
     installHelp();
     patchRoleLabels();
     void simplifyCustomerAccount();

@@ -1,0 +1,197 @@
+.address-control.has-saved-address-picker {
+  position: relative;
+}
+
+.address-control.has-saved-address-picker #deliveryAddressSearch {
+  padding-right: 78px !important;
+}
+
+.address-control.has-saved-address-picker .clear-input {
+  right: 38px !important;
+}
+
+.saved-address-picker-button {
+  position: absolute;
+  z-index: 7;
+  top: 0;
+  right: 0;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-left: 1px solid #d5dcda;
+  border-radius: 0;
+  background: #fff;
+  color: #51605a;
+  cursor: pointer;
+}
+
+.saved-address-picker-button:hover,
+.saved-address-picker-button[aria-expanded="true"] {
+  background: #f2f6f4;
+  color: var(--bell-green, #006557);
+}
+
+.saved-address-picker-button:focus-visible {
+  outline: 0;
+  box-shadow: inset 0 0 0 1px var(--bell-green, #006557);
+}
+
+.saved-address-picker-button:disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+
+.saved-address-picker-button svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.saved-address-picker-menu {
+  position: absolute;
+  z-index: 100005;
+  top: calc(100% + 5px);
+  right: 0;
+  width: min(390px, calc(100vw - 32px));
+  max-height: 360px;
+  overflow: auto;
+  padding: 7px;
+  border: 1px solid #ccd5d1;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 16px 38px rgba(23, 33, 29, 0.17);
+  box-sizing: border-box;
+}
+
+.saved-address-picker-menu[hidden] {
+  display: none !important;
+}
+
+.saved-address-picker-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 9px 10px;
+  color: #67736d;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.saved-address-picker-option {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 10px;
+  width: 100%;
+  min-height: 60px;
+  align-items: center;
+  margin: 0;
+  padding: 8px 9px;
+  border: 0;
+  border-radius: 7px;
+  background: #fff;
+  color: #17211f;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.saved-address-picker-option:hover,
+.saved-address-picker-option:focus {
+  outline: 0;
+  background: #eef5f2;
+}
+
+.saved-address-picker-icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border-radius: 8px;
+  background: #edf1ef;
+  color: #4f5e58;
+}
+
+.saved-address-picker-icon svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
+
+.saved-address-picker-copy {
+  min-width: 0;
+}
+
+.saved-address-picker-copy strong,
+.saved-address-picker-copy span {
+  display: block;
+}
+
+.saved-address-picker-copy strong {
+  color: #17211f;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.saved-address-picker-copy span {
+  overflow: hidden;
+  margin-top: 4px;
+  color: #687471;
+  font-size: 10px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.saved-address-picker-default {
+  display: inline-flex;
+  min-height: 20px;
+  align-items: center;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: #e3f2ed;
+  color: #006557;
+  font-size: 8px;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+.saved-address-picker-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 9px 5px;
+  border-top: 1px solid #e5e9e7;
+}
+
+.saved-address-picker-footer a {
+  color: var(--bell-green, #006557);
+  font-size: 10px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.saved-address-picker-footer a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 760px) {
+  .saved-address-picker-menu {
+    right: -1px;
+    width: min(390px, calc(100vw - 24px));
+  }
+}
