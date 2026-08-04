@@ -207,7 +207,7 @@
 }
 
 /* Shopify-style account address suggestions */
-.account-page .order-detail-autocomplete-host>input{
+.account-page .order-default-grid .account-shopify-field.order-detail-autocomplete-host>input{
   border-radius:12px!important;
 }
 
@@ -280,7 +280,7 @@
   white-space:normal!important;
 }
 
-.account-page .order-detail-suggestions[data-group="account"] .order-detail-suggestion+ .order-detail-suggestion{
+.account-page .order-detail-suggestions[data-group="account"] .order-detail-suggestion+.order-detail-suggestion{
   border-top:1px solid #f0f1f2!important;
 }
 
@@ -313,6 +313,9 @@
 
 /* Processing feedback */
 .account-page button[aria-busy="true"]{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
   cursor:wait!important;
   opacity:.76!important;
   pointer-events:none!important;
@@ -320,8 +323,10 @@
 
 .account-page button[aria-busy="true"]::after{
   content:"";
+  display:inline-block;
   width:12px;
   height:12px;
+  flex:0 0 12px;
   margin-left:8px;
   border:2px solid currentColor;
   border-right-color:transparent;
