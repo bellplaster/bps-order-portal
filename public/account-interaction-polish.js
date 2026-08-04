@@ -49,6 +49,7 @@
   };
 
   let toastTimer = 0;
+  let toastSignature = "";
   let normalisingMessage = false;
 
   function prefersReducedMotion() {
@@ -116,9 +117,32 @@
     }, 100);
   }
 
+  function isToastInTopLayer(root) {
+    if (typeof root.showPopover !== "function") return false;
+    try {
+      return root.matches(":popover-open");
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  function promoteToast(root) {
+    if (typeof root.showPopover !== "function") return;
+    try {
+      if (isToastInTopLayer(root)) root.hidePopover();
+      root.showPopover();
+    } catch (_error) {
+      // Unsupported or temporarily unavailable popover state: retain the normal fixed toast.
+    }
+  }
+
   function hideToast(root) {
     window.clearTimeout(toastTimer);
     toastTimer = 0;
+    toastSignature = "";
+    try {
+      if (isToastInTopLayer(root)) root.hidePopover();
+    } catch (_error) { }
     root.hidden = true;
     root.removeAttribute("data-account-toast");
     root.removeAttribute("title");
@@ -136,11 +160,18 @@
       normalisingMessage = false;
     }
 
+    const finalText = (root.textContent || "").trim();
     const isError = root.classList.contains("is-error");
     root.dataset.accountToast = "true";
     root.setAttribute("role", isError ? "alert" : "status");
     root.setAttribute("aria-live", isError ? "assertive" : "polite");
     root.setAttribute("title", "Dismiss notification");
+
+    const nextSignature = `${isError ? "error" : "success"}:${finalText}`;
+    if (nextSignature !== toastSignature || !isToastInTopLayer(root)) {
+      toastSignature = nextSignature;
+      promoteToast(root);
+    }
 
     window.clearTimeout(toastTimer);
     toastTimer = window.setTimeout(() => hideToast(root), isError ? 7500 : 4000);
@@ -150,6 +181,7 @@
     const root = document.getElementById("accountMessage");
     if (!root || root.dataset.accountToastInstalled === "true") return;
     root.dataset.accountToastInstalled = "true";
+    root.setAttribute("popover", "manual");
     root.addEventListener("click", () => hideToast(root));
 
     const observer = new MutationObserver(() => queueMicrotask(() => syncToast(root)));
