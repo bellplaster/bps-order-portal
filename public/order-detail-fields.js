@@ -71,6 +71,29 @@
     return group?.name === "account" ? text : uppercase(text);
   }
 
+  function mergeManualStreetDetails(manualValue, resolvedValue) {
+    const manual = String(manualValue || "").trim();
+    const resolved = String(resolvedValue || "").trim();
+    if (!manual || !resolved) return resolved;
+
+    const resolvedHasUnit = /^(?:(?:unit|suite|shop|factory|warehouse|tenancy|level|lot)\s*[A-Za-z0-9-]+|[A-Za-z0-9-]+\s*\/)/i.test(resolved);
+    if (resolvedHasUnit) return resolved;
+
+    const unitPrefix = manual.match(
+      /^((?:(?:unit|suite|shop|factory|warehouse|tenancy|level|lot)\s*[A-Za-z0-9-]+(?:\s*[/,-]\s*|\s+)|[A-Za-z0-9-]+\s*\/\s*))/i,
+    )?.[1] || "";
+
+    let prefix = unitPrefix;
+    if (!/^\d/.test(resolved)) {
+      const remaining = manual.slice(unitPrefix.length);
+      prefix += remaining.match(/^(\d+[A-Za-z]?(?:-\d+[A-Za-z]?)?\s+)/)?.[1] || "";
+    }
+
+    prefix = prefix.trimEnd();
+    if (!prefix) return resolved;
+    return `${prefix}${/[\/,]$/.test(prefix) ? "" : " "}${resolved}`;
+  }
+
   function replaceFieldValue(field) {
     if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) return false;
     const previous = field.value;
@@ -160,25 +183,33 @@
       panel.replaceChildren();
       suggestions = [];
       activeIndex = -1;
+      input.removeAttribute("aria-activedescendant");
       input.setAttribute("aria-expanded", "false");
       host.classList.remove("has-order-detail-suggestions");
     };
 
     const updateActive = () => {
+      let activeId = "";
       [...panel.querySelectorAll("button")].forEach((button, index) => {
         const active = index === activeIndex;
         button.classList.toggle("is-active", active);
         button.setAttribute("aria-selected", String(active));
-        if (active) button.scrollIntoView({ block: "nearest" });
+        if (active) {
+          activeId = button.id;
+          button.scrollIntoView({ block: "nearest" });
+        }
       });
+      if (activeId) input.setAttribute("aria-activedescendant", activeId);
+      else input.removeAttribute("aria-activedescendant");
     };
 
     const choose = async (suggestion) => {
       if (!suggestion?.placeId || selecting) return;
       selecting = true;
       controller?.abort();
+      const manualStreet = mode === "street" ? input.value : "";
       try {
-        const response = await fetch(`/api/address-search?placeId=${encodeURIComponent(suggestion.placeId)}`, {
+        const response = await fetch(`/api/address-search?placeId=${encodeURIComponent(suggestion.placeId)}&mode=${encodeURIComponent(mode)}`, {
           credentials: "same-origin",
           headers: { Accept: "application/json" },
         });
@@ -193,7 +224,13 @@
         const postcode = document.getElementById(group.postcodeId);
         const state = group.stateId ? document.getElementById(group.stateId) : null;
 
-        if (mode === "street" && street && place.street) street.value = addressDisplayValue(place.street, group);
+        if (mode === "street" && !place.street) {
+          throw new Error("Choose a street address rather than a business or landmark.");
+        }
+        if (mode === "street" && street && place.street) {
+          const resolvedStreet = mergeManualStreetDetails(manualStreet, place.street);
+          street.value = addressDisplayValue(resolvedStreet, group);
+        }
         if (suburb && place.suburb) suburb.value = addressDisplayValue(place.suburb, group);
         if (postcode) postcode.value = String(place.postcode || "").replace(/\D/g, "").slice(0, 4);
         if (state) state.value = "VIC";
@@ -226,6 +263,7 @@
       suggestions.forEach((suggestion, index) => {
         const button = document.createElement("button");
         button.type = "button";
+        button.id = `${panel.id}Option${index}`;
         button.className = "order-detail-suggestion";
         button.setAttribute("role", "option");
         button.setAttribute("aria-selected", String(index === activeIndex));
@@ -240,6 +278,10 @@
           button.append(secondary);
         }
 
+        button.addEventListener("mouseenter", () => {
+          activeIndex = index;
+          updateActive();
+        });
         button.addEventListener("mousedown", (event) => event.preventDefault());
         button.addEventListener("click", () => void choose(suggestion));
         panel.append(button);
@@ -264,7 +306,7 @@
         const payload = await response.json().catch(() => ({}));
         if (!response.ok || payload.ok === false) return close();
         suggestions = Array.isArray(payload.suggestions) ? payload.suggestions : [];
-        activeIndex = suggestions.length ? 0 : -1;
+        activeIndex = -1;
         render();
       } catch (error) {
         if (error?.name !== "AbortError") console.warn("Address suggestions are unavailable:", error);
@@ -283,14 +325,24 @@
 
     input.addEventListener("keydown", (event) => {
       if (panel.hidden || !suggestions.length) return;
-      if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      if (event.key === "ArrowDown") {
         event.preventDefault();
-        activeIndex = Math.max(0, Math.min(suggestions.length - 1, activeIndex + (event.key === "ArrowDown" ? 1 : -1)));
+        activeIndex = activeIndex >= suggestions.length - 1 ? 0 : activeIndex + 1;
+        updateActive();
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        activeIndex = activeIndex <= 0 ? suggestions.length - 1 : activeIndex - 1;
         updateActive();
       } else if (event.key === "Enter") {
         event.preventDefault();
-        void choose(suggestions[Math.max(0, activeIndex)]);
+        if (activeIndex >= 0) {
+          void choose(suggestions[activeIndex]);
+        } else {
+          close();
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+        }
       } else if (event.key === "Escape") {
+        event.preventDefault();
         close();
       }
     });
