@@ -22,6 +22,6 @@ test("dynamic Account sections use bounded synchronization", () => {
 
 test("Account scripts use the second hotfix cache keys and duplicate-load guards", () => {
   assert.match(roleUx, /__bpsAccountRoleUxStarted/);
-  assert.match(roleUx, /account-experience-v2\.js\?v=20260804-3/);
-  assert.match(adminDefaults, /account-role-ux\.js\?v=20260804-3/);
+  assert.match(roleUx, /account-experience-v2\.js\?v=20260804-4/);
+  assert.match(adminDefaults, /account-role-ux\.js\?v=20260804-4/);
 });
