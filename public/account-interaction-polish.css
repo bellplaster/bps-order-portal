@@ -1,4 +1,35 @@
-/* Account navigation, checkbox and save-feedback polish */
+/* Account navigation, icon, checkbox and save-feedback polish */
+
+.account-nav-v2 a::before {
+  content: none !important;
+  display: none !important;
+}
+
+.account-nav-v2 a {
+  gap: 11px;
+}
+
+.account-nav-icon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  align-items: center;
+  justify-content: center;
+  color: currentColor;
+}
+
+.account-nav-icon svg {
+  display: block;
+  width: 15px;
+  height: 16px;
+  overflow: visible;
+}
+
+.account-nav-label {
+  min-width: 0;
+  line-height: 1.2;
+}
 
 .saved-address-default input[type="checkbox"] {
   -webkit-appearance: checkbox !important;
