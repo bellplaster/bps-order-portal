@@ -1,4 +1,7 @@
 (() => {
+  if (window.__bpsAccountRoleUxStarted) return;
+  window.__bpsAccountRoleUxStarted = true;
+
   const replacements = [
     ["Primary user", "Account supervisor"],
     ["Standard user", "Order user"],
@@ -87,7 +90,7 @@
 
     if (!document.querySelector('script[data-account-experience-v2="true"]')) {
       const experience = document.createElement("script");
-      experience.src = "/account-experience-v2.js?v=20260804-1";
+      experience.src = "/account-experience-v2.js?v=20260804-2";
       experience.defer = true;
       experience.dataset.accountExperienceV2 = "true";
       document.body.append(experience);
