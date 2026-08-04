@@ -1,0 +1,57 @@
+name: Apply Account navigation icons
+
+on:
+  push:
+    branches:
+      - refine-account-nav-icons
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refine-account-nav-icons
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Bump assets and add regression coverage
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          page = Path('public/account/index.html')
+          text = page.read_text()
+          text = text.replace('account-interaction-polish.css?v=20260804-1', 'account-interaction-polish.css?v=20260804-2')
+          text = text.replace('account-interaction-polish.js?v=20260804-1', 'account-interaction-polish.js?v=20260804-2')
+          page.write_text(text)
+
+          test = Path('tests/account-interaction-polish.test.mjs')
+          text = test.read_text()
+          text = text.replace('account-interaction-polish\\.css\\?v=20260804-1', 'account-interaction-polish\\.css\\?v=20260804-2')
+          text = text.replace('account-interaction-polish\\.js\\?v=20260804-1', 'account-interaction-polish\\.js\\?v=20260804-2')
+          block = '''\n\ntest("Account navigation uses aligned lightweight inline SVG icons", () => {\n  assert.match(script, /const navIcons = \\{/);\n  assert.match(script, /profile:[\\s\\S]*viewBox="0 0 11 16"/);\n  assert.match(script, /defaults:[\\s\\S]*viewBox="0 0 11 16"/);\n  assert.match(script, /contacts:[\\s\\S]*viewBox="0 0 24 24"/);\n  assert.match(script, /addresses:[\\s\\S]*viewBox="0 0 24 24"/);\n  assert.match(script, /security:[\\s\\S]*viewBox="0 0 24 24"/);\n  assert.match(script, /fill="currentColor"/);\n  assert.match(script, /scheduleNavIcons/);\n  assert.match(styles, /account-nav-v2 a::before/);\n  assert.match(styles, /content: none !important/);\n  assert.match(styles, /account-nav-icon svg/);\n  assert.match(styles, /width: 15px/);\n});\n'''
+          if 'Account navigation uses aligned lightweight inline SVG icons' not in text:
+              text += block
+          test.write_text(text)
+          PY
+
+      - run: npm test
+      - run: npm run check
+
+      - name: Commit final changes
+        run: |
+          rm .github/workflows/apply-account-nav-icons.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/account/index.html tests/account-interaction-polish.test.mjs .github/workflows/apply-account-nav-icons.yml
+          if ! git diff --cached --quiet; then
+            git commit -m "Load SVG Account navigation icons"
+            git push origin HEAD:refine-account-nav-icons
+          fi
