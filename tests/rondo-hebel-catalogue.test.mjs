@@ -113,8 +113,10 @@ test("new tables use the existing lower catalogue and quantity controls", () => 
 
 test("duplicate SKU product lines retain independent form keys", () => {
   assert.match(source, /function keyFor\(sku, lineIdentity = ""\)/);
-  assert.match(source, /rondo-suspended-accessory-/);
-  assert.match(source, /rondo-duo-accessory-/);
+  assert.match(source, /function accessoryLineIdentity\(scope, index\)/);
+  assert.match(source, /registerDefinition\(RONDO\.suspended, "rondo-suspended"\)/);
+  assert.match(source, /registerDefinition\(RONDO\.duo, "rondo-duo"\)/);
+  assert.match(source, /accessoryLineIdentity\(scope, index\)/);
   assert.match(source, /lineIdentity,/);
   assert.equal((source.match(/\["Flat Rod Bracket", "274"\]/g) || []).length, 2);
 });
