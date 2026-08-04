@@ -71,6 +71,12 @@ jobs:
           defaults_path = Path('public/admin-defaults.js')
           defaults_path.write_text(defaults_path.read_text().replace('/account-role-ux.js?v=20260804-3', '/account-role-ux.js?v=20260804-4'))
 
+          test_path = Path('tests/account-observer-loop.test.mjs')
+          test = test_path.read_text()
+          test = test.replace('account-experience-v2\\.js\\?v=20260804-3', 'account-experience-v2\\.js\\?v=20260804-4')
+          test = test.replace('account-role-ux\\.js\\?v=20260804-3', 'account-role-ux\\.js\\?v=20260804-4')
+          test_path.write_text(test)
+
           Path('.github/workflows/apply-account-loading-flash.yml').unlink()
           PY
 
