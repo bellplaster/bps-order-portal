@@ -10,18 +10,18 @@
   let lastDynamicSignature = "";
 
   async function start() {
-  profile = await loadProfile();
-  try {
-    buildLayout();
-    decorateSections();
-    reorderSections();
-    installNavigation();
-    installDynamicSectionSync();
-    scrollToRequestedSection();
-  } finally {
-    document.body.classList.add("account-experience-v2");
+    profile = await loadProfile();
+    try {
+      buildLayout();
+      decorateSections();
+      reorderSections();
+      installNavigation();
+      installDynamicSectionSync();
+      scrollToRequestedSection();
+    } finally {
+      document.body.classList.add("account-experience-v2");
+    }
   }
-}
 
   async function loadProfile() {
     try {
@@ -157,15 +157,19 @@
   }
 
   function desiredSections() {
-    return [
-      document.getElementById("accountProfileV2"),
-      document.getElementById("accountMessage"),
-      document.getElementById("accountForm"),
-      document.getElementById("savedContactsSection"),
-      document.getElementById("savedAddressesSection"),
-      document.getElementById("adminSection"),
-      document.getElementById("securitySection"),
-    ].filter(Boolean);
+    const profileCard = document.getElementById("accountProfileV2");
+    const message = document.getElementById("accountMessage");
+    const accountForm = document.getElementById("accountForm");
+    const savedContacts = document.getElementById("savedContactsSection");
+    const savedAddresses = document.getElementById("savedAddressesSection");
+    const adminSection = document.getElementById("adminSection");
+    const security = document.getElementById("securitySection");
+
+    const sections = profile?.role === "admin"
+      ? [profileCard, message, savedAddresses, accountForm, adminSection, security]
+      : [profileCard, message, accountForm, savedContacts, savedAddresses, adminSection, security];
+
+    return sections.filter(Boolean);
   }
 
   function reorderSections() {
