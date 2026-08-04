@@ -1,6 +1,25 @@
 const PLACES_AUTOCOMPLETE_URL = "https://places.googleapis.com/v1/places:autocomplete";
 const PLACES_DETAILS_URL = "https://places.googleapis.com/v1/places";
 
+const STREET_ADDRESS_TYPES = new Set([
+  "street_address",
+  "premise",
+  "subpremise",
+  "route",
+  "intersection",
+]);
+const NON_ADDRESS_TYPES = new Set([
+  "establishment",
+  "point_of_interest",
+  "natural_feature",
+  "park",
+  "school",
+  "hospital",
+  "store",
+  "restaurant",
+  "lodging",
+]);
+
 export async function onRequestGet(context) {
   const url = new URL(context.request.url);
   const placeId = String(url.searchParams.get("placeId") || "").trim();
@@ -17,7 +36,7 @@ export async function onRequestGet(context) {
   if (!apiKey) return json({ ok: false, error: "Address search is not configured." }, 503);
 
   try {
-    if (placeId) return await resolvePlace(apiKey, placeId, referrer);
+    if (placeId) return await resolvePlace(apiKey, placeId, mode, referrer);
     if (query.length < 2) return json({ ok: true, suggestions: [] });
     return await autocomplete(apiKey, query, mode, referrer);
   } catch (error) {
@@ -71,6 +90,12 @@ async function autocomplete(apiKey, input, mode, referrer) {
     .filter((suggestion) => {
       const text = `${suggestion.text} ${suggestion.secondaryText}`;
       return /\b(?:VIC|Victoria)\b/i.test(text) && !/\b(?:NSW|New South Wales)\b/i.test(text);
+    })
+    .filter((suggestion) => {
+      if (mode !== "street") return true;
+      const hasAddressType = suggestion.types.some((type) => STREET_ADDRESS_TYPES.has(type));
+      const isOnlyNonAddressPlace = suggestion.types.some((type) => NON_ADDRESS_TYPES.has(type)) && !hasAddressType;
+      return !isOnlyNonAddressPlace;
     });
 
   if (mode === "suburb") {
@@ -106,6 +131,9 @@ async function enrichSuggestion(apiKey, suggestion, mode, referrer) {
     const state = String(get("administrative_area_level_1", true) || "").toUpperCase();
     if (state && state !== "VIC") return null;
 
+    const route = get("route");
+    if (mode === "street" && !route) return null;
+
     const suburb = get("locality") || get("postal_town") || get("sublocality_level_1") || get("sublocality") || get("administrative_area_level_2");
     const postcode = get("postal_code");
     const secondaryText = mode === "suburb"
@@ -130,7 +158,7 @@ function normaliseSuggestion(suggestion) {
   return { ...suggestion, secondaryText };
 }
 
-async function resolvePlace(apiKey, placeId, referrer) {
+async function resolvePlace(apiKey, placeId, mode, referrer) {
   const response = await fetch(`${PLACES_DETAILS_URL}/${encodeURIComponent(placeId)}`, {
     headers: {
       "X-Goog-Api-Key": apiKey,
@@ -158,6 +186,9 @@ async function resolvePlace(apiKey, placeId, referrer) {
   const postcode = get("postal_code");
 
   if (state && state !== "VIC") return json({ ok: false, error: "Choose a Victorian address." }, 422);
+  if (mode === "street" && !route) {
+    return json({ ok: false, error: "Choose a street address rather than a business or landmark." }, 422);
+  }
 
   return json({
     ok: true,
