@@ -14,3 +14,108 @@
 .checkout-success-active .drawer-backdrop {
   z-index: 1200;
 }
+
+/*
+ * The confirmation route is rendered inside the normal order form DOM.
+ * Reset every containing element so form/grid rules cannot collapse the
+ * two-column confirmation into the width of a single form column.
+ */
+.checkout-success-active .order-shell {
+  display: block !important;
+  width: min(1200px, calc(100% - 40px)) !important;
+  min-width: 0 !important;
+  max-width: 1200px !important;
+  margin: 0 auto !important;
+  padding: 32px 0 64px !important;
+}
+
+.checkout-success-active #orderForm,
+.checkout-success-active #successScreen {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+}
+
+.checkout-success-active .checkout-confirmation-shell {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  grid-template-columns: minmax(0, 1.65fr) minmax(380px, .85fr) !important;
+  align-items: start;
+  overflow: hidden;
+  border: 1px solid var(--checkout-border, #d8ddda);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 18px 46px rgba(23, 33, 31, .08);
+}
+
+.checkout-success-active .checkout-confirmation-main {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  justify-self: stretch !important;
+  padding: 44px !important;
+}
+
+.checkout-success-active .checkout-confirmation-summary {
+  width: 100% !important;
+  min-width: 0 !important;
+  align-self: stretch;
+}
+
+.checkout-success-active .checkout-summary-details {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  padding: 44px 36px !important;
+}
+
+.checkout-success-active .checkout-confirmation-heading,
+.checkout-success-active .checkout-card,
+.checkout-success-active .checkout-confirmation-footer,
+.checkout-success-active .checkout-summary-content {
+  min-width: 0;
+}
+
+.checkout-success-active .checkout-confirmation-heading h1,
+.checkout-success-active .checkout-confirmed-copy p,
+.checkout-success-active .checkout-detail-row dd,
+.checkout-success-active .checkout-product-copy strong,
+.checkout-success-active .checkout-product-copy span {
+  word-break: normal;
+}
+
+@media (max-width: 900px) {
+  .checkout-success-active .order-shell {
+    width: min(100% - 24px, 1200px) !important;
+    padding: 20px 0 44px !important;
+  }
+
+  .checkout-success-active .checkout-confirmation-main {
+    padding: 30px 24px !important;
+  }
+
+  .checkout-success-active .checkout-summary-details {
+    padding: 28px 24px !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .checkout-success-active .order-shell {
+    width: calc(100% - 16px) !important;
+  }
+
+  .checkout-success-active .checkout-confirmation-shell {
+    border-radius: 10px;
+  }
+
+  .checkout-success-active .checkout-confirmation-main,
+  .checkout-success-active .checkout-summary-details {
+    padding-right: 18px !important;
+    padding-left: 18px !important;
+  }
+}
