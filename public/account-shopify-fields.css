@@ -1,0 +1,362 @@
+:root{
+  --account-shopify-border:#c9cccf;
+  --account-shopify-label:#6d7175;
+  --account-shopify-focus:#006557;
+  --account-shopify-highlight:#b52b49;
+}
+
+.account-page,
+.account-page button,
+.account-page input,
+.account-page select,
+.account-page textarea{
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+
+.account-page .account-section-bar{
+  min-height:70px;
+  padding:18px 22px 15px;
+}
+
+.account-page .account-section-bar h2{
+  font-size:16px!important;
+  line-height:1.25!important;
+  letter-spacing:-.015em!important;
+}
+
+.account-page .account-section-bar p,
+.account-profile-copy-v2 p,
+.account-sidebar-brand-v2 span{
+  font-size:13px!important;
+}
+
+.account-nav-v2 a{
+  font-size:14px!important;
+}
+
+.account-page .account-section-bar>button,
+.account-page .saved-contacts-bar>button,
+.account-page .saved-addresses-bar>button,
+.saved-contact-actions button,
+.saved-address-actions button,
+.security-toggle b{
+  font-size:13px!important;
+}
+
+.account-page .order-default-grid{
+  gap:14px 16px;
+  padding:20px 22px 8px;
+}
+
+/* Shopify-style floating labels */
+.account-shopify-field{
+  position:relative!important;
+  display:block!important;
+  min-width:0!important;
+  min-height:50px!important;
+  gap:0!important;
+  border:0!important;
+  background:transparent!important;
+}
+
+.account-shopify-field>span{
+  position:absolute!important;
+  z-index:4!important;
+  top:50%!important;
+  left:14px!important;
+  display:block!important;
+  max-width:calc(100% - 34px)!important;
+  margin:0!important;
+  padding:0!important;
+  overflow:hidden!important;
+  transform:translateY(-50%)!important;
+  border:0!important;
+  color:var(--account-shopify-label)!important;
+  font-size:14px!important;
+  font-weight:400!important;
+  line-height:1!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  pointer-events:none!important;
+  transition:top .14s ease,transform .14s ease,font-size .14s ease,color .14s ease!important;
+}
+
+.account-shopify-field.is-floating>span{
+  top:8px!important;
+  transform:none!important;
+  font-size:11px!important;
+  line-height:1!important;
+}
+
+.account-shopify-field.is-textarea>span{
+  top:16px!important;
+  transform:none!important;
+}
+
+.account-shopify-field.is-textarea.is-floating>span{
+  top:8px!important;
+}
+
+.account-page .account-shopify-field>input,
+.account-page .account-shopify-field>select,
+.account-page .account-shopify-field>textarea,
+.saved-contact-fields .account-shopify-field>input,
+.saved-address-fields .account-shopify-field>input,
+.password-modal-form-v2 .account-shopify-field>input{
+  position:static!important;
+  display:block!important;
+  width:100%!important;
+  min-width:0!important;
+  height:50px!important;
+  min-height:50px!important;
+  margin:0!important;
+  padding:0 14px!important;
+  box-sizing:border-box!important;
+  border:1px solid var(--account-shopify-border)!important;
+  border-radius:12px!important;
+  outline:0!important;
+  background:#fff!important;
+  color:#202223!important;
+  box-shadow:none!important;
+  font-size:14px!important;
+  font-weight:400!important;
+  line-height:1.35!important;
+  transition:border-color .14s ease,box-shadow .14s ease,background-color .14s ease!important;
+}
+
+.account-page .account-shopify-field.is-floating>input,
+.account-page .account-shopify-field.is-floating>select,
+.saved-contact-fields .account-shopify-field.is-floating>input,
+.saved-address-fields .account-shopify-field.is-floating>input,
+.password-modal-form-v2 .account-shopify-field.is-floating>input{
+  padding-top:15px!important;
+  padding-bottom:3px!important;
+}
+
+.account-page .account-shopify-field>select{
+  padding-right:44px!important;
+}
+
+.account-page .account-shopify-field>textarea{
+  height:auto!important;
+  min-height:104px!important;
+  padding:13px 14px!important;
+  resize:vertical!important;
+}
+
+.account-page .account-shopify-field.is-floating>textarea{
+  padding-top:23px!important;
+  padding-bottom:10px!important;
+}
+
+.account-shopify-field>input::placeholder,
+.account-shopify-field>textarea::placeholder{
+  color:transparent!important;
+  opacity:0!important;
+}
+
+.account-shopify-field:focus-within::after{
+  display:none!important;
+}
+
+.account-page .account-shopify-field>input:focus,
+.account-page .account-shopify-field>select:focus,
+.account-page .account-shopify-field>textarea:focus,
+.saved-contact-fields .account-shopify-field>input:focus,
+.saved-address-fields .account-shopify-field>input:focus,
+.password-modal-form-v2 .account-shopify-field>input:focus{
+  border-color:var(--account-shopify-focus)!important;
+  box-shadow:0 0 0 2px rgba(0,101,87,.15)!important;
+}
+
+.account-shopify-field.is-invalid>input,
+.account-shopify-field.is-invalid>select,
+.account-shopify-field.is-invalid>textarea,
+.account-shopify-field:has(.account-field-error)>input,
+.account-shopify-field:has(.account-field-error)>select,
+.account-shopify-field:has(.account-field-error)>textarea{
+  border-color:#c8324c!important;
+  box-shadow:0 0 0 1px rgba(200,50,76,.08)!important;
+}
+
+/* Dialog scale and spacing */
+.saved-contact-dialog-card h2,
+.saved-address-dialog-card h2,
+.account-prototype-dialog-card h2{
+  font-size:20px!important;
+}
+
+.saved-contact-dialog-card header p,
+.saved-address-dialog-card header p,
+.account-prototype-dialog-card header p{
+  font-size:13px!important;
+}
+
+.saved-contact-fields,
+.saved-address-fields,
+.account-prototype-dialog-fields,
+.password-modal-form-v2 .password-fields{
+  gap:14px!important;
+}
+
+.saved-contact-dialog-card>footer .button,
+.saved-address-dialog-card>footer .button,
+.account-prototype-dialog-card>footer .button,
+.account-page .account-form-actions .button{
+  font-size:14px!important;
+}
+
+/* Shopify-style account address suggestions */
+.account-page .order-detail-autocomplete-host>input{
+  border-radius:12px!important;
+}
+
+.account-page .order-detail-autocomplete-host.has-order-detail-suggestions{
+  z-index:1000!important;
+}
+
+.account-page .order-detail-suggestions[data-group="account"]{
+  top:calc(100% + 6px)!important;
+  right:0!important;
+  left:0!important;
+  max-height:320px!important;
+  padding:0 0 4px!important;
+  overflow-y:auto!important;
+  border:1px solid #d4d6d8!important;
+  border-radius:12px!important;
+  background:#fff!important;
+  box-shadow:0 8px 24px rgba(0,0,0,.14)!important;
+}
+
+.shopify-suggestion-header{
+  position:sticky;
+  z-index:3;
+  top:0;
+  display:flex;
+  min-height:38px;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 10px 0 12px;
+  border-bottom:1px solid #eceeef;
+  background:#fff;
+  color:#6d7175;
+  font-size:11px;
+  font-weight:500;
+  letter-spacing:.02em;
+  text-transform:uppercase;
+}
+
+.shopify-suggestion-close{
+  display:grid;
+  width:28px;
+  height:28px;
+  place-items:center;
+  border-radius:7px;
+  color:#6d7175;
+  font-size:19px;
+  line-height:1;
+  cursor:pointer;
+}
+
+.shopify-suggestion-close:hover,
+.shopify-suggestion-close:focus-visible{
+  background:#f1f2f3;
+  color:#202223;
+  outline:0;
+}
+
+.account-page .order-detail-suggestions[data-group="account"] .order-detail-suggestion{
+  display:flex!important;
+  min-height:40px!important;
+  align-items:baseline!important;
+  gap:4px!important;
+  padding:10px 12px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:#fff!important;
+  color:#202223!important;
+  text-align:left!important;
+  text-transform:none!important;
+  white-space:normal!important;
+}
+
+.account-page .order-detail-suggestions[data-group="account"] .order-detail-suggestion+ .order-detail-suggestion{
+  border-top:1px solid #f0f1f2!important;
+}
+
+.account-page .order-detail-suggestions[data-group="account"] .order-detail-suggestion strong{
+  flex:0 0 auto;
+  color:inherit!important;
+  font-size:14px!important;
+  font-weight:650!important;
+  line-height:1.35!important;
+}
+
+.account-page .order-detail-suggestions[data-group="account"] .order-detail-suggestion span{
+  min-width:0;
+  color:#6d7175!important;
+  font-size:14px!important;
+  font-weight:400!important;
+  line-height:1.35!important;
+}
+
+.account-page .order-detail-suggestions[data-group="account"] .order-detail-suggestion:hover,
+.account-page .order-detail-suggestions[data-group="account"] .order-detail-suggestion.is-active{
+  background:var(--account-shopify-highlight)!important;
+  color:#fff!important;
+}
+
+.account-page .order-detail-suggestions[data-group="account"] .order-detail-suggestion:hover span,
+.account-page .order-detail-suggestions[data-group="account"] .order-detail-suggestion.is-active span{
+  color:rgba(255,255,255,.88)!important;
+}
+
+/* Processing feedback */
+.account-page button[aria-busy="true"]{
+  cursor:wait!important;
+  opacity:.76!important;
+  pointer-events:none!important;
+}
+
+.account-page button[aria-busy="true"]::after{
+  content:"";
+  width:12px;
+  height:12px;
+  margin-left:8px;
+  border:2px solid currentColor;
+  border-right-color:transparent;
+  border-radius:50%;
+  animation:account-processing-spin .75s linear infinite;
+}
+
+@keyframes account-processing-spin{
+  to{transform:rotate(360deg)}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .account-shopify-field>span,
+  .account-shopify-field>input,
+  .account-shopify-field>select,
+  .account-shopify-field>textarea{
+    transition:none!important;
+  }
+  .account-page button[aria-busy="true"]::after{
+    animation:none;
+  }
+}
+
+@media (max-width:800px){
+  .account-page .order-default-grid{
+    gap:12px;
+    padding:18px 16px 6px;
+  }
+
+  .account-page .account-section-bar{
+    padding:17px 16px 14px;
+  }
+
+  .account-page .account-form-actions{
+    padding-right:16px;
+    padding-left:16px;
+  }
+}
