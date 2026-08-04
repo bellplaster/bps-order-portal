@@ -14,7 +14,7 @@ import {
 
 const client = await readFile(new URL("../public/account-field-validation.js", import.meta.url), "utf8");
 const styles = await readFile(new URL("../public/account-field-validation.css", import.meta.url), "utf8");
-const accountPage = await readFile(new URL("../public/account/index.html", import.meta.url), "utf8");
+const accountRoleUx = await readFile(new URL("../public/account-role-ux.js", import.meta.url), "utf8");
 
 test("references accept number groups separated by single hyphens", () => {
   assert.equal(cleanReference(" 99990999-9 "), "99990999-9");
@@ -54,7 +54,7 @@ test("instructions preserve punctuation and line breaks while removing invisible
   );
 });
 
-test("Account page loads delegated inline validation without mutation observers", () => {
+test("Account bootstrap loads delegated inline validation without mutation observers", () => {
   assert.match(client, /document\.addEventListener\("submit", onSubmit, true\)/);
   assert.match(client, /document\.addEventListener\("focusin"/);
   assert.doesNotMatch(client, /MutationObserver/);
@@ -63,6 +63,7 @@ test("Account page loads delegated inline validation without mutation observers"
   assert.match(client, /defaultReference/);
   assert.match(styles, /account-field-validation-message/);
   assert.match(styles, /is-account-field-invalid/);
-  assert.match(accountPage, /account-field-validation\.css\?v=20260804-1/);
-  assert.match(accountPage, /account-field-validation\.js\?v=20260804-1/);
+  assert.match(accountRoleUx, /loadAccountFieldValidation/);
+  assert.match(accountRoleUx, /account-field-validation\.css\?v=20260804-1/);
+  assert.match(accountRoleUx, /account-field-validation\.js\?v=20260804-1/);
 });
