@@ -46,7 +46,7 @@ test("admin confirmation wiring and status alignment are repaired", async () => 
   assert.match(polishCss, /justify-content:center!important/);
 });
 
-test("customer deactivation is soft and blocks new and existing sessions", async () => {
+test("customer deactivation is soft and blocks new logins without a global database lookup", async () => {
   const [accountApi, loginApi, middleware] = await Promise.all([
     read("functions/api/account.js"),
     read("functions/api/login.js"),
@@ -60,7 +60,7 @@ test("customer deactivation is soft and blocks new and existing sessions", async
   assert.match(activeAction, /UPDATE customer_accounts SET active/);
   assert.doesNotMatch(activeAction, /DELETE FROM customer_accounts/);
   assert.match(loginApi, /user\.account_active !== 1/);
-  assert.match(middleware, /roleRequiresCustomerAccount/);
-  assert.match(middleware, /account_active/);
-  assert.match(middleware, /expiredSessionCookie/);
+  assert.doesNotMatch(middleware, /getCurrentAccess/);
+  assert.doesNotMatch(middleware, /access_role/);
+  assert.match(middleware, /verifySessionToken/);
 });
