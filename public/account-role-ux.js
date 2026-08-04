@@ -35,7 +35,8 @@
     });
 
     const note = document.getElementById("managePortalUserNote");
-    if (note) note.textContent = "Account supervisors can view every order under this debtor account. Order users see only their own submissions. These user contact details are separate from the account's shared saved contacts.";
+    const noteText = "Account supervisors can view every order under this debtor account. Order users see only their own submissions. These user contact details are separate from the account's shared saved contacts.";
+    if (note && note.textContent !== noteText) note.textContent = noteText;
 
     relabelField("managePrimary", "Order visibility");
     relabelField("newUserPrimary", "Order visibility");
@@ -65,7 +66,7 @@
     }
     if (document.querySelector('script[data-account-contacts-management="true"]')) return;
     const script = document.createElement("script");
-    script.src = "/account-contacts-management.js?v=20260801-3";
+    script.src = "/account-contacts-management.js?v=20260804-2";
     script.defer = true;
     script.dataset.accountContactsManagement = "true";
     document.body.append(script);
@@ -90,7 +91,7 @@
 
     if (!document.querySelector('script[data-account-experience-v2="true"]')) {
       const experience = document.createElement("script");
-      experience.src = "/account-experience-v2.js?v=20260804-2";
+      experience.src = "/account-experience-v2.js?v=20260804-3";
       experience.defer = true;
       experience.dataset.accountExperienceV2 = "true";
       document.body.append(experience);
