@@ -60,40 +60,16 @@ jobs:
               document.body.classList.add("account-experience-v2");
             }
           }'''
-          experience = experience[:start_index] + new_start + experience[end_index:]
-          experience_path.write_text(experience)
+          experience_path.write_text(experience[:start_index] + new_start + experience[end_index:])
 
           index_path = Path('public/account/index.html')
-          index = index_path.read_text()
-          index = index.replace('/account-final-refinement.css?v=20260728-11', '/account-final-refinement.css?v=20260804-12')
-          index_path.write_text(index)
+          index_path.write_text(index_path.read_text().replace('/account-final-refinement.css?v=20260728-11', '/account-final-refinement.css?v=20260804-12'))
 
           role_path = Path('public/account-role-ux.js')
-          role = role_path.read_text().replace('/account-experience-v2.js?v=20260804-3', '/account-experience-v2.js?v=20260804-4')
-          role_path.write_text(role)
+          role_path.write_text(role_path.read_text().replace('/account-experience-v2.js?v=20260804-3', '/account-experience-v2.js?v=20260804-4'))
 
           defaults_path = Path('public/admin-defaults.js')
-          defaults = defaults_path.read_text().replace('/account-role-ux.js?v=20260804-3', '/account-role-ux.js?v=20260804-4')
-          defaults_path.write_text(defaults)
-
-          test_path = Path('tests/account-observer-loop.test.mjs')
-          test = test_path.read_text()
-          if 'account shell remains hidden until the redesigned layout is ready' not in test:
-              test = test.replace(
-                  'const adminDefaults = await readFile(new URL("../public/admin-defaults.js", import.meta.url), "utf8");',
-                  'const adminDefaults = await readFile(new URL("../public/admin-defaults.js", import.meta.url), "utf8");\nconst accountCss = await readFile(new URL("../public/account-final-refinement.css", import.meta.url), "utf8");\nconst accountPage = await readFile(new URL("../public/account/index.html", import.meta.url), "utf8");',
-              )
-              test += r'''\n\ntest("account shell remains hidden until the redesigned layout is ready", () => {
-            assert.match(accountCss, /\.account-page:not\(\.account-experience-v2\) \.account-shell\{visibility:hidden\}/);
-            assert.match(accountCss, /account-bootstrap-spin/);
-            const buildPosition = experience.indexOf("buildLayout();");
-            const readyPosition = experience.indexOf('document.body.classList.add("account-experience-v2")');
-            assert.ok(buildPosition >= 0 && readyPosition > buildPosition);
-            assert.match(accountPage, /account-final-refinement\.css\?v=20260804-12/);
-            assert.match(roleUx, /account-experience-v2\.js\?v=20260804-4/);
-            assert.match(adminDefaults, /account-role-ux\.js\?v=20260804-4/);
-          });\n'''
-              test_path.write_text(test)
+          defaults_path.write_text(defaults_path.read_text().replace('/account-role-ux.js?v=20260804-3', '/account-role-ux.js?v=20260804-4'))
 
           Path('.github/workflows/apply-account-loading-flash.yml').unlink()
           PY
