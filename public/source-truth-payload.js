@@ -116,6 +116,7 @@
       .replace(/^(?:Loose|Collated)\s+Screws?\s*/i, "")
       .replace(/^(?:Loose|Collated)\s*-\s*/i, "")
       .replace(/^(?:Loose|Collated)(?=(?:Needle|Coarse))/i, "")
+      .replace(/^\s*-\s*/, "")
       .replace(/\s*(25|32)\s*mm\s*$/i, "")
       .trim();
   }
