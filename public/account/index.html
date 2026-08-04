@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="/account-interaction-polish.css?v=20260804-2">
   <link rel="stylesheet" href="/account-field-validation.css?v=20260804-2" data-account-field-validation="true">
   <link rel="stylesheet" href="/account-prototype-refinement.css?v=20260804-1" data-account-prototype-refinement="true">
-  <link rel="stylesheet" href="/account-shopify-fields.css?v=20260804-1" data-account-shopify-fields="true">
+  <link rel="stylesheet" href="/account-shopify-fields.css?v=20260804-2" data-account-shopify-fields="true">
   <style>
     .admin-dialog,.admin-dialog-card,.admin-dialog-fields,.admin-dialog-fields .account-field,.admin-dialog-fields .account-field select{box-sizing:border-box}.admin-dialog{overflow-x:hidden}.admin-dialog-card{width:100%;max-width:100%;overflow-x:hidden}.admin-dialog-fields{width:100%;max-width:100%;grid-template-columns:repeat(2,minmax(0,1fr));overflow:hidden}.admin-dialog-fields .account-field,.admin-dialog-fields .account-field-wide,.admin-dialog-fields .account-field select{min-width:0;max-width:100%}.admin-dialog-fields .account-field-wide{width:100%;grid-column:1/-1}.admin-dialog-fields .account-field select{display:block;width:100%}.order-default-grid .account-field:has(>select){overflow:visible}.order-default-grid .account-field>select{position:absolute;top:0;right:0;bottom:0;left:var(--account-label-width);width:auto;min-width:0;max-width:none;height:100%;min-height:100%;margin:0;box-sizing:border-box}.admin-email-test-status{display:block;margin-top:4px;font-size:12px;line-height:1.45;color:#68736f}.admin-email-test-status[data-state="success"]{color:#006557}.admin-email-test-status[data-state="error"]{color:#a62b45}.admin-email-test-status[data-state="pending"]{color:#52605c}.admin-management-row button[aria-busy="true"]{cursor:wait;opacity:.72}
   </style>
@@ -52,7 +52,7 @@
           <label class="account-field account-field-divider"><span>Delivery type</span><select id="defaultDeliveryType"><option value="">Select delivery type</option><option value="Hand Unload">Hand Unload</option><option value="Forklift Delivery">Forklift Delivery</option><option value="Crane Delivery">Crane Delivery</option><option value="Delivery (No Assistance)">Delivery (No Assistance)</option><option value="Pickup (Customer to collect)">Customer Pickup</option></select></label>
           <label class="account-field account-field-wide"><span>Instructions</span><textarea id="defaultInstructions" rows="3" maxlength="1500"></textarea></label>
         </div>
-        <div class="account-form-actions"><button class="button button-primary">Save changes</button></div>
+        <div class="account-form-actions"><button class="button button-primary">Save</button></div>
       </section>
     </form>
 
@@ -90,7 +90,7 @@
       </div>
     </section>
 
-    <section class="account-section security-card"><header class="account-section-bar"><h2>Security</h2></header><button id="togglePasswordPanel" class="security-toggle" type="button" aria-expanded="false"><span><strong>Password</strong><small>Change your sign-in password</small></span><b>Change password</b></button><div id="passwordPanel" class="password-panel" hidden><form id="passwordForm"><div class="account-section-body password-fields"><label class="account-field"><span>Current password</span><input id="currentPassword" type="password" required></label><label class="account-field"><span>New password</span><input id="newPassword" type="password" minlength="8" required></label><label class="account-field"><span>Confirm password</span><input id="confirmPassword" type="password" minlength="8" required></label></div><div class="account-form-actions password-actions"><button id="cancelPasswordChange" class="button button-secondary" type="button">Cancel</button><button class="button button-primary">Update password</button></div></form></div></section>
+    <section class="account-section security-card"><header class="account-section-bar"><h2>Security</h2></header><button id="togglePasswordPanel" class="security-toggle" type="button" aria-expanded="false"><span><strong>Password</strong><small>Change your sign-in password</small></span><b>Change password</b></button><div id="passwordPanel" class="password-panel" hidden><form id="passwordForm"><div class="account-section-body password-fields"><label class="account-field"><span>Current password</span><input id="currentPassword" type="password" required></label><label class="account-field"><span>New password</span><input id="newPassword" type="password" minlength="8" required></label><label class="account-field"><span>Confirm password</span><input id="confirmPassword" type="password" minlength="8" required></label></div><div class="account-form-actions password-actions"><button id="cancelPasswordChange" class="button button-secondary" type="button">Cancel</button><button class="button button-primary">Save</button></div></form></div></section>
   </main>
 
   <dialog id="editAccountDialog" class="admin-dialog"><form id="editAccountForm" class="admin-dialog-card"><header><div><h2>Edit customer</h2><p id="editAccountMeta"></p></div><button class="admin-dialog-close" type="button" data-close-dialog="editAccountDialog">×</button></header><input id="editAccountId" type="hidden"><div class="admin-dialog-fields"><label class="account-field"><span>Debtor code</span><input id="editDebtorCode" required></label><label class="account-field"><span>Company name</span><input id="editCompanyName" required></label><label class="account-field account-field-wide"><span>Status</span><select id="editAccountActive"><option value="1">Active</option><option value="0">Inactive</option></select></label></div><footer><button class="button button-secondary" type="button" data-close-dialog="editAccountDialog">Cancel</button><button class="button button-primary">Save customer</button></footer></form></dialog>
@@ -104,6 +104,6 @@
   <script src="/admin-email-test.js?v=20260801-1" defer></script>
   <script src="/account-interaction-polish.js?v=20260804-2" defer></script>
   <script src="/account-prototype-interactions.js?v=20260804-1" defer data-account-prototype-interactions="true"></script>
-  <script src="/account-shopify-fields.js?v=20260804-1" defer data-account-shopify-fields="true"></script>
+  <script src="/account-shopify-fields.js?v=20260804-2" defer data-account-shopify-fields="true"></script>
 </body>
 </html>
