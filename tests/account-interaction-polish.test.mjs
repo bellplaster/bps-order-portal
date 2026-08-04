@@ -34,7 +34,23 @@ test("saved-address default checkbox is reset to a native compact control", () =
 });
 
 test("Account interaction assets are loaded and syntax checked", () => {
-  assert.match(accountPage, /account-interaction-polish\.css\?v=20260804-1/);
-  assert.match(accountPage, /account-interaction-polish\.js\?v=20260804-1/);
+  assert.match(accountPage, /account-interaction-polish\.css\?v=20260804-2/);
+  assert.match(accountPage, /account-interaction-polish\.js\?v=20260804-2/);
   assert.match(packageJson.scripts.check, /node --check public\/account-interaction-polish\.js/);
+});
+
+
+test("Account navigation uses aligned lightweight inline SVG icons", () => {
+  assert.match(script, /const navIcons = \{/);
+  assert.match(script, /profile:[\s\S]*viewBox="0 0 11 16"/);
+  assert.match(script, /defaults:[\s\S]*viewBox="0 0 11 16"/);
+  assert.match(script, /contacts:[\s\S]*viewBox="0 0 24 24"/);
+  assert.match(script, /addresses:[\s\S]*viewBox="0 0 24 24"/);
+  assert.match(script, /security:[\s\S]*viewBox="0 0 24 24"/);
+  assert.match(script, /fill="currentColor"/);
+  assert.match(script, /scheduleNavIcons/);
+  assert.match(styles, /account-nav-v2 a::before/);
+  assert.match(styles, /content: none !important/);
+  assert.match(styles, /account-nav-icon svg/);
+  assert.match(styles, /width: 15px/);
 });
