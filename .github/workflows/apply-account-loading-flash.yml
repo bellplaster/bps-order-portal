@@ -1,0 +1,117 @@
+name: Apply Account loading flash fix
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/apply-account-loading-flash.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'fix-account-loading-flash'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out patch branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix-account-loading-flash
+          fetch-depth: 0
+
+      - name: Apply flash-free Account bootstrap
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          css_path = Path('public/account-final-refinement.css')
+          css = css_path.read_text()
+          marker = '/* Account experience bootstrap */'
+          if marker not in css:
+              css += '''\n\n/* Account experience bootstrap */
+          .account-page:not(.account-experience-v2){overflow-y:scroll}
+          .account-page:not(.account-experience-v2) .account-shell{visibility:hidden}
+          .account-page:not(.account-experience-v2)::after{content:"";position:fixed;z-index:20;top:50%;left:50%;width:28px;height:28px;margin:-14px 0 0 -14px;box-sizing:border-box;border:2px solid rgba(166,43,69,.18);border-top-color:var(--bell-maroon,#a62b45);border-radius:50%;animation:account-bootstrap-spin .7s linear infinite;pointer-events:none}
+          @keyframes account-bootstrap-spin{to{transform:rotate(360deg)}}
+          @media (prefers-reduced-motion:reduce){.account-page:not(.account-experience-v2)::after{animation-duration:1.4s}}
+          '''
+              css_path.write_text(css)
+
+          experience_path = Path('public/account-experience-v2.js')
+          experience = experience_path.read_text()
+          old_start = '''  async function start() {
+            profile = await loadProfile();
+            document.body.classList.add("account-experience-v2");
+            buildLayout();
+            decorateSections();
+            reorderSections();
+            installNavigation();
+            installDynamicSectionSync();
+            scrollToRequestedSection();
+          }'''
+          new_start = '''  async function start() {
+            profile = await loadProfile();
+            try {
+              buildLayout();
+              decorateSections();
+              reorderSections();
+              installNavigation();
+              installDynamicSectionSync();
+              scrollToRequestedSection();
+            } finally {
+              document.body.classList.add("account-experience-v2");
+            }
+          }'''
+          if old_start not in experience:
+              raise SystemExit('Expected Account start function was not found.')
+          experience_path.write_text(experience.replace(old_start, new_start, 1))
+
+          index_path = Path('public/account/index.html')
+          index = index_path.read_text()
+          index = index.replace('/account-final-refinement.css?v=20260728-11', '/account-final-refinement.css?v=20260804-12')
+          index_path.write_text(index)
+
+          role_path = Path('public/account-role-ux.js')
+          role = role_path.read_text().replace('/account-experience-v2.js?v=20260804-3', '/account-experience-v2.js?v=20260804-4')
+          role_path.write_text(role)
+
+          defaults_path = Path('public/admin-defaults.js')
+          defaults = defaults_path.read_text().replace('/account-role-ux.js?v=20260804-3', '/account-role-ux.js?v=20260804-4')
+          defaults_path.write_text(defaults)
+
+          test_path = Path('tests/account-observer-loop.test.mjs')
+          test = test_path.read_text()
+          if 'account shell remains hidden until the redesigned layout is ready' not in test:
+              test = test.replace(
+                  'const adminDefaults = await readFile(new URL("../public/admin-defaults.js", import.meta.url), "utf8");',
+                  'const adminDefaults = await readFile(new URL("../public/admin-defaults.js", import.meta.url), "utf8");\nconst accountCss = await readFile(new URL("../public/account-final-refinement.css", import.meta.url), "utf8");\nconst accountPage = await readFile(new URL("../public/account/index.html", import.meta.url), "utf8");',
+              )
+              test += '''\n\ntest("account shell remains hidden until the redesigned layout is ready", () => {
+            assert.match(accountCss, /\.account-page:not\(\.account-experience-v2\) \.account-shell\{visibility:hidden\}/);
+            assert.match(accountCss, /account-bootstrap-spin/);
+            const buildPosition = experience.indexOf("buildLayout();");
+            const readyPosition = experience.indexOf('document.body.classList.add("account-experience-v2")');
+            assert.ok(buildPosition >= 0 && readyPosition > buildPosition);
+            assert.match(accountPage, /account-final-refinement\.css\?v=20260804-12/);
+            assert.match(roleUx, /account-experience-v2\.js\?v=20260804-4/);
+            assert.match(adminDefaults, /account-role-ux\.js\?v=20260804-4/);
+          });\n'''
+              test_path.write_text(test)
+
+          Path('.github/workflows/apply-account-loading-flash.yml').unlink()
+          PY
+
+      - name: Run tests and syntax checks
+        run: |
+          npm test
+          npm run check
+
+      - name: Commit patched files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/account-final-refinement.css public/account-experience-v2.js public/account/index.html public/account-role-ux.js public/admin-defaults.js tests/account-observer-loop.test.mjs .github/workflows/apply-account-loading-flash.yml
+          git commit -m "Prevent legacy Account page loading flash"
+          git push origin HEAD:fix-account-loading-flash
