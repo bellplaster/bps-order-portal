@@ -6,6 +6,7 @@
   let main = null;
   let nav = null;
   let observer = null;
+  let requestedHashHandled = false;
 
   async function start() {
     profile = await loadProfile();
@@ -15,6 +16,7 @@
     reorderSections();
     installDynamicSectionObserver();
     installNavigation();
+    scrollToRequestedSection();
   }
 
   async function loadProfile() {
@@ -160,22 +162,40 @@
     ];
     order.filter(Boolean).forEach((element) => main.append(element));
     updateNavigationVisibility();
+    scrollToRequestedSection();
   }
 
   function installDynamicSectionObserver() {
     if (!main || observer) return;
     observer = new MutationObserver((mutations) => {
-      let changed = false;
-      mutations.forEach((mutation) => mutation.addedNodes.forEach((node) => {
-        if (!(node instanceof Element)) return;
-        if (node.matches?.("#savedContactsSection, #savedAddressesSection") || node.querySelector?.("#savedContactsSection, #savedAddressesSection")) changed = true;
-      }));
-      if (!changed) return;
-      decorateSections();
-      reorderSections();
-      refreshObservedSections();
+      let structureChanged = false;
+      let visibilityChanged = false;
+      mutations.forEach((mutation) => {
+        if (mutation.type === "attributes") {
+          visibilityChanged = true;
+          return;
+        }
+        mutation.addedNodes.forEach((node) => {
+          if (!(node instanceof Element)) return;
+          if (node.matches?.("#savedContactsSection, #savedAddressesSection") || node.querySelector?.("#savedContactsSection, #savedAddressesSection")) structureChanged = true;
+        });
+      });
+
+      if (structureChanged) {
+        decorateSections();
+        reorderSections();
+        refreshObservedSections();
+      } else if (visibilityChanged) {
+        updateNavigationVisibility();
+        refreshObservedSections();
+      }
     });
-    observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["hidden"],
+    });
   }
 
   function installNavigation() {
@@ -186,6 +206,7 @@
       const target = document.querySelector(link.getAttribute("href"));
       if (!target) return;
       event.preventDefault();
+      history.replaceState(history.state, "", link.getAttribute("href"));
       target.scrollIntoView({ behavior: "smooth", block: "start" });
     });
     refreshObservedSections();
@@ -223,6 +244,19 @@
       const section = document.getElementById(id);
       if (link) link.hidden = !section || (id === "adminSection" && section.hidden);
     });
+  }
+
+  function scrollToRequestedSection() {
+    if (requestedHashHandled || !location.hash) return;
+    let target = null;
+    try {
+      target = document.querySelector(location.hash);
+    } catch (_error) {
+      return;
+    }
+    if (!target) return;
+    requestedHashHandled = true;
+    requestAnimationFrame(() => target.scrollIntoView({ block: "start" }));
   }
 
   function roleLabel(role) {
