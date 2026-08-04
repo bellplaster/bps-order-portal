@@ -64,12 +64,16 @@
 
     const message = document.getElementById("accountMessage");
     const accountForm = document.getElementById("accountForm");
+    const savedContacts = document.getElementById("savedContactsSection");
+    const savedAddresses = document.getElementById("savedAddressesSection");
     const adminSection = document.getElementById("adminSection");
     const security = document.querySelector(".security-card");
     const heading = document.querySelector(".account-heading");
 
     if (message) main.append(message);
     if (accountForm) main.append(accountForm);
+    if (savedContacts) main.append(savedContacts);
+    if (savedAddresses) main.append(savedAddresses);
     if (adminSection) main.append(adminSection);
     if (security) main.append(security);
     heading?.remove();
