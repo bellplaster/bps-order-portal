@@ -176,7 +176,7 @@
       let visibilityChanged = false;
       mutations.forEach((mutation) => {
         if (mutation.type === "attributes") {
-          visibilityChanged = true;
+          if (mutation.target instanceof Element && mutation.target.id === "adminSection") visibilityChanged = true;
           return;
         }
         mutation.addedNodes.forEach((node) => {
@@ -194,7 +194,7 @@
         refreshObservedSections();
       }
     });
-    observer.observe(document.body, {
+    observer.observe(main, {
       childList: true,
       subtree: true,
       attributes: true,
@@ -246,7 +246,8 @@
     Object.entries(mappings).forEach(([key, id]) => {
       const link = nav.querySelector(`[data-account-nav="${key}"]`);
       const section = document.getElementById(id);
-      if (link) link.hidden = !section || (id === "adminSection" && section.hidden);
+      const shouldHide = !section || (id === "adminSection" && section.hidden);
+      if (link && link.hidden !== shouldHide) link.hidden = shouldHide;
     });
   }
 
