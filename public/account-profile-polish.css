@@ -13,7 +13,8 @@
 }
 
 .account-experience-v2 .account-profile-avatar-v2,
-.account-experience-v2 .account-profile-meta-v2 {
+.account-experience-v2 .account-profile-meta-v2,
+.account-experience-v2 .account-profile-role-v2 {
   display: none !important;
 }
 
@@ -28,11 +29,6 @@
 .account-experience-v2 .account-profile-copy-v2 p {
   max-width: 620px;
   margin-top: 7px;
-}
-
-.account-experience-v2 .account-profile-role-v2 {
-  align-self: flex-start;
-  margin: 0;
 }
 
 .account-experience-v2 #defaultStreet,
