@@ -1,0 +1,28 @@
+/* Account field validation */
+.account-field-validation-message {
+  display: block;
+  margin: -1px 0 0;
+  color: #a62b45;
+  font: 500 10px/1.4 Inter, system-ui, sans-serif;
+}
+
+.account-field-validation-message[hidden] {
+  display: none !important;
+}
+
+.account-page input.is-account-field-invalid,
+.account-page textarea.is-account-field-invalid {
+  border-color: rgba(166, 43, 69, 0.72) !important;
+  box-shadow: 0 0 0 3px rgba(166, 43, 69, 0.09) !important;
+}
+
+.account-page input.is-account-field-invalid:focus,
+.account-page textarea.is-account-field-invalid:focus {
+  border-color: #a62b45 !important;
+  box-shadow: 0 0 0 3px rgba(166, 43, 69, 0.13) !important;
+}
+
+.saved-contact-fields label,
+.saved-address-fields label {
+  align-content: start;
+}
