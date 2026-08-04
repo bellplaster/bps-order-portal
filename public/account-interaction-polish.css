@@ -81,6 +81,17 @@
   animation: account-toast-enter 180ms ease-out both;
 }
 
+.account-page #accountMessage[popover]:not([hidden]) {
+  top: auto !important;
+  left: auto !important;
+  margin: 0 !important;
+}
+
+.account-page #accountMessage[popover]::backdrop {
+  background: transparent;
+  backdrop-filter: none;
+}
+
 .account-page #accountMessage:not([hidden])::before {
   content: "✓";
   position: absolute;
