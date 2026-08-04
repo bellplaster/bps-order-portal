@@ -18,8 +18,8 @@ test("Shopify fields use the larger centred input treatment", () => {
 });
 
 test("Account action labels are concise and row edges align", () => {
-  assert.match(script, /Save changes:\s*"Save"/);
-  assert.match(script, /Add contact:\s*"Add"/);
-  assert.match(script, /Add address:\s*"Add"/);
+  assert.match(script, /"Save changes":\s*"Save"/);
+  assert.match(script, /"Add contact":\s*"Add"/);
+  assert.match(script, /"Add address":\s*"Add"/);
   assert.match(css, /saved-contact-row,[\s\S]*saved-address-row[\s\S]*padding-right:22px!important/);
 });
