@@ -72,6 +72,24 @@
     document.body.append(script);
   }
 
+  function loadAccountProfilePolish() {
+    if (!document.querySelector('link[data-account-profile-polish="true"]')) {
+      const stylesheet = document.createElement("link");
+      stylesheet.rel = "stylesheet";
+      stylesheet.href = "/account-profile-polish.css?v=20260804-1";
+      stylesheet.dataset.accountProfilePolish = "true";
+      document.head.append(stylesheet);
+    }
+
+    if (!document.querySelector('script[data-account-profile-polish="true"]')) {
+      const script = document.createElement("script");
+      script.src = "/account-profile-polish.js?v=20260804-1";
+      script.defer = true;
+      script.dataset.accountProfilePolish = "true";
+      document.body.append(script);
+    }
+  }
+
   function loadAccountExperience() {
     if (!document.querySelector('link[data-account-experience-v2="true"]')) {
       const stylesheet = document.createElement("link");
@@ -144,6 +162,7 @@
   function install() {
     if (!document.body.classList.contains("account-page")) return;
     installStyles();
+    loadAccountProfilePolish();
     loadAccountExperience();
     installHelp();
     patchRoleLabels();
