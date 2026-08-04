@@ -17,6 +17,7 @@ test("Account sidebar links use explicit offset scrolling", () => {
 test("saved-address feedback is a local auto-dismissing toast", () => {
   assert.match(script, /\["Saved address added\.", "Address saved"\]/);
   assert.match(script, /MutationObserver/);
+  assert.match(script, /root\.setAttribute\("aria-live"/);
   assert.match(script, /toastTimer = window\.setTimeout/);
   assert.match(styles, /#accountMessage:not\(\[hidden\]\) \{/);
   assert.match(styles, /position: fixed !important/);
@@ -25,6 +26,7 @@ test("saved-address feedback is a local auto-dismissing toast", () => {
 
 test("saved-address default checkbox is reset to a native compact control", () => {
   assert.match(styles, /saved-address-default input\[type="checkbox"\]/);
+  assert.match(styles, /appearance: auto !important/);
   assert.match(styles, /width: 18px !important/);
   assert.match(styles, /height: 18px !important/);
   assert.match(styles, /padding: 0 !important/);
