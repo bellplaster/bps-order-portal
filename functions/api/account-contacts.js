@@ -1,3 +1,4 @@
+import { cleanPersonName } from "../_shared/account-field-validation.js";
 import { normaliseAustralianPhone } from "../_shared/phone.js";
 import { json } from "../_shared/responses.js";
 
@@ -224,9 +225,7 @@ async function readBody(context) {
 }
 
 function cleanName(value) {
-  const name = String(value || "").trim().replace(/\s+/g, " ").slice(0, 100);
-  if (!name) throw badRequest("Enter a contact name.");
-  return name;
+  return cleanPersonName(value, { maxLength: 100, label: "Contact name" });
 }
 
 function cleanPhone(value) {

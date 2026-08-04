@@ -1,3 +1,9 @@
+import {
+  cleanAddressLabel,
+  cleanAustralianPostcode,
+  cleanStreetAddress,
+  cleanSuburb,
+} from "../_shared/account-field-validation.js";
 import { json } from "../_shared/responses.js";
 
 export async function onRequestGet(context) {
@@ -195,15 +201,10 @@ export async function onRequestDelete(context) {
 
 export function cleanAddressInput(input) {
   const source = input && typeof input === "object" ? input : {};
-  const label = cleanText(source.label, 80);
-  const street = cleanText(source.street || source.addressLine1, 240);
-  const suburb = cleanText(source.suburb, 120);
-  const postcode = String(source.postcode || "").replace(/\D/g, "").slice(0, 4);
-
-  if (!label) throw badRequest("Enter an address name, such as Site office or Warehouse.");
-  if (!street) throw badRequest("Enter the street address.");
-  if (!suburb) throw badRequest("Enter the suburb.");
-  if (!/^(?:3\d{3}|8\d{3})$/.test(postcode)) throw badRequest("Enter a valid Victorian postcode.");
+  const label = cleanAddressLabel(source.label, { maxLength: 80, label: "Address name" });
+  const street = cleanStreetAddress(source.street || source.addressLine1, { maxLength: 240, label: "Street address" });
+  const suburb = cleanSuburb(source.suburb, { maxLength: 120, label: "Suburb" });
+  const postcode = cleanAustralianPostcode(source.postcode, { victorian: true, label: "Postcode" });
 
   return {
     label,
@@ -341,14 +342,6 @@ async function readBody(context) {
   const body = await context.request.json().catch(() => null);
   if (!body || typeof body !== "object") throw badRequest("Invalid saved address request.");
   return body;
-}
-
-function cleanText(value, maxLength) {
-  return String(value || "")
-    .replace(/[\u0000-\u001f\u007f]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, maxLength);
 }
 
 function toAddress(row) {
