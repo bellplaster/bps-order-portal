@@ -43,7 +43,7 @@ test("lower-products stylesheet is the sole catalogue column-layout owner", () =
 
 test("catalogue renderers load once in deterministic document order", () => {
   const lowerIndex = index.indexOf('/lower-products-refinement.js?v=20260801-3');
-  const catalogueIndex = index.indexOf('/rondo-hebel-catalogue.js?v=20260801-5');
+  const catalogueIndex = index.indexOf('/rondo-hebel-catalogue.js?v=20260805-1');
   const additionalIndex = index.indexOf('/additional-products-refinement.js?v=20260729-2');
   assert.ok(lowerIndex >= 0, "lower catalogue renderer is missing");
   assert.ok(catalogueIndex > lowerIndex, "Rondo/Hebel must wrap the lower renderer");
@@ -58,7 +58,7 @@ test("the deployed page requests the current catalogue assets", () => {
   assert.doesNotMatch(index, /lower-products-refinement\.js\?v=20260801-2/);
   assert.match(index, /experience-refinement\.css\?v=20260801-1/);
   assert.doesNotMatch(index, /experience-refinement\.css\?v=20260724-2/);
-  assert.match(index, /rondo-hebel-catalogue\.js\?v=20260801-5/);
+  assert.match(index, /rondo-hebel-catalogue\.js\?v=20260805-1/);
   assert.match(index, /draft-restore-fix\.js\?v=20260805-1/);
 });
 
