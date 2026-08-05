@@ -1,0 +1,4 @@
+/* Suspended-grid accessories use one full-width label and one quantity cell per row. */
+.suspended-grid-table .rondo-accessory-row th {
+  white-space: normal;
+}
