@@ -37,14 +37,16 @@ export async function onRequestPost(context) {
     }
     payload.customerAccountId = accountId;
 
-    const reference = String(payload.reference || payload.customerReference || "").trim();
+    const reference = cleanOrderReference(payload.reference || payload.customerReference);
     const submissionId = String(payload.submissionId || "").trim();
-    if (!/^\d+(?:-\d+)*$/.test(reference)) {
+    if (!reference) {
       return Response.json(
-        { ok: false, error: "Reference must use numbers with optional single dashes, for example 8888-1.", requestId },
+        { ok: false, error: "Enter the customer order reference.", requestId },
         { status: 400, headers: { "Cache-Control": "no-store", "X-Request-ID": requestId } },
       );
     }
+    payload.reference = reference;
+    payload.customerReference = reference;
 
     await removeFailedSubmission(context.env, { accountId, reference, submissionId });
 
@@ -111,7 +113,7 @@ export async function onRequestPost(context) {
   } catch (error) {
     await removeFailedSubmission(context.env, {
       accountId: Number(actor?.account_id || payload?.customerAccountId || context.data?.auth?.accountId || 0),
-      reference: String(payload?.reference || payload?.customerReference || "").trim(),
+      reference: cleanOrderReference(payload?.reference || payload?.customerReference),
       submissionId: String(payload?.submissionId || "").trim(),
     }).catch(() => null);
 
@@ -120,6 +122,16 @@ export async function onRequestPost(context) {
     const status = Number(error?.status || inferredStatus);
     return Response.json({ ok: false, error: message, diagnostic: error?.diagnostic || null, requestId }, { status, headers: { "X-Request-ID": requestId } });
   }
+}
+
+function cleanOrderReference(value) {
+  return String(value ?? "")
+    .normalize("NFKC")
+    .replace(/[\u200b-\u200d\u2060\ufeff]/g, "")
+    .replace(/[\u0000-\u001f\u007f-\u009f]/g, " ")
+    .replace(/\s+/gu, " ")
+    .trim()
+    .slice(0, 80);
 }
 
 function orderEmailEnvironment(env, actorRole) {
