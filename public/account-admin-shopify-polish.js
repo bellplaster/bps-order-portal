@@ -7,16 +7,24 @@
     ["defaultDeliveryType", "Select delivery type"],
   ]);
 
+  function ensureTimeSlotOptions(select) {
+    if (select.id !== "defaultTimeSlot") return;
+    if (![...select.options].some((option) => option.value === "ANY")) {
+      select.append(new Option("Any", "ANY"));
+    }
+  }
+
   function syncSelect(select) {
     if (!(select instanceof HTMLSelectElement)) return;
     const prompt = selectPrompts.get(select.id);
     if (!prompt) return;
 
+    ensureTimeSlotOptions(select);
     const emptyOption = [...select.options].find((option) => option.value === "");
     if (emptyOption) {
       emptyOption.textContent = emptyOption.dataset.originalText || prompt;
       emptyOption.dataset.originalText = prompt;
-      emptyOption.disabled = true;
+      emptyOption.disabled = false;
     }
 
     const field = select.closest(".account-shopify-field");
