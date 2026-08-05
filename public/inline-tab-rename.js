@@ -1,4 +1,5 @@
 (() => {
+  if (globalThis.BPS_ORDER_READONLY) return;
   if (window.__bpsInlineTabRenameStarted) return;
   window.__bpsInlineTabRenameStarted = true;
 
