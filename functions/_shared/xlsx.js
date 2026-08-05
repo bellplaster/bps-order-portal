@@ -93,14 +93,12 @@ function buildSheetRows(data, productRows, format) {
     ]));
     productRows.forEach((product, index) => {
       const row = 12 + index;
-      const sourceArea = String(product[0] || "").trim();
-      const sourceStockCode = String(product[1] || "").trim();
-      const isNotesRow = sourceArea.toUpperCase() === "NOTES" || sourceStockCode.toUpperCase() === "NOTES";
-      const areaValue = isNotesRow ? "NOTES" : product[0];
-      const stockCodeValue = isNotesRow ? "" : product[1];
+      const areaValue = product[0];
+      const stockCodeValue = product[1];
+      const isNotesRow = String(stockCodeValue || "").trim().toUpperCase() === "NOTES";
       const hasTabLabel = String(areaValue || "").trim() !== "";
       rows.push(rowXml(row, 4, [
-        textCell(`A${row}`, hasTabLabel ? 9 : 0, areaValue),
+        textCell(`A${row}`, hasTabLabel ? 9 : isNotesRow ? 7 : 0, areaValue),
         textCell(`B${row}`, isNotesRow ? 7 : 0, stockCodeValue),
         textCell(`C${row}`, isNotesRow ? 7 : 0, product[2]),
         numberCell(`D${row}`, isNotesRow ? 8 : 4, product[3]),
