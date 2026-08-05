@@ -52,7 +52,7 @@ function validateForm() {
 function buildPayload() {
   parseAndStoreManualAddress();
   return {
-    submissionId: state.editingOrder?.submissionId || crypto.randomUUID(),
+    submissionId: crypto.randomUUID(),
     orderDate: value("orderDateIso"),
     reference: value("reference"),
     customer: state.account?.companyName || "",
@@ -207,19 +207,16 @@ async function submitOrder(event) {
   try {
     validateForm();
     button.disabled = true;
-    button.textContent = state.editingOrder ? "Updating order…" : "Submitting order…";
+    button.textContent = "Submitting order…";
     const payload = buildPayload();
-    const url = state.editingOrder ? `/api/orders/${encodeURIComponent(state.editingOrder.submissionId)}` : "/api/submit";
-    const method = state.editingOrder ? "PUT" : "POST";
-    const result = await fetchJson(url, { method, body: JSON.stringify(payload) });
+    const result = await fetchJson("/api/submit", { method: "POST", body: JSON.stringify(payload) });
     showSuccess(result);
     clearDraft();
-    await loadOrderHistory();
   } catch (error) {
     showFormMessage(error.message || String(error), "error");
   } finally {
     button.disabled = false;
-    button.textContent = state.editingOrder ? "Update order" : "Submit order";
+    button.textContent = "Submit order";
   }
 }
 
@@ -230,7 +227,7 @@ function showSuccess(result) {
   });
   const screen = document.getElementById("successScreen");
   screen.hidden = false;
-  document.getElementById("successTitle").textContent = result.updated ? "Order updated" : "Order created";
+  document.getElementById("successTitle").textContent = "Order created";
   document.getElementById("successSummary").textContent = "Your order has been saved. Accrivia files are ready.";
   document.getElementById("orderNumberDisplay").textContent = result.customerReference || result.submissionId;
 
@@ -244,117 +241,6 @@ function showSuccess(result) {
     files.append(row);
   });
   window.scrollTo({ top: 0, behavior: "smooth" });
-}
-
-async function loadOrderHistory() {
-  const list = document.getElementById("historyList");
-  list.innerHTML = '<p class="empty-state">Loading orders…</p>';
-  try {
-    const result = await fetchJson("/api/orders");
-    const showArchived = document.getElementById("showArchivedOrders").checked;
-    const orders = (result.orders || []).filter((order) => showArchived || order.status !== "archived");
-    list.replaceChildren();
-    if (!orders.length) {
-      list.innerHTML = '<p class="empty-state">No orders found.</p>';
-      return;
-    }
-    orders.forEach((order) => list.append(renderHistoryOrder(order)));
-  } catch (error) {
-    list.innerHTML = `<p class="empty-state">${escapeHtml(error.message || String(error))}</p>`;
-  }
-}
-
-function renderHistoryOrder(order) {
-  const card = document.createElement("article");
-  card.className = "history-card";
-  const details = order.order_details || {};
-
-  const top = document.createElement("div");
-  top.className = "history-card-top";
-  top.innerHTML = `<div><span>${escapeHtml(order.company_name || details.customer || "Customer")}</span><h3>${escapeHtml(order.customer_reference)}</h3></div><em class="status-${escapeHtml(order.status)}">${escapeHtml(order.status)}</em>`;
-
-  const meta = document.createElement("dl");
-  meta.innerHTML = `
-    <div><dt>Required</dt><dd>${escapeHtml([formatDate(details.required_date), timeSlotLabel(details.time_slot)].filter(Boolean).join(" · ") || "—")}</dd></div>
-    <div><dt>Delivery</dt><dd>${escapeHtml(deliveryTypeLabel(details.delivery_type))}</dd></div>
-    <div><dt>Address</dt><dd>${escapeHtml(formatAddressForDisplay(details.delivery_address) || "—")}</dd></div>
-  `;
-
-  const files = document.createElement("div");
-  files.className = "history-files";
-  const latestByFloor = new Map();
-  (order.files || []).forEach((file) => {
-    if (!latestByFloor.has(file.floor)) latestByFloor.set(file.floor, file);
-  });
-  latestByFloor.forEach((file) => {
-    const link = document.createElement("a");
-    link.href = file.download_url;
-    link.textContent = `Download ${file.floor_label} XLSX`;
-    files.append(link);
-  });
-
-  const actions = document.createElement("div");
-  actions.className = "history-actions";
-  if (order.can_edit) actions.append(actionButton("Edit", () => editOrder(order.submission_id)));
-  if (order.can_archive) actions.append(actionButton("Archive", () => updateOrderStatus(order.submission_id, "archive")));
-  if (order.can_restore) actions.append(actionButton("Restore", () => updateOrderStatus(order.submission_id, "restore")));
-  actions.append(actionButton("Delete", () => deleteOrder(order.submission_id, order.customer_reference), "danger"));
-
-  card.append(top, meta, files, actions);
-  return card;
-}
-
-function actionButton(label, handler, className = "") {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = `text-button ${className}`.trim();
-  button.textContent = label;
-  button.addEventListener("click", handler);
-  return button;
-}
-
-async function editOrder(submissionId) {
-  try {
-    const result = await fetchJson(`/api/orders/${encodeURIComponent(submissionId)}`);
-    const payload = result.payload || {};
-    state.editingOrder = {
-      submissionId,
-      orderNumber: result.order?.orderNumber,
-      latestRevision: result.order?.latestRevision || 1,
-    };
-    applyPayload(payload);
-    document.getElementById("editModeBanner").hidden = false;
-    document.getElementById("editOrderNumber").textContent = result.order?.orderNumber || "";
-    document.getElementById("editRevisionText").textContent = `Revision ${Number(result.order?.latestRevision || 1) + 1}`;
-    document.getElementById("submitButton").textContent = "Update order";
-    closeHistory();
-    setStep("form");
-  } catch (error) {
-    showGlobal(error.message || String(error), "error");
-  }
-}
-
-async function updateOrderStatus(submissionId, action) {
-  try {
-    await fetchJson(`/api/orders/${encodeURIComponent(submissionId)}`, {
-      method: "PATCH",
-      body: JSON.stringify({ action }),
-    });
-    await loadOrderHistory();
-  } catch (error) {
-    showGlobal(error.message || String(error), "error");
-  }
-}
-
-async function deleteOrder(submissionId, reference) {
-  const confirmation = window.prompt(`Type ${reference} to permanently delete this order.`);
-  if (confirmation !== reference) return;
-  try {
-    await fetchJson(`/api/orders/${encodeURIComponent(submissionId)}`, { method: "DELETE" });
-    await loadOrderHistory();
-  } catch (error) {
-    showGlobal(error.message || String(error), "error");
-  }
 }
 
 function applyPayload(payload) {
