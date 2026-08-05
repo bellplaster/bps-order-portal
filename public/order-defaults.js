@@ -1,4 +1,6 @@
 (() => {
+  if (globalThis.BPS_ORDER_READONLY) return;
+
   let initialised = false;
   let applying = false;
   let originalResetOrder = null;
