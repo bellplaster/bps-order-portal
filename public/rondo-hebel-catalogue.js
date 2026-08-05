@@ -14,8 +14,8 @@
       ],
       accessories: [
         ["TCR Clip", "2534"],
-        ["Locking Clip", "139"],
         ["Flat Rod Bracket", "274"],
+        ["Locking Clip", "139"],
         ["Angle Rod Bracket", "247"],
       ],
     },
@@ -177,26 +177,6 @@
   }
 
   function appendAccessoryRows(tbody, floor, accessories, totalColumns, scope) {
-    if (totalColumns === 4) {
-      for (let index = 0; index < accessories.length; index += 2) {
-        const row = document.createElement("tr");
-        row.className = "rondo-accessory-row rondo-accessory-pair";
-        [accessories[index], accessories[index + 1]].forEach((entry, pairIndex) => {
-          const accessoryIndex = index + pairIndex;
-          if (entry) {
-            const name = document.createElement("th");
-            name.scope = "row";
-            name.textContent = entry[0];
-            row.append(name, createQuantityCell(floor, keyFor(entry[1], accessoryLineIdentity(scope, accessoryIndex))));
-          } else {
-            row.append(document.createElement("td"), document.createElement("td"));
-          }
-        });
-        tbody.append(row);
-      }
-      return;
-    }
-
     accessories.forEach(([label, sku], index) => {
       const row = document.createElement("tr");
       row.className = "rondo-accessory-row";
