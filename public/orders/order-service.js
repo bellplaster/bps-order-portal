@@ -2,6 +2,10 @@ export async function fetchOrders() {
   return fetchJson("/api/orders");
 }
 
+export async function fetchOrder(submissionId) {
+  return fetchJson(`/api/orders/${encodeURIComponent(submissionId)}`);
+}
+
 export async function setOrderStatus(submissionId, action) {
   return fetchJson(`/api/orders/${encodeURIComponent(submissionId)}`, {
     method: "PATCH",
