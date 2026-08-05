@@ -92,6 +92,17 @@
       || /^\d{8}$/.test(digits);
   }
 
+  function suggestCapitalisation(value, mode) {
+    const text = String(value || "");
+    if (mode === "sentence") {
+      return text.replace(/^(\s*)(\p{Ll})/u, (_match, space, letter) => `${space}${letter.toLocaleUpperCase("en-AU")}`);
+    }
+    if (mode === "words") {
+      return text.replace(/(^|[\s-])(\p{Ll})/gu, (_match, boundary, letter) => `${boundary}${letter.toLocaleUpperCase("en-AU")}`);
+    }
+    return text;
+  }
+
   function stateFor(field) {
     let state = typingState.get(field);
     if (!state) {
@@ -105,12 +116,7 @@
     const state = stateFor(field);
     if (state.disabled || !mode) return;
     const value = String(field.value || "");
-    let next = value;
-    if (mode === "sentence") {
-      next = value.replace(/^(\s*)(\p{Ll})/u, (_match, space, letter) => `${space}${letter.toLocaleUpperCase("en-AU")}`);
-    } else if (mode === "words") {
-      next = value.replace(/(^|[\s-])(\p{Ll})/gu, (_match, boundary, letter) => `${boundary}${letter.toLocaleUpperCase("en-AU")}`);
-    }
+    const next = suggestCapitalisation(value, mode);
     if (next !== value) {
       const cursor = field.selectionStart;
       field.value = next;
@@ -215,6 +221,13 @@
     if (typeof window.validateForm === "function") window.validateForm.__referenceFormat = true;
     if (typeof window.setValue === "function") window.setValue.__referenceFormat = true;
   }
+
+  window.BPSOrderFieldRules = {
+    formatAustralianPhone,
+    normaliseAustralianPhone,
+    isValidAustralianPhone,
+    suggestCapitalisation,
+  };
 
   if (typeof validateForm === "function") validateForm.__referenceFormat = true;
   if (typeof setValue === "function") setValue.__referenceFormat = true;
