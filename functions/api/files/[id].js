@@ -1,6 +1,6 @@
 import { prepareOrderFileForDownload } from "../../_shared/order-email-attachments.js";
 import { canViewOrder, getOrderScope } from "../../_shared/order-permissions.js";
-import { effectiveUserRole, isAdministratorRole } from "../../_shared/user-roles.js";
+import { effectiveUserRole, isAdministratorRole, isInternalRole } from "../../_shared/user-roles.js";
 
 export async function onRequestGet(context) {
   const fileId = Number(context.params.id);
@@ -40,7 +40,7 @@ export async function onRequestGet(context) {
     ...viewer,
     role: effectiveUserRole(viewer?.role, viewer?.access_role),
   };
-  if (!file || !canViewOrder(effectiveViewer, file)) {
+  if (!file || !canViewOrder(effectiveViewer, file) || !isInternalRole(effectiveViewer.role)) {
     return Response.json({ ok: false, error: "File record not found." }, { status: 404 });
   }
 

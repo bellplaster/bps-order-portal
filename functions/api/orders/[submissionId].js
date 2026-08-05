@@ -10,7 +10,7 @@ import {
   resolveOrderViewSnapshot,
   snapshotToOrderPayload,
 } from "../../_shared/order-view-model.js";
-import { isAdministratorRole } from "../../_shared/user-roles.js";
+import { isAdministratorRole, isInternalRole } from "../../_shared/user-roles.js";
 
 export async function onRequestGet(context) {
   const requestId = crypto.randomUUID();
@@ -243,6 +243,8 @@ async function loadStoredSnapshot(db, submissionId) {
 }
 
 async function loadPresentedFiles(db, submissionId, viewer) {
+  if (!isInternalRole(viewer.role)) return [];
+
   const result = await db.prepare(
     `SELECT id, floor, floor_label, filename, r2_key, item_count, created_at
      FROM order_files
