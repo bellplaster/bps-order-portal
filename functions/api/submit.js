@@ -159,6 +159,15 @@ async function ensureOrderTrackingSchema(db) {
     if (!names.has(name)) await db.prepare(`ALTER TABLE orders ADD COLUMN ${name} ${definition}`).run();
   }
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_orders_account_creator_created ON orders(account_id, created_by_user_id, created_at DESC)`).run();
+  await db.prepare(
+    `CREATE TABLE IF NOT EXISTS order_view_snapshots (
+       submission_id TEXT PRIMARY KEY,
+       schema_version INTEGER NOT NULL,
+       snapshot_json TEXT NOT NULL,
+       created_at TEXT NOT NULL,
+       FOREIGN KEY (submission_id) REFERENCES orders(submission_id) ON DELETE CASCADE
+     )`,
+  ).run();
 }
 
 async function stampOrderCreator(db, submissionId, actor) {
@@ -181,18 +190,16 @@ async function persistOrderViewSnapshot(db, submissionId) {
   ).bind(submissionId).first();
   if (!order) return;
 
-  const storedPayload = parseOrderPayload(order.payload_json);
-  if (Number(storedPayload?.viewSnapshot?.schemaVersion) === 1) return;
-  storedPayload.viewSnapshot = createOrderViewSnapshot({
-    payload: storedPayload,
+  const snapshot = createOrderViewSnapshot({
+    payload: parseOrderPayload(order.payload_json),
     capturedAt: order.created_at,
   });
 
   await db.prepare(
-    `UPDATE orders
-     SET payload_json = ?
-     WHERE submission_id = ?`,
-  ).bind(JSON.stringify(storedPayload), submissionId).run();
+    `INSERT OR REPLACE INTO order_view_snapshots (
+       submission_id, schema_version, snapshot_json, created_at
+     ) VALUES (?, ?, ?, ?)`,
+  ).bind(submissionId, snapshot.schemaVersion, JSON.stringify(snapshot), order.created_at).run();
 }
 
 async function removeFailedSubmission(env, { accountId, reference, submissionId }) {
@@ -210,6 +217,7 @@ async function removeFailedSubmission(env, { accountId, reference, submissionId 
 
   for (const id of ids) {
     if (!id) continue;
+    await env.DB.prepare(`DELETE FROM order_view_snapshots WHERE submission_id = ?`).bind(id).run().catch(() => null);
     await env.DB.prepare(`DELETE FROM order_files WHERE submission_id = ?`).bind(id).run().catch(() => null);
     await env.DB.prepare(`DELETE FROM order_events WHERE submission_id = ?`).bind(id).run().catch(() => null);
     await env.DB.prepare(`DELETE FROM orders WHERE submission_id = ? AND status = 'failed'`).bind(id).run().catch(() => null);
