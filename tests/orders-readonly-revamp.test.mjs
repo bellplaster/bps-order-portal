@@ -126,12 +126,16 @@ test("dedicated order details expose summary, products, files and read-only grid
 });
 
 test("read-only grid reuses the production renderer and blocks mutations", async () => {
-  const [script, styles, sourceTruth, bridge, index] = await Promise.all([
+  const [script, styles, sourceTruth, bridge, index, loader, defaults, adminDefaults, rename] = await Promise.all([
     read("public/order-readonly-mode.js"),
     read("public/order-readonly-mode.css"),
     read("public/source-truth-payload.js"),
     read("public/portal-state-bridge.js"),
     read("public/index.html"),
+    read("public/draft-restore-fix.js"),
+    read("public/order-defaults.js"),
+    read("public/admin-defaults.js"),
+    read("public/inline-tab-rename.js"),
   ]);
 
   assert.match(script, /const originalLoadCatalog = loadCatalog/);
@@ -143,6 +147,10 @@ test("read-only grid reuses the production renderer and blocks mutations", async
   assert.match(sourceTruth, /if \(globalThis\.BPS_ORDER_READONLY\) return originalApplyPayload\(next\)/);
   assert.match(bridge, /has\("viewOrder"\)\) return/);
   assert.match(index, /order-readonly-mode\.js\?v=20260805-1/);
+  assert.match(loader, /globalThis\.BPS_ORDER_READONLY = Object\.freeze/);
+  assert.match(defaults, /if \(globalThis\.BPS_ORDER_READONLY\) return/);
+  assert.match(adminDefaults, /order-form-page"\) && globalThis\.BPS_ORDER_READONLY/);
+  assert.match(rename, /if \(globalThis\.BPS_ORDER_READONLY\) return/);
 });
 
 test("the duplicate history drawer and editable submitted-order path are retired", async () => {
