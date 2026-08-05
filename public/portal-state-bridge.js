@@ -131,13 +131,6 @@
     }
   }
 
-  // Saved addresses remain available from the Account page, but the order-form
-  // picker is intentionally unpublished until the workflow is approved.
-  document.getElementById("savedAddressPickerButton")?.remove();
-  document.getElementById("savedAddressPickerMenu")?.remove();
-  document.querySelector(".address-control")?.classList.remove("has-saved-address-picker");
-  document.querySelectorAll('[data-saved-address-picker="true"]').forEach((element) => element.remove());
-
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", loadOrderDefaults, { once: true });
   } else {
