@@ -5,6 +5,7 @@ import {
   getOrderScope,
   orderActionPermissions,
 } from "../_shared/order-permissions.js";
+import { parseOrderPayload, summariseOrderPayload } from "../_shared/order-view-model.js";
 import { isAdministratorRole } from "../_shared/user-roles.js";
 
 export async function onRequestGet(context) {
@@ -63,13 +64,8 @@ export async function onRequestGet(context) {
         isAdmin: isAdministratorRole(viewer.role),
       });
 
-      let payload = {};
-      try {
-        payload = JSON.parse(order.payload_json || "{}");
-      } catch (_error) {
-        payload = {};
-      }
-
+      const payload = parseOrderPayload(order.payload_json);
+      const metrics = summariseOrderPayload(payload);
       const areaLabel = (floor, details) => details?.label
         || (floor === "first" ? "1st Floor" : floor === "ground" ? "Ground Floor" : floor);
       const otherProducts = Object.entries(payload?.floors || {}).map(([floor, details]) => ({
@@ -117,6 +113,9 @@ export async function onRequestGet(context) {
         can_archive: permissions.canArchive,
         can_restore: permissions.canRestore,
         can_delete: permissions.canDelete,
+        area_count: metrics.areaCount,
+        item_count: metrics.lineCount,
+        unit_count: metrics.unitCount,
         other_products: otherProducts,
         other_materials: otherMaterials,
         order_details: {
