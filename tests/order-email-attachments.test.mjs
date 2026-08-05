@@ -7,97 +7,88 @@ import {
   prepareOrderFilesForViewer,
 } from "../functions/_shared/order-email-attachments.js";
 
-const generatedFiles = [
+const historicalFiles = [
   {
+    floor: "combined-old",
     filename: "BPS-11686-OLD.xlsx",
     r2Key: "orders/BPS-11686-OLD.xlsx",
   },
   {
+    floor: "combined-new",
     filename: "BPS-11686-NEW.xlsx",
     r2Key: "orders/BPS-11686-NEW.xlsx",
   },
 ];
 
-test("customer service email receives only the legacy file without OLD in the filename", () => {
-  const files = prepareOrderEmailFiles(generatedFiles);
+const currentFiles = [
+  {
+    floor: "combined-new",
+    filename: "BPS-11686.xlsx",
+    r2Key: "orders/BPS-11686.xlsx",
+  },
+];
 
-  assert.deepEqual(files, [
+test("customer service email receives only the site-area workbook", () => {
+  assert.deepEqual(prepareOrderEmailFiles(historicalFiles), [
     {
+      floor: "combined-new",
       filename: "BPS-11686.xlsx",
       floorLabel: "Accrivia order file",
       floor_label: "Accrivia order file",
-      r2Key: "orders/BPS-11686-OLD.xlsx",
-    },
-  ]);
-});
-
-test("admin email receives both formats renamed V1 and V2", () => {
-  const files = prepareOrderEmailFiles(generatedFiles, { isAdmin: true });
-
-  assert.deepEqual(files, [
-    {
-      filename: "BPS-11686-V1.xlsx",
-      floorLabel: "Accrivia format · V1",
-      floor_label: "Accrivia format · V1",
-      r2Key: "orders/BPS-11686-OLD.xlsx",
-    },
-    {
-      filename: "BPS-11686-V2.xlsx",
-      floorLabel: "Site area format · V2",
-      floor_label: "Site area format · V2",
       r2Key: "orders/BPS-11686-NEW.xlsx",
     },
   ]);
 });
 
-test("customer confirmation and history receive only the production file", () => {
-  const files = prepareOrderFilesForViewer([
-    { floor: "combined-old", filename: "BELL-PLASTER-6-OLD.xlsx", id: 1 },
-    { floor: "combined-new", filename: "BELL-PLASTER-6-NEW.xlsx", id: 2 },
-  ]);
+test("admin email follows the same single-workbook policy", () => {
+  assert.deepEqual(
+    prepareOrderEmailFiles(historicalFiles, { isAdmin: true }),
+    prepareOrderEmailFiles(historicalFiles),
+  );
+});
 
-  assert.deepEqual(files, [
+test("current generated workbook keeps its production filename", () => {
+  assert.deepEqual(prepareOrderFilesForViewer(currentFiles), [
     {
-      floor: "combined-old",
-      filename: "BELL-PLASTER-6.xlsx",
+      floor: "combined-new",
+      filename: "BPS-11686.xlsx",
       floorLabel: "Accrivia order file",
       floor_label: "Accrivia order file",
-      id: 1,
+      r2Key: "orders/BPS-11686.xlsx",
     },
   ]);
 });
 
-test("admin downloads use V1 and V2 content-disposition names", () => {
+test("direct downloads reject old-format files for every viewer", () => {
   assert.equal(
-    prepareOrderFileForDownload({ floor: "combined-old", filename: "BELL-PLASTER-6-OLD.xlsx" }, { isAdmin: true })?.filename,
-    "BELL-PLASTER-6-V1.xlsx",
+    prepareOrderFileForDownload({ floor: "combined-old", filename: "BELL-PLASTER-6-OLD.xlsx" }),
+    null,
   );
   assert.equal(
-    prepareOrderFileForDownload({ floor: "combined-new", filename: "BELL-PLASTER-6-NEW.xlsx" }, { isAdmin: true })?.filename,
-    "BELL-PLASTER-6-V2.xlsx",
-  );
-});
-
-test("admin viewer labels identify V1 and V2 without OLD or NEW wording", () => {
-  const files = prepareOrderFilesForViewer(generatedFiles, { isAdmin: true });
-
-  assert.deepEqual(files.map((file) => file.floorLabel), [
-    "Accrivia format · V1",
-    "Site area format · V2",
-  ]);
-});
-
-test("non-admin direct download policy rejects the hidden V2 file", () => {
-  assert.equal(
-    prepareOrderFileForDownload({ floor: "combined-new", filename: "BELL-PLASTER-6-NEW.xlsx" }),
+    prepareOrderFileForDownload(
+      { floor: "combined-old", filename: "BELL-PLASTER-6-OLD.xlsx" },
+      { isAdmin: true },
+    ),
     null,
   );
 });
 
+test("direct downloads expose the site-area workbook without NEW or V2 naming", () => {
+  assert.equal(
+    prepareOrderFileForDownload({ floor: "combined-new", filename: "BELL-PLASTER-6-NEW.xlsx" })?.filename,
+    "BELL-PLASTER-6.xlsx",
+  );
+  assert.equal(
+    prepareOrderFileForDownload(
+      { floor: "combined-new", filename: "BELL-PLASTER-6-NEW.xlsx" },
+      { isAdmin: true },
+    )?.filename,
+    "BELL-PLASTER-6.xlsx",
+  );
+});
+
 test("attachment policy does not mutate stored file metadata", () => {
-  const original = structuredClone(generatedFiles);
-
-  prepareOrderEmailFiles(generatedFiles, { isAdmin: true });
-
-  assert.deepEqual(generatedFiles, original);
+  const original = structuredClone(historicalFiles);
+  prepareOrderEmailFiles(historicalFiles, { isAdmin: true });
+  assert.deepEqual(historicalFiles, original);
 });
