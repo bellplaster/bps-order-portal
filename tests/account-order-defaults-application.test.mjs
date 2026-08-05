@@ -28,6 +28,10 @@ test("order defaults explicitly clear and apply the matching order-form controls
   assert.match(bridge, /clearChoiceGroup\("deliveryExtra"\)/);
   assert.match(bridge, /window\.initialiseOrderDetailFields\?\.\(\)/);
   assert.match(bridge, /window\.formatOrderDetailFields\?\.\(\)/);
+  assert.match(bridge, /syncVisibleSelect\("\.delivery-select-timeSlot \.delivery-select", timeSlot/);
+  assert.match(bridge, /timeSlot === "ANY" \? "Any" : timeSlot/);
+  assert.match(bridge, /select\.append\(new Option\(label \|\| normalised, normalised\)\)/);
+  assert.match(bridge, /select\.value = normalised/);
   assert.match(bridge, /\["Crane Delivery", "Mechanical \(Forklift\/Crane\/Own\)"\]/);
   assert.match(bridge, /payload\.profile\?\.orderDefaults/);
 });
