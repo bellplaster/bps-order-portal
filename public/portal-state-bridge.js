@@ -7,6 +7,10 @@
 
   if (!document.body.classList.contains("order-form-page")) return;
 
+  // A submitted order viewer owns every displayed value. Applying the signed-in
+  // user's current defaults here would overwrite the historical snapshot.
+  if (new URLSearchParams(window.location.search).has("viewOrder")) return;
+
   const LEGACY_DELIVERY_TYPE_MAP = new Map([
     ["Hand Unload", "Manual Unload (Knauf Labour)"],
     ["Forklift Delivery", "Mechanical (Forklift/Crane/Own)"],
