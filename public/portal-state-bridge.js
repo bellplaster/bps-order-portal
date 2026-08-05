@@ -21,7 +21,13 @@
     }
   }
 
-  function selectRadio(name, value) {
+  function clearChoiceGroup(name) {
+    document.querySelectorAll(`input[name="${name}"]`).forEach((input) => {
+      if (input instanceof HTMLInputElement) input.checked = false;
+    });
+  }
+
+  function selectChoice(name, value) {
     const selected = document.querySelector(`input[name="${name}"][value="${CSS.escape(String(value || ""))}"]`);
     if (selected instanceof HTMLInputElement) selected.checked = true;
   }
@@ -31,6 +37,11 @@
       defaults.street,
       [defaults.suburb, defaults.state || "VIC", defaults.postcode].filter(Boolean).join(" "),
     ].filter(Boolean).join(", ");
+  }
+
+  function syncVisibleOrderDetailFields() {
+    window.initialiseOrderDetailFields?.();
+    window.formatOrderDetailFields?.();
   }
 
   function applyOrderDefaults(defaults) {
@@ -46,16 +57,22 @@
     setValue("deliveryAddressLine1", defaults.street);
     setValue("deliveryAddressLine2", [defaults.suburb, defaults.state || "VIC", defaults.postcode].filter(Boolean).join(" "));
 
+    clearChoiceGroup("timeSlot");
     const timeSlot = String(defaults.timeSlot || "").trim().toUpperCase();
-    if (timeSlot) selectRadio("timeSlot", timeSlot);
+    if (timeSlot) selectChoice("timeSlot", timeSlot);
 
+    clearChoiceGroup("deliveryType");
     const storedDeliveryType = String(defaults.deliveryType || "").trim();
     const deliveryType = LEGACY_DELIVERY_TYPE_MAP.get(storedDeliveryType) || storedDeliveryType;
-    if (deliveryType) selectRadio("deliveryType", deliveryType);
+    if (deliveryType) selectChoice("deliveryType", deliveryType);
 
+    clearChoiceGroup("deliveryExtra");
     if (Array.isArray(defaults.extras)) {
-      defaults.extras.forEach((extra) => selectRadio("deliveryExtra", extra));
+      defaults.extras.forEach((extra) => selectChoice("deliveryExtra", extra));
     }
+
+    if (globalThis.state?.account) globalThis.state.account.orderDefaults = { ...defaults };
+    syncVisibleOrderDetailFields();
 
     if (typeof updateFutureDateConfirmation === "function") updateFutureDateConfirmation();
     if (typeof updatePickupMode === "function") updatePickupMode();
