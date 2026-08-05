@@ -19,7 +19,7 @@ function workbookText(workbook) {
   return new TextDecoder().decode(workbook.bytes);
 }
 
-test("production export writes tab names in column A and styles the NOTES row green", () => {
+test("production export writes tab names in column A and NOTES in the stock code column", () => {
   const workbook = createAccriviaSiteAreaXlsx({
     ...common,
     productRows: [
@@ -30,8 +30,8 @@ test("production export writes tab names in column A and styles the NOTES row gr
   const xml = workbookText(workbook);
 
   assert.match(xml, /<c r="A12" s="9" t="inlineStr"><is><t xml:space="preserve">TAB 1<\/t><\/is><\/c>/);
-  assert.match(xml, /<c r="A13" s="9" t="inlineStr"><is><t xml:space="preserve">NOTES<\/t><\/is><\/c>/);
-  assert.match(xml, /<c r="B13" s="7"\/>/);
+  assert.match(xml, /<c r="A13" s="7"\/>/);
+  assert.match(xml, /<c r="B13" s="7" t="inlineStr"><is><t xml:space="preserve">NOTES<\/t><\/is><\/c>/);
   assert.match(xml, /<c r="C13" s="7" t="inlineStr">/);
   assert.match(xml, /<c r="D13" s="8"><v>1<\/v><\/c>/);
 });
