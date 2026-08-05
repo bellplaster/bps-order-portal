@@ -11,12 +11,29 @@
   // user's current defaults here would overwrite the historical snapshot.
   if (new URLSearchParams(window.location.search).has("viewOrder")) return;
 
-  const LEGACY_DELIVERY_TYPE_MAP = new Map([
-    ["Hand Unload", "Manual Unload (Knauf Labour)"],
-    ["Forklift Delivery", "Mechanical (Forklift/Crane/Own)"],
-    ["Crane Delivery", "Mechanical (Forklift/Crane/Own)"],
-    ["Delivery (No Assistance)", "Mechanical (Forklift/Crane/Own)"],
+  const CANONICAL_DELIVERY_TYPES = new Set([
+    "Hand Unload",
+    "Forklift Delivery",
+    "Crane Delivery",
+    "Delivery (No Assistance)",
+    "Pickup (Customer to collect)",
   ]);
+
+  // Compatibility is intentionally one-way: obsolete stored defaults are read
+  // into the current model, but current values are never translated back into
+  // the retired delivery-type vocabulary.
+  const LEGACY_DELIVERY_TYPE_MAP = new Map([
+    ["Manual Unload (Knauf Labour)", "Hand Unload"],
+    ["Mechanical (Forklift/Crane/Own)", "Forklift Delivery"],
+    ["Mixed Unload (Hand + Machine)", "Hand Unload"],
+    ["Customer Pickup", "Pickup (Customer to collect)"],
+  ]);
+
+  function canonicalDeliveryType(value) {
+    const stored = String(value || "").trim();
+    const canonical = LEGACY_DELIVERY_TYPE_MAP.get(stored) || stored;
+    return CANONICAL_DELIVERY_TYPES.has(canonical) ? canonical : "";
+  }
 
   function setValue(id, value) {
     const field = document.getElementById(id);
@@ -82,8 +99,7 @@
     if (timeSlot) selectChoice("timeSlot", timeSlot);
 
     clearChoiceGroup("deliveryType");
-    const storedDeliveryType = String(defaults.deliveryType || "").trim();
-    const deliveryType = LEGACY_DELIVERY_TYPE_MAP.get(storedDeliveryType) || storedDeliveryType;
+    const deliveryType = canonicalDeliveryType(defaults.deliveryType);
     if (deliveryType) selectChoice("deliveryType", deliveryType);
 
     clearChoiceGroup("deliveryExtra");
@@ -91,7 +107,12 @@
       defaults.extras.forEach((extra) => selectChoice("deliveryExtra", extra));
     }
 
-    if (globalThis.state?.account) globalThis.state.account.orderDefaults = { ...defaults };
+    if (globalThis.state?.account) {
+      globalThis.state.account.orderDefaults = {
+        ...defaults,
+        deliveryType,
+      };
+    }
     syncVisibleOrderDetailFields(timeSlot, deliveryType);
 
     if (typeof updateFutureDateConfirmation === "function") updateFutureDateConfirmation();
