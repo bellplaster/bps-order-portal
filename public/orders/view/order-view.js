@@ -5,7 +5,7 @@ import {
   signOut,
 } from "../order-service.js";
 
-const state = { result: null };
+const state = { result: null, activeAreaIndex: 0 };
 const elements = {};
 
 document.addEventListener("DOMContentLoaded", initialise);
@@ -43,6 +43,8 @@ function cacheElements() {
     "orderDeliveryDetails",
     "orderProductSummary",
     "orderAreas",
+    "orderLowerGrid",
+    "orderFilesCard",
     "orderFiles",
     "orderTimeline",
     "archiveOrderButton",
@@ -78,11 +80,14 @@ function renderOrder(result) {
   const order = result.order || {};
   const snapshot = result.snapshot || {};
   const details = snapshot.details || {};
+  const viewerRole = String(result.viewer?.role || "").toLowerCase();
+  const internalViewer = viewerRole === "admin" || viewerRole === "customer_service";
+
   document.title = `${order.customerReference || "Order"} | Bell Plaster Order Portal`;
   elements.orderReference.textContent = `Order ${order.customerReference || ""}`.trim();
   elements.orderStatus.className = `order-status status-${safeToken(order.status)}`;
   elements.orderStatus.textContent = statusLabel(order.status);
-  elements.orderSubmittedMeta.textContent = `${order.companyName || "Customer"} · Submitted ${formatDateTime(order.createdAt)} by ${displayUsername(order.createdByUsername || order.createdByName)}`;
+  elements.orderSubmittedMeta.textContent = `Submitted ${formatDateTime(order.createdAt)} by ${displayActorName(order.createdByUsername || order.createdByName)}`;
 
   const gridUrl = `/?viewOrder=${encodeURIComponent(order.submissionId)}&fromOrder=1`;
   elements.viewGridLink.href = gridUrl;
@@ -104,12 +109,17 @@ function renderOrder(result) {
     ["Address", details.deliveryAddress || [details.addressLine1, details.addressLine2].filter(Boolean).join(", ") || "—"],
     ["Extras", (details.extras || []).join(", ") || "None"],
     ["Instructions", details.deliveryInstructions || "—"],
-    ["Placed under", [order.companyName, order.debtorCode].filter(Boolean).join(" · ") || "—"],
+    ["Placed under", [displayCompanyName(order.companyName), String(order.debtorCode || "").toUpperCase()].filter(Boolean).join(" · ") || "—"],
   ]);
 
-  elements.orderProductSummary.textContent = `${Number(snapshot.totals?.lineCount || 0)} product lines across ${Number(snapshot.totals?.areaCount || 0)} delivery area${Number(snapshot.totals?.areaCount || 0) === 1 ? "" : "s"}.`;
+  const areaCount = Number(snapshot.totals?.areaCount || 0);
+  elements.orderProductSummary.textContent = `${Number(snapshot.totals?.lineCount || 0)} product lines across ${areaCount} tab${areaCount === 1 ? "" : "s"}.`;
+  state.activeAreaIndex = 0;
   renderAreas(snapshot.areas || []);
-  renderFiles(result.files || []);
+
+  elements.orderFilesCard.hidden = !internalViewer;
+  elements.orderLowerGrid.classList.toggle("is-single", !internalViewer);
+  if (internalViewer) renderFiles(result.files || []);
   renderTimeline(result.events || []);
 
   elements.archiveOrderButton.hidden = order.canArchive !== true;
@@ -139,44 +149,122 @@ function renderAreas(areas) {
     return;
   }
 
-  areas.forEach((area, areaIndex) => {
-    const details = document.createElement("details");
-    details.className = "order-area";
-    details.open = areaIndex === 0;
+  const tabs = document.createElement("div");
+  tabs.className = "order-area-tabs";
+  tabs.setAttribute("role", "tablist");
+  tabs.setAttribute("aria-label", "Delivery area tabs");
 
-    const summary = document.createElement("summary");
-    const title = document.createElement("div");
-    title.className = "order-area-title";
+  const panels = document.createElement("div");
+  panels.className = "order-area-panels";
+
+  areas.forEach((area, areaIndex) => {
+    const label = areaTabLabel(area, areaIndex);
     const lineCount = (area.items || []).length + (area.otherMaterials || []).length;
     const unitCount = [...(area.items || []), ...(area.otherMaterials || [])]
       .reduce((total, item) => total + Number(item.quantity || 0), 0);
-    title.append(
-      text("strong", area.label || `Area ${areaIndex + 1}`),
-      text("span", `${lineCount} lines · ${unitCount} units`),
-    );
-    summary.append(title);
+    const tabId = `order-area-tab-${areaIndex}`;
+    const panelId = `order-area-panel-${areaIndex}`;
 
-    const body = document.createElement("div");
-    body.className = "order-area-body";
-    const groups = groupAreaLines(area);
-    groups.forEach((lines, sectionName) => body.append(renderProductSection(sectionName, lines)));
-    if (area.otherProducts) body.append(text("p", "order-area-note", area.otherProducts));
-    details.append(summary, body);
-    elements.orderAreas.append(details);
+    const tab = document.createElement("button");
+    tab.type = "button";
+    tab.id = tabId;
+    tab.className = "order-area-tab";
+    tab.setAttribute("role", "tab");
+    tab.setAttribute("aria-controls", panelId);
+    tab.setAttribute("aria-selected", areaIndex === state.activeAreaIndex ? "true" : "false");
+    tab.tabIndex = areaIndex === state.activeAreaIndex ? 0 : -1;
+    tab.append(text("strong", "", label), text("span", "", `${lineCount} lines · ${unitCount} units`));
+    tab.addEventListener("click", () => activateArea(areaIndex));
+    tab.addEventListener("keydown", (event) => navigateAreaTabs(event, areaIndex, areas.length));
+    tabs.append(tab);
+
+    const panel = document.createElement("section");
+    panel.id = panelId;
+    panel.className = "order-area-panel";
+    panel.setAttribute("role", "tabpanel");
+    panel.setAttribute("aria-labelledby", tabId);
+    panel.hidden = areaIndex !== state.activeAreaIndex;
+    panel.append(renderAreaTable(area));
+    if (area.otherProducts) panel.append(text("p", "order-area-note", area.otherProducts));
+    panels.append(panel);
   });
+
+  elements.orderAreas.append(tabs, panels);
+}
+
+function activateArea(index) {
+  state.activeAreaIndex = index;
+  elements.orderAreas.querySelectorAll("[role=tab]").forEach((tab, tabIndex) => {
+    const active = tabIndex === index;
+    tab.setAttribute("aria-selected", active ? "true" : "false");
+    tab.tabIndex = active ? 0 : -1;
+  });
+  elements.orderAreas.querySelectorAll("[role=tabpanel]").forEach((panel, panelIndex) => {
+    panel.hidden = panelIndex !== index;
+  });
+}
+
+function navigateAreaTabs(event, index, count) {
+  if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+  event.preventDefault();
+  let next = index;
+  if (event.key === "ArrowLeft") next = (index - 1 + count) % count;
+  if (event.key === "ArrowRight") next = (index + 1) % count;
+  if (event.key === "Home") next = 0;
+  if (event.key === "End") next = count - 1;
+  activateArea(next);
+  elements.orderAreas.querySelectorAll("[role=tab]")[next]?.focus();
+}
+
+function areaTabLabel(area, index) {
+  const label = String(area?.label || "").trim();
+  if (!label || /^[—–-]+$/.test(label) || /^area\s+\d+$/i.test(label)) return `Tab ${index + 1}`;
+  return label;
+}
+
+function renderAreaTable(area) {
+  const table = document.createElement("table");
+  table.className = "order-lines-table";
+  table.innerHTML = "<thead><tr><th>Product</th><th>SKU</th><th class=\"line-quantity\">Quantity</th></tr></thead>";
+  const body = document.createElement("tbody");
+  const groups = groupAreaLines(area);
+
+  groups.forEach((lines, sectionName) => {
+    const sectionRow = document.createElement("tr");
+    sectionRow.className = "order-line-section-row";
+    const heading = document.createElement("th");
+    heading.colSpan = 3;
+    heading.scope = "colgroup";
+    heading.textContent = sectionName;
+    sectionRow.append(heading);
+    body.append(sectionRow);
+
+    lines.forEach((line) => {
+      const row = document.createElement("tr");
+      const productCell = document.createElement("td");
+      productCell.append(text("strong", "line-product-name", line.label || "Product"));
+      row.append(
+        productCell,
+        text("td", "line-sku", line.sku || "—"),
+        text("td", "line-quantity", String(line.quantity)),
+      );
+      body.append(row);
+    });
+  });
+
+  table.append(body);
+  return table;
 }
 
 function groupAreaLines(area) {
   const groups = new Map();
   (area.items || []).forEach((item) => addGroupLine(groups, item.section || "Products", {
     label: item.label || item.key,
-    description: item.description || "",
     sku: item.sku || "",
     quantity: Number(item.quantity || 0),
   }));
   (area.otherMaterials || []).forEach((item) => addGroupLine(groups, "Additional products", {
     label: item.description || item.sku,
-    description: item.description || "",
     sku: item.sku || "",
     quantity: Number(item.quantity || 0),
   }));
@@ -186,31 +274,6 @@ function groupAreaLines(area) {
 function addGroupLine(groups, section, line) {
   if (!groups.has(section)) groups.set(section, []);
   groups.get(section).push(line);
-}
-
-function renderProductSection(title, lines) {
-  const section = document.createElement("section");
-  section.className = "order-section";
-  section.append(text("h3", "", title));
-
-  const table = document.createElement("table");
-  table.className = "order-lines-table";
-  table.innerHTML = "<thead><tr><th>Product</th><th>SKU</th><th class=\"line-quantity\">Quantity</th></tr></thead>";
-  const body = document.createElement("tbody");
-  lines.forEach((line) => {
-    const row = document.createElement("tr");
-    const productCell = document.createElement("td");
-    const product = document.createElement("div");
-    product.className = "line-product";
-    product.append(text("strong", "", line.label || "Product"));
-    if (line.description && line.description !== line.label) product.append(text("span", "", line.description));
-    productCell.append(product);
-    row.append(productCell, text("td", "", line.sku || "—"), text("td", "line-quantity", String(line.quantity)));
-    body.append(row);
-  });
-  table.append(body);
-  section.append(table);
-  return section;
 }
 
 function renderFiles(files) {
@@ -349,6 +412,17 @@ function deliveryTypeLabel(value) {
     "Pickup (Customer to collect)": "Pickup",
   };
   return labels[value] || value || "Not selected";
+}
+
+function displayCompanyName(value) {
+  return String(value || "").trim().toLocaleUpperCase("en-AU");
+}
+
+function displayActorName(value) {
+  const raw = String(value || "Legacy order").trim();
+  const display = displayUsername(raw);
+  const compact = raw.replace(/[^A-Za-z0-9]/g, "");
+  return compact.length > 0 && compact.length <= 3 ? display.toLocaleUpperCase("en-AU") : display;
 }
 
 function displayUsername(value) {
