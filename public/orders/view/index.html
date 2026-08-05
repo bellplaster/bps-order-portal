@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css?v=20260722-1">
-  <link rel="stylesheet" href="/orders/view/order-view.css?v=20260805-2">
+  <link rel="stylesheet" href="/orders/view/order-view.css?v=20260805-3">
 </head>
 <body class="order-view-page">
   <header class="portal-header">
@@ -40,6 +40,7 @@
           <p id="orderSubmittedMeta"></p>
         </div>
         <div class="order-heading-actions">
+          <button id="printOrderButton" class="button button-secondary" type="button">Print order</button>
           <a id="viewGridLink" class="button button-secondary" href="/">View submitted grid</a>
           <button id="archiveOrderButton" class="button button-secondary" type="button" hidden>Archive</button>
           <button id="restoreOrderButton" class="button button-secondary" type="button" hidden>Restore</button>
@@ -51,36 +52,41 @@
         This order predates submitted-layout snapshots. Quantities are shown in the current order-form layout.
       </section>
 
-      <section class="order-summary-grid" aria-label="Order summary">
-        <article class="order-card order-summary-card">
-          <header><h2>Order summary</h2></header>
-          <dl id="orderSummaryDetails" class="order-detail-list"></dl>
-        </article>
+      <div class="order-detail-layout">
+        <div class="order-main-column">
+          <section class="order-card order-products-card">
+            <header class="order-card-heading">
+              <div>
+                <h2>Products</h2>
+                <p id="orderProductSummary"></p>
+              </div>
+            </header>
+            <div id="orderFulfilmentSummary" class="order-fulfilment-summary"></div>
+            <div id="orderAreas" class="order-areas"></div>
+          </section>
+        </div>
 
-        <article class="order-card order-delivery-card">
-          <header><h2>Delivery details</h2></header>
-          <dl id="orderDeliveryDetails" class="order-detail-list"></dl>
-        </article>
-      </section>
+        <aside class="order-sidebar" aria-label="Order information">
+          <article class="order-card order-delivery-card">
+            <header><h2>Delivery address</h2></header>
+            <div id="orderDeliveryAddress" class="order-address-body"></div>
+          </article>
 
-      <section class="order-card order-products-card">
-        <header class="order-card-heading">
-          <div><h2>Products</h2><p id="orderProductSummary"></p></div>
-          <a id="secondaryGridLink" class="text-link" href="/">Open read-only grid</a>
-        </header>
-        <div id="orderAreas" class="order-areas"></div>
-      </section>
+          <article class="order-card order-information-card">
+            <header><h2>Order details</h2></header>
+            <dl id="orderSummaryDetails" class="order-sidebar-detail-list"></dl>
+            <div id="orderInstructionsBlock" class="order-instructions-block" hidden>
+              <h3>Instructions</h3>
+              <p id="orderInstructions"></p>
+            </div>
+          </article>
 
-      <section id="orderLowerGrid" class="order-lower-grid">
-        <article id="orderFilesCard" class="order-card">
-          <header><h2>Files</h2></header>
-          <div id="orderFiles" class="order-files"></div>
-        </article>
-        <article class="order-card">
-          <header><h2>Activity</h2></header>
-          <ol id="orderTimeline" class="order-timeline"></ol>
-        </article>
-      </section>
+          <article id="orderFilesCard" class="order-card order-files-card" hidden>
+            <header><h2>Files</h2></header>
+            <div id="orderFiles" class="order-files"></div>
+          </article>
+        </aside>
+      </div>
     </div>
   </main>
 
@@ -98,6 +104,6 @@
     </form>
   </dialog>
 
-  <script type="module" src="/orders/view/order-view.js?v=20260805-2"></script>
+  <script type="module" src="/orders/view/order-view.js?v=20260805-3"></script>
 </body>
 </html>
