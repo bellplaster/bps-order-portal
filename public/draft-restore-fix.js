@@ -1,4 +1,9 @@
 (() => {
+  const readOnlySubmissionId = String(new URLSearchParams(window.location.search).get("viewOrder") || "").trim();
+  if (readOnlySubmissionId && !globalThis.BPS_ORDER_READONLY) {
+    globalThis.BPS_ORDER_READONLY = Object.freeze({ submissionId: readOnlySubmissionId });
+  }
+
   if (!document.querySelector('link[data-address-autocomplete-layout="true"]')) {
     const link = document.createElement("link");
     link.rel = "stylesheet";
