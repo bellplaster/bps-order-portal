@@ -20,7 +20,10 @@ export async function onRequestGet(context) {
     if (!order || !canViewOrder(viewer, order)) return jsonError("Order not found.", 404, requestId);
 
     const payload = parseOrderPayload(order.payload_json);
-    const snapshot = resolveOrderViewSnapshot(payload, order);
+    const storedSnapshot = await loadStoredSnapshot(db, submissionId);
+    const snapshot = storedSnapshot
+      ? resolveOrderViewSnapshot({ viewSnapshot: storedSnapshot }, order)
+      : resolveOrderViewSnapshot(payload, order);
     const files = await loadPresentedFiles(db, submissionId, viewer);
     const eventsResult = await db.prepare(
       `SELECT stage, detail, created_at
@@ -148,6 +151,7 @@ export async function onRequestDelete(context) {
     }
 
     await db.batch([
+      db.prepare(`DELETE FROM order_view_snapshots WHERE submission_id = ?`).bind(submissionId),
       db.prepare(`DELETE FROM order_files WHERE submission_id = ?`).bind(submissionId),
       db.prepare(`DELETE FROM order_events WHERE submission_id = ?`).bind(submissionId),
       db.prepare(`DELETE FROM orders WHERE submission_id = ?`).bind(submissionId),
@@ -189,6 +193,7 @@ async function requireViewerContext(context) {
     throw error;
   }
 
+  await ensureOrderViewSnapshotSchema(context.env.DB);
   const viewer = await context.env.DB.prepare(
     `SELECT id, account_id, username,
             COALESCE(NULLIF(access_role, ''), role) AS role,
@@ -227,6 +232,16 @@ function loadOrder(db, submissionId) {
   ).bind(submissionId).first();
 }
 
+async function loadStoredSnapshot(db, submissionId) {
+  const row = await db.prepare(
+    `SELECT snapshot_json
+     FROM order_view_snapshots
+     WHERE submission_id = ?
+     LIMIT 1`,
+  ).bind(submissionId).first();
+  return row?.snapshot_json ? parseOrderPayload(row.snapshot_json) : null;
+}
+
 async function loadPresentedFiles(db, submissionId, viewer) {
   const result = await db.prepare(
     `SELECT id, floor, floor_label, filename, r2_key, item_count, created_at
@@ -240,6 +255,18 @@ async function loadPresentedFiles(db, submissionId, viewer) {
     download_url: `/api/files/${file.id}`,
   }));
   return prepareOrderFilesForViewer(files, { isAdmin: isAdministratorRole(viewer.role) });
+}
+
+function ensureOrderViewSnapshotSchema(db) {
+  return db.prepare(
+    `CREATE TABLE IF NOT EXISTS order_view_snapshots (
+       submission_id TEXT PRIMARY KEY,
+       schema_version INTEGER NOT NULL,
+       snapshot_json TEXT NOT NULL,
+       created_at TEXT NOT NULL,
+       FOREIGN KEY (submission_id) REFERENCES orders(submission_id) ON DELETE CASCADE
+     )`,
+  ).run();
 }
 
 function readOnlyResponse(context) {
