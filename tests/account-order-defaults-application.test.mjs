@@ -36,6 +36,13 @@ test("order defaults explicitly clear and apply the matching order-form controls
   assert.match(bridge, /payload\.profile\?\.orderDefaults/);
 });
 
+test("administrator Account defaults are not excluded from the order form", async () => {
+  const bridge = await read("public/portal-state-bridge.js");
+
+  assert.doesNotMatch(bridge, /profile\?\.role === "admin"/);
+  assert.match(bridge, /applyOrderDefaults\(payload\.profile\?\.orderDefaults \|\| \{\}\)/);
+});
+
 test("Account cards share one left content inset", async () => {
   const styles = await read("public/account-shopify-compact.css");
 

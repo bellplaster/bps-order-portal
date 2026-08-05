@@ -100,7 +100,6 @@
       const response = await fetch("/api/account", { credentials: "same-origin", headers: { Accept: "application/json" } });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || payload.ok === false) return;
-      if (payload.profile?.role === "admin") return;
       applyOrderDefaults(payload.profile?.orderDefaults || {});
     } catch (_error) {
       // The main order-form bootstrap owns account-load error reporting.
