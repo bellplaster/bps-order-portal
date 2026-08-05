@@ -35,8 +35,10 @@ body.account-page .order-default-grid .account-field.account-shopify-field.is-fl
 
 .account-page .saved-contacts-table{width:100%!important;max-width:none!important;margin:0!important;padding:0!important;box-sizing:border-box!important}
 .account-page .saved-contact-row{position:static!important;display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;grid-template-areas:"contact actions"!important;width:100%!important;min-height:66px!important;align-items:center!important;padding:12px 18px!important;box-sizing:border-box!important;gap:14px!important}
+.account-page .saved-contact-row>*{padding-right:0!important;padding-left:0!important}
 .account-page .saved-contact-actions{position:static!important;grid-area:actions!important;display:flex!important;align-items:center!important;justify-content:flex-end!important;justify-self:end!important;gap:8px!important;margin:0!important;padding:0!important;transform:none!important}
 .account-page .saved-address-row{min-height:68px!important;padding:12px 18px!important;box-sizing:border-box!important}
+.account-page .security-toggle{padding-right:18px!important;padding-left:18px!important}
 .account-page .saved-contact-main{gap:12px!important}
 .account-page .saved-contact-copy,.account-page .saved-address-copy{gap:3px!important}
 .account-page .saved-address-copy p{margin-top:3px!important}
@@ -56,6 +58,7 @@ body.account-page .saved-contact-fields>label{grid-column:auto!important;align-s
 .account-page .saved-contact-row{grid-template-columns:1fr!important;grid-template-areas:"contact" "actions"!important;min-height:0!important;padding:12px 16px!important}
 .account-page .saved-contact-actions{justify-self:start!important;margin-top:10px!important}
 .account-page .saved-address-row{padding:12px 16px!important}
+.account-page .security-toggle{padding-right:16px!important;padding-left:16px!important}
 body.account-page .saved-contact-fields{grid-template-columns:1fr!important}
 .saved-contact-fields,.saved-address-fields,.account-prototype-dialog-fields,.password-modal-form-v2 .password-fields{padding:14px 16px!important}
 }
