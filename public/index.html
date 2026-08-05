@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow,noarchive">
   <title>Order Portal | Bell Plaster</title>
+  <link rel="icon" type="image/svg+xml" href="https://assets.bellplaster.com.au/favicon-round.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -21,6 +22,7 @@
   <link rel="stylesheet" href="/order-control-refinement.css?v=20260731-1">
   <link rel="stylesheet" href="/order-success-checkout.css?v=20260804-1">
   <link rel="stylesheet" href="/order-success-checkout-guard.css?v=20260804-1">
+  <link rel="stylesheet" href="/order-readonly-mode.css?v=20260805-1">
 </head>
 <body class="order-form-page">
   <header class="portal-header">
@@ -28,7 +30,7 @@
       <img src="https://assets.bellplaster.com.au/bell_logo_black.png" alt="Bell Plaster">
     </a>
     <div class="portal-actions">
-      <button id="openHistoryButton" class="header-button" type="button">History</button>
+      <a class="header-button" href="/orders/">Orders</a>
       <a class="header-button" href="/account/">Account</a>
       <button id="logoutButton" class="header-button" type="button">Sign out</button>
     </div>
@@ -185,23 +187,16 @@
         <div class="success-reference">Order number <strong id="orderNumberDisplay"></strong></div>
         <div id="generatedFiles" class="success-files"></div>
         <div class="form-actions success-actions">
-          <button id="viewHistoryButton" class="button button-secondary" type="button">View order history</button>
+          <a class="button button-secondary" href="/orders/">View orders</a>
           <button id="startNewOrderButton" class="button button-primary" type="button">Start new order</button>
         </div>
       </section>
     </form>
   </main>
 
-  <div id="historyBackdrop" class="drawer-backdrop" hidden></div>
-  <aside id="historyDrawer" class="history-drawer" aria-hidden="true" aria-label="Order history">
-    <header class="drawer-header"><h2>Order History</h2><button id="closeHistoryButton" class="drawer-close" type="button" aria-label="Close order history">×</button></header>
-    <div class="history-controls"><button id="refreshHistoryButton" class="text-button" type="button">Refresh</button><label><input id="showArchivedOrders" type="checkbox"> Show archived</label></div>
-    <div id="historyList" class="history-list"><p class="empty-state">Loading orders…</p></div>
-  </aside>
-
-  <script src="/app.js?v=20260731-1" defer></script>
+  <script src="/app.js?v=20260805-1" defer></script>
   <script src="/app-products.js?v=20260731-3" defer></script>
-  <script src="/app-order.js?v=20260724-2" defer></script>
+  <script src="/app-order.js?v=20260805-1" defer></script>
   <script src="/order-selection-source.js?v=20260731-4" defer data-order-selection-source="true"></script>
   <script src="/app-address.js?v=20260731-1" defer></script>
   <script src="/order-detail-fields.js?v=20260731-2" defer></script>
@@ -218,8 +213,9 @@
   <script src="/additional-products-refinement.js?v=20260729-2" defer></script>
   <script src="/review-metrics-refinement.js?v=20260731-7" defer></script>
   <script src="/order-form-enhancements.js?v=20260731-3" defer data-order-form-enhancements="true"></script>
-  <script src="/draft-restore-fix.js?v=20260801-2" defer></script>
-  <script src="/portal-state-bridge.js?v=20260804-1" defer></script>
+  <script src="/draft-restore-fix.js?v=20260805-1" defer></script>
+  <script src="/order-readonly-mode.js?v=20260805-1" defer></script>
+  <script src="/portal-state-bridge.js?v=20260805-1" defer></script>
   <script src="/order-success-checkout.js?v=20260804-1" defer></script>
   <script src="/order-success-navigation.js?v=20260804-1" defer></script>
 </body>
