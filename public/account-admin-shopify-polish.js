@@ -14,7 +14,16 @@
     }
   }
 
-  function syncSelect(select) {
+  function syncInMemoryDefaults(select) {
+    if (typeof data === "undefined" || !data?.profile) return;
+    if (!data.profile.orderDefaults || typeof data.profile.orderDefaults !== "object") {
+      data.profile.orderDefaults = {};
+    }
+    if (select.id === "defaultTimeSlot") data.profile.orderDefaults.timeSlot = select.value;
+    if (select.id === "defaultDeliveryType") data.profile.orderDefaults.deliveryType = select.value;
+  }
+
+  function syncSelect(select, { updateModel = false } = {}) {
     if (!(select instanceof HTMLSelectElement)) return;
     const prompt = selectPrompts.get(select.id);
     if (!prompt) return;
@@ -27,6 +36,7 @@
       emptyOption.disabled = false;
     }
 
+    if (updateModel) syncInMemoryDefaults(select);
     const field = select.closest(".account-shopify-field");
     if (field) field.classList.toggle("is-select-empty", !String(select.value || "").trim());
   }
@@ -37,8 +47,8 @@
       if (!(select instanceof HTMLSelectElement)) return;
       if (select.dataset.accountPromptInstalled !== "true") {
         select.dataset.accountPromptInstalled = "true";
-        select.addEventListener("input", () => syncSelect(select));
-        select.addEventListener("change", () => syncSelect(select));
+        select.addEventListener("input", () => syncSelect(select, { updateModel: true }));
+        select.addEventListener("change", () => syncSelect(select, { updateModel: true }));
       }
       syncSelect(select);
     });
