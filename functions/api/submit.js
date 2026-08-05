@@ -5,6 +5,7 @@ import { effectiveUserRole, isAdministratorRole } from "../_shared/user-roles.js
 import { reconcileStandardProductItems } from "../_shared/product-payload.js";
 import { createMatrixAwareDb } from "../_shared/matrix-catalog-db.js";
 import { replaceAreaExportsWithCombined } from "../_shared/combined-accrivia-export.js";
+import { createOrderViewSnapshot, parseOrderPayload } from "../_shared/order-view-model.js";
 
 export async function onRequestPost(context) {
   const requestId = crypto.randomUUID();
@@ -73,7 +74,9 @@ export async function onRequestPost(context) {
     };
 
     const result = await processOrderSubmission(submissionEnv, payload, { ...auth, accountId });
-    await stampOrderCreator(context.env.DB, result.submissionId || submissionId, actor);
+    const savedSubmissionId = result.submissionId || submissionId;
+    await stampOrderCreator(context.env.DB, savedSubmissionId, actor);
+    await persistOrderViewSnapshot(context.env.DB, savedSubmissionId);
     await replaceAreaExportsWithCombined(context.env, payload, result, { ...auth, accountId });
     await preservePickupSiteReference(context.env, payload, result).catch((error) => {
       console.warn("Pickup site reference could not be stored.", error);
@@ -166,6 +169,30 @@ async function stampOrderCreator(db, submissionId, actor) {
      SET created_by_user_id = ?, created_by_username_snapshot = ?, created_by_name_snapshot = ?
      WHERE submission_id = ?`,
   ).bind(Number(actor.id), username, name, submissionId).run();
+}
+
+async function persistOrderViewSnapshot(db, submissionId) {
+  if (!db || !submissionId) return;
+  const order = await db.prepare(
+    `SELECT payload_json, created_at
+     FROM orders
+     WHERE submission_id = ?
+     LIMIT 1`,
+  ).bind(submissionId).first();
+  if (!order) return;
+
+  const storedPayload = parseOrderPayload(order.payload_json);
+  if (Number(storedPayload?.viewSnapshot?.schemaVersion) === 1) return;
+  storedPayload.viewSnapshot = createOrderViewSnapshot({
+    payload: storedPayload,
+    capturedAt: order.created_at,
+  });
+
+  await db.prepare(
+    `UPDATE orders
+     SET payload_json = ?
+     WHERE submission_id = ?`,
+  ).bind(JSON.stringify(storedPayload), submissionId).run();
 }
 
 async function removeFailedSubmission(env, { accountId, reference, submissionId }) {
