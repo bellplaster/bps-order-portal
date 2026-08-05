@@ -1,0 +1,64 @@
+:root {
+  --portal-content-max: 1440px;
+  --portal-page-gutter: 20px;
+}
+
+/* One desktop content width across the order form, Orders, Account and order detail pages. */
+.order-form-page .order-shell,
+.orders-page .orders-shell,
+.order-view-page .order-view-shell,
+.account-page .account-shell {
+  width: min(var(--portal-content-max), calc(100% - (var(--portal-page-gutter) * 2)));
+  max-width: var(--portal-content-max);
+  margin-right: auto;
+  margin-left: auto;
+}
+
+/* Keep each page header aligned to the same 1440px content boundary. */
+.order-form-page .portal-header,
+.orders-page .portal-header,
+.order-view-page .portal-header,
+.account-page .portal-header {
+  padding-right: max(var(--portal-page-gutter), calc((100vw - var(--portal-content-max)) / 2));
+  padding-left: max(var(--portal-page-gutter), calc((100vw - var(--portal-content-max)) / 2));
+}
+
+/* Wider shells must not allow their immediate grid children to force horizontal overflow. */
+.order-form-page .order-shell,
+.orders-page .orders-shell,
+.order-view-page .order-view-shell,
+.account-page .account-shell,
+.account-page .account-layout-v2,
+.account-page .account-main-v2,
+.order-view-page .order-detail-layout,
+.order-view-page .order-main-column,
+.orders-page .orders-index-card {
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --portal-page-gutter: 12px;
+  }
+
+  .order-form-page .portal-header,
+  .orders-page .portal-header,
+  .order-view-page .portal-header,
+  .account-page .portal-header {
+    padding-right: var(--portal-page-gutter);
+    padding-left: var(--portal-page-gutter);
+  }
+}
+
+@media (max-width: 375px) {
+  :root {
+    --portal-page-gutter: 8px;
+  }
+}
+
+@media print {
+  .order-view-page .order-view-shell {
+    width: 100%;
+    max-width: none;
+  }
+}
