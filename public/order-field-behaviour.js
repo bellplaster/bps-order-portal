@@ -177,7 +177,7 @@
     configureField(field);
 
     if (config.type === "reference") {
-      event.stopPropagation();
+      event.stopImmediatePropagation();
       field.value = String(field.value || "").replace(invisibleCharacters, "").replace(singleLineControls, " ").slice(0, 80);
       capitaliseInitialTyping(field, config.capitalisation);
       field.setCustomValidity("");
