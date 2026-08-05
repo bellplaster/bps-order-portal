@@ -59,7 +59,7 @@ test("the deployed page requests the current catalogue assets", () => {
   assert.match(index, /experience-refinement\.css\?v=20260801-1/);
   assert.doesNotMatch(index, /experience-refinement\.css\?v=20260724-2/);
   assert.match(index, /rondo-hebel-catalogue\.js\?v=20260801-5/);
-  assert.match(index, /draft-restore-fix\.js\?v=20260801-2/);
+  assert.match(index, /draft-restore-fix\.js\?v=20260805-1/);
 });
 
 test("Additional Products is a separate full-width region below the catalogue", () => {
