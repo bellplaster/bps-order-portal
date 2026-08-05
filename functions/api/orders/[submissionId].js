@@ -1,7 +1,72 @@
-import { assertAdministrator } from "../../_shared/order-permissions.js";
+import { prepareOrderFilesForViewer } from "../../_shared/order-email-attachments.js";
+import {
+  assertAdministrator,
+  canViewOrder,
+  getOrderScope,
+  orderActionPermissions,
+} from "../../_shared/order-permissions.js";
+import {
+  parseOrderPayload,
+  resolveOrderViewSnapshot,
+  snapshotToOrderPayload,
+} from "../../_shared/order-view-model.js";
+import { isAdministratorRole } from "../../_shared/user-roles.js";
 
 export async function onRequestGet(context) {
-  return readOnlyResponse(context);
+  const requestId = crypto.randomUUID();
+  try {
+    const { db, viewer, submissionId } = await requireViewerContext(context);
+    const order = await loadOrder(db, submissionId);
+    if (!order || !canViewOrder(viewer, order)) return jsonError("Order not found.", 404, requestId);
+
+    const payload = parseOrderPayload(order.payload_json);
+    const snapshot = resolveOrderViewSnapshot(payload, order);
+    const files = await loadPresentedFiles(db, submissionId, viewer);
+    const eventsResult = await db.prepare(
+      `SELECT stage, detail, created_at
+       FROM order_events
+       WHERE submission_id = ?
+       ORDER BY id DESC
+       LIMIT 50`,
+    ).bind(submissionId).all();
+    const permissions = orderActionPermissions(viewer, order.status);
+
+    return Response.json({
+      ok: true,
+      order: {
+        submissionId: order.submission_id,
+        customerReference: order.customer_reference,
+        status: order.status,
+        createdAt: order.created_at,
+        updatedAt: order.updated_at,
+        accountId: Number(order.account_id || 0),
+        companyName: order.company_name_snapshot || snapshot.details.customer || "",
+        debtorCode: order.debtor_code_snapshot || payload.debtorCode || "",
+        createdByUserId: order.created_by_user_id || null,
+        createdByUsername: order.created_by_username_snapshot || "",
+        createdByName: order.created_by_name_snapshot || order.created_by_username_snapshot || "Legacy order",
+        createdByRole: order.creator_role || "",
+        canArchive: permissions.canArchive,
+        canRestore: permissions.canRestore,
+        canDelete: permissions.canDelete,
+      },
+      viewer: {
+        userId: Number(viewer.id),
+        username: viewer.username,
+        role: viewer.role,
+        scope: getOrderScope(viewer),
+      },
+      snapshot,
+      payload: snapshotToOrderPayload(snapshot),
+      files,
+      events: eventsResult.results || [],
+      requestId,
+    }, {
+      headers: { "Cache-Control": "no-store", "X-Request-ID": requestId },
+    });
+  } catch (error) {
+    return jsonError(error?.message || String(error), Number(error?.status || 500), requestId);
+  }
 }
 
 export async function onRequestPut(context) {
@@ -103,7 +168,7 @@ export async function onRequestDelete(context) {
   }
 }
 
-async function requireAdministratorOrderContext(context) {
+async function requireViewerContext(context) {
   if (!context.env.DB) {
     const error = new Error("Missing Cloudflare binding: DB");
     error.status = 500;
@@ -125,9 +190,9 @@ async function requireAdministratorOrderContext(context) {
   }
 
   const viewer = await context.env.DB.prepare(
-    `SELECT id, account_id,
+    `SELECT id, account_id, username,
             COALESCE(NULLIF(access_role, ''), role) AS role,
-            active
+            active, is_primary
      FROM users
      WHERE id = ? AND active = 1
      LIMIT 1`,
@@ -139,8 +204,42 @@ async function requireAdministratorOrderContext(context) {
     throw error;
   }
 
-  assertAdministrator(viewer);
   return { db: context.env.DB, viewer, submissionId };
+}
+
+async function requireAdministratorOrderContext(context) {
+  const result = await requireViewerContext(context);
+  assertAdministrator(result.viewer);
+  return result;
+}
+
+function loadOrder(db, submissionId) {
+  return db.prepare(
+    `SELECT
+       o.submission_id, o.customer_reference, o.status, o.created_at, o.updated_at,
+       o.payload_json, o.account_id, o.company_name_snapshot, o.debtor_code_snapshot,
+       o.created_by_user_id, o.created_by_username_snapshot, o.created_by_name_snapshot,
+       COALESCE(NULLIF(creator.access_role, ''), creator.role) AS creator_role
+     FROM orders o
+     LEFT JOIN users creator ON creator.id = o.created_by_user_id
+     WHERE o.submission_id = ?
+     LIMIT 1`,
+  ).bind(submissionId).first();
+}
+
+async function loadPresentedFiles(db, submissionId, viewer) {
+  const result = await db.prepare(
+    `SELECT id, floor, floor_label, filename, r2_key, item_count, created_at
+     FROM order_files
+     WHERE submission_id = ?
+     ORDER BY id DESC`,
+  ).bind(submissionId).all();
+  const files = (result.results || []).map((file) => ({
+    ...file,
+    revision: inferRevision(file.filename),
+    download_url: `/api/files/${file.id}`,
+  }));
+  return prepareOrderFilesForViewer(files, { isAdmin: isAdministratorRole(viewer.role) });
 }
 
 function readOnlyResponse(context) {
@@ -149,16 +248,21 @@ function readOnlyResponse(context) {
   if (!auth?.userId) return jsonError("Authentication required.", 401, requestId);
   return Response.json({
     ok: false,
-    error: "Submitted orders cannot be edited or resubmitted.",
+    error: "Submitted orders are read-only and cannot be edited or resubmitted.",
     requestId,
   }, {
     status: 405,
     headers: {
-      Allow: "PATCH, DELETE",
+      Allow: "GET, PATCH, DELETE",
       "Cache-Control": "no-store",
       "X-Request-ID": requestId,
     },
   });
+}
+
+function inferRevision(filename) {
+  const match = String(filename || "").match(/-R(\d+)-[^/]+\.xlsx$/i);
+  return match ? Number(match[1]) : 1;
 }
 
 function jsonError(error, status, requestId) {
