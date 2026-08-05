@@ -39,9 +39,25 @@
     ].filter(Boolean).join(", ");
   }
 
-  function syncVisibleOrderDetailFields() {
+  function syncVisibleSelect(selector, value, label = "") {
+    const select = document.querySelector(selector);
+    if (!(select instanceof HTMLSelectElement)) return;
+
+    const normalised = String(value || "");
+    if (normalised && ![...select.options].some((option) => option.value === normalised)) {
+      select.append(new Option(label || normalised, normalised));
+    }
+
+    select.value = normalised;
+    select.classList.toggle("is-placeholder", !normalised);
+  }
+
+  function syncVisibleOrderDetailFields(timeSlot, deliveryType) {
     window.initialiseOrderDetailFields?.();
     window.formatOrderDetailFields?.();
+
+    syncVisibleSelect(".delivery-select-timeSlot .delivery-select", timeSlot, timeSlot === "ANY" ? "Any" : timeSlot);
+    syncVisibleSelect(".delivery-select-deliveryType .delivery-select", deliveryType, deliveryType);
   }
 
   function applyOrderDefaults(defaults) {
@@ -72,7 +88,7 @@
     }
 
     if (globalThis.state?.account) globalThis.state.account.orderDefaults = { ...defaults };
-    syncVisibleOrderDetailFields();
+    syncVisibleOrderDetailFields(timeSlot, deliveryType);
 
     if (typeof updateFutureDateConfirmation === "function") updateFutureDateConfirmation();
     if (typeof updatePickupMode === "function") updatePickupMode();
