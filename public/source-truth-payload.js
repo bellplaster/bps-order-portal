@@ -41,6 +41,12 @@
     const next = typeof structuredClone === "function"
       ? structuredClone(payload)
       : JSON.parse(JSON.stringify(payload || {}));
+
+    // Editable drafts follow today's catalogue so newly standardised SKUs return
+    // to their grid cells. A submitted order snapshot must preserve the original
+    // distinction between grid products and manually added products.
+    if (globalThis.BPS_ORDER_READONLY) return originalApplyPayload(next);
+
     Object.values(next.floors || {}).forEach((area) => {
       const restoredItems = [];
       const remainingAdditional = [];
