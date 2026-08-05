@@ -24,6 +24,7 @@ test("order defaults explicitly clear and apply the matching order-form controls
   assert.match(bridge, /clearChoiceGroup\("timeSlot"\)/);
   assert.match(bridge, /selectChoice\("timeSlot", timeSlot\)/);
   assert.match(bridge, /clearChoiceGroup\("deliveryType"\)/);
+  assert.match(bridge, /const deliveryType = canonicalDeliveryType\(defaults\.deliveryType\)/);
   assert.match(bridge, /selectChoice\("deliveryType", deliveryType\)/);
   assert.match(bridge, /clearChoiceGroup\("deliveryExtra"\)/);
   assert.match(bridge, /window\.initialiseOrderDetailFields\?\.\(\)/);
@@ -32,7 +33,8 @@ test("order defaults explicitly clear and apply the matching order-form controls
   assert.match(bridge, /timeSlot === "ANY" \? "Any" : timeSlot/);
   assert.match(bridge, /select\.append\(new Option\(label \|\| normalised, normalised\)\)/);
   assert.match(bridge, /select\.value = normalised/);
-  assert.match(bridge, /\["Crane Delivery", "Mechanical \(Forklift\/Crane\/Own\)"\]/);
+  assert.match(bridge, /\["Manual Unload \(Knauf Labour\)", "Hand Unload"\]/);
+  assert.doesNotMatch(bridge, /\["Crane Delivery", "Mechanical \(Forklift\/Crane\/Own\)"\]/);
   assert.match(bridge, /payload\.profile\?\.orderDefaults/);
 });
 

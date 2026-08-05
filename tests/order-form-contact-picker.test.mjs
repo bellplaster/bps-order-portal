@@ -1,17 +1,22 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
-test("the order-form saved address picker remains unpublished", async () => {
+test("the order-form saved address picker remains unpublished and removed", async () => {
+  const index = await read("public/index.html");
   const bridge = await read("public/portal-state-bridge.js");
+  const packageJson = JSON.parse(await read("package.json"));
 
-  assert.doesNotMatch(bridge, /script\.src = "\/saved-address-picker\.js/);
-  assert.doesNotMatch(bridge, /stylesheet\.href = "\/saved-address-picker\.css/);
-  assert.match(bridge, /savedAddressPickerButton/);
-  assert.match(bridge, /savedAddressPickerMenu/);
-  assert.match(bridge, /has-saved-address-picker/);
+  assert.doesNotMatch(index, /saved-address-picker\.js/);
+  assert.doesNotMatch(bridge, /savedAddressPickerButton|savedAddressPickerMenu|has-saved-address-picker/);
+  assert.doesNotMatch(packageJson.scripts.check, /saved-address-picker\.js/);
+
+  await assert.rejects(
+    access(new URL("../public/saved-address-picker.js", import.meta.url)),
+    { code: "ENOENT" },
+  );
 });
 
 test("the order-form contact picker uses an Account-style menu", async () => {
