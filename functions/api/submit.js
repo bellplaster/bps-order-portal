@@ -5,6 +5,7 @@ import { effectiveUserRole, isAdministratorRole } from "../_shared/user-roles.js
 import { reconcileStandardProductItems } from "../_shared/product-payload.js";
 import { createMatrixAwareDb } from "../_shared/matrix-catalog-db.js";
 import { replaceAreaExportsWithCombined } from "../_shared/combined-accrivia-export.js";
+import { createOrderViewSnapshot, parseOrderPayload } from "../_shared/order-view-model.js";
 
 export async function onRequestPost(context) {
   const requestId = crypto.randomUUID();
@@ -73,7 +74,9 @@ export async function onRequestPost(context) {
     };
 
     const result = await processOrderSubmission(submissionEnv, payload, { ...auth, accountId });
-    await stampOrderCreator(context.env.DB, result.submissionId || submissionId, actor);
+    const savedSubmissionId = result.submissionId || submissionId;
+    await stampOrderCreator(context.env.DB, savedSubmissionId, actor);
+    await persistOrderViewSnapshot(context.env.DB, savedSubmissionId);
     await replaceAreaExportsWithCombined(context.env, payload, result, { ...auth, accountId });
     await preservePickupSiteReference(context.env, payload, result).catch((error) => {
       console.warn("Pickup site reference could not be stored.", error);
@@ -156,6 +159,15 @@ async function ensureOrderTrackingSchema(db) {
     if (!names.has(name)) await db.prepare(`ALTER TABLE orders ADD COLUMN ${name} ${definition}`).run();
   }
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_orders_account_creator_created ON orders(account_id, created_by_user_id, created_at DESC)`).run();
+  await db.prepare(
+    `CREATE TABLE IF NOT EXISTS order_view_snapshots (
+       submission_id TEXT PRIMARY KEY,
+       schema_version INTEGER NOT NULL,
+       snapshot_json TEXT NOT NULL,
+       created_at TEXT NOT NULL,
+       FOREIGN KEY (submission_id) REFERENCES orders(submission_id) ON DELETE CASCADE
+     )`,
+  ).run();
 }
 
 async function stampOrderCreator(db, submissionId, actor) {
@@ -166,6 +178,28 @@ async function stampOrderCreator(db, submissionId, actor) {
      SET created_by_user_id = ?, created_by_username_snapshot = ?, created_by_name_snapshot = ?
      WHERE submission_id = ?`,
   ).bind(Number(actor.id), username, name, submissionId).run();
+}
+
+async function persistOrderViewSnapshot(db, submissionId) {
+  if (!db || !submissionId) return;
+  const order = await db.prepare(
+    `SELECT payload_json, created_at
+     FROM orders
+     WHERE submission_id = ?
+     LIMIT 1`,
+  ).bind(submissionId).first();
+  if (!order) return;
+
+  const snapshot = createOrderViewSnapshot({
+    payload: parseOrderPayload(order.payload_json),
+    capturedAt: order.created_at,
+  });
+
+  await db.prepare(
+    `INSERT OR REPLACE INTO order_view_snapshots (
+       submission_id, schema_version, snapshot_json, created_at
+     ) VALUES (?, ?, ?, ?)`,
+  ).bind(submissionId, snapshot.schemaVersion, JSON.stringify(snapshot), order.created_at).run();
 }
 
 async function removeFailedSubmission(env, { accountId, reference, submissionId }) {
@@ -183,6 +217,7 @@ async function removeFailedSubmission(env, { accountId, reference, submissionId 
 
   for (const id of ids) {
     if (!id) continue;
+    await env.DB.prepare(`DELETE FROM order_view_snapshots WHERE submission_id = ?`).bind(id).run().catch(() => null);
     await env.DB.prepare(`DELETE FROM order_files WHERE submission_id = ?`).bind(id).run().catch(() => null);
     await env.DB.prepare(`DELETE FROM order_events WHERE submission_id = ?`).bind(id).run().catch(() => null);
     await env.DB.prepare(`DELETE FROM orders WHERE submission_id = ? AND status = 'failed'`).bind(id).run().catch(() => null);

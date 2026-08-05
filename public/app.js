@@ -7,6 +7,7 @@ const state = {
   quantities: { ground: new Map(), first: new Map() },
   otherMaterials: { ground: [], first: [] },
   editingOrder: null,
+  readOnlyOrder: null,
   searchTimer: null,
   draftTimer: null,
   suppressDraft: false,
@@ -41,7 +42,6 @@ async function initialise() {
     clearDraft();
     await Promise.all([loadAccount(), loadCatalog()]);
     updateGeneratedDeliverySummary();
-    await loadOrderHistory();
     renderCounts();
   } catch (error) {
     showGlobal(error.message || String(error), "error");
@@ -63,7 +63,6 @@ function bindStaticActions() {
   });
   document.getElementById("orderForm")?.addEventListener("submit", submitOrder);
   document.getElementById("startNewOrderButton")?.addEventListener("click", resetOrder);
-  document.getElementById("viewHistoryButton")?.addEventListener("click", openHistory);
   document.getElementById("cancelEditButton")?.addEventListener("click", resetOrder);
 
   document.getElementById("adminCustomerAccount")?.addEventListener("change", (event) => {
@@ -93,12 +92,6 @@ function bindStaticActions() {
   document.querySelectorAll("[data-floor-tab]").forEach((button) => {
     button.addEventListener("click", () => activateFloor(button.dataset.floorTab));
   });
-
-  document.getElementById("openHistoryButton")?.addEventListener("click", openHistory);
-  document.getElementById("closeHistoryButton")?.addEventListener("click", closeHistory);
-  document.getElementById("historyBackdrop")?.addEventListener("click", closeHistory);
-  document.getElementById("refreshHistoryButton")?.addEventListener("click", loadOrderHistory);
-  document.getElementById("showArchivedOrders")?.addEventListener("change", loadOrderHistory);
 
   document.getElementById("requiredDate")?.addEventListener("change", updateFutureDateConfirmation);
   document.getElementById("contactMobile")?.addEventListener("input", (event) => {
