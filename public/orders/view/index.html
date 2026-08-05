@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <title>Order | Bell Plaster Order Portal</title>
+  <link rel="icon" type="image/svg+xml" href="https://assets.bellplaster.com.au/favicon-round.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css?v=20260722-1">
+  <link rel="stylesheet" href="/orders/view/order-view.css?v=20260805-1">
+</head>
+<body class="order-view-page">
+  <header class="portal-header">
+    <a class="brand-link" href="/" aria-label="Bell Plaster order portal">
+      <img src="https://assets.bellplaster.com.au/bell_logo_black.png" alt="Bell Plaster">
+    </a>
+    <nav class="portal-actions" aria-label="Portal navigation">
+      <a class="header-button" href="/">Order form</a>
+      <a class="header-button is-current" href="/orders/">Orders</a>
+      <a class="header-button" href="/account/">Account</a>
+      <button id="logoutButton" class="header-button" type="button">Sign out</button>
+    </nav>
+  </header>
+
+  <main class="order-view-shell">
+    <a class="order-back-link" href="/orders/">← Back to orders</a>
+    <div id="orderViewMessage" class="order-view-message" role="alert" hidden></div>
+    <div id="orderViewLoading" class="order-view-loading">Loading order…</div>
+
+    <div id="orderViewContent" hidden>
+      <header class="order-view-heading">
+        <div>
+          <div class="order-heading-line">
+            <h1 id="orderReference">Order</h1>
+            <span id="orderStatus" class="order-status"></span>
+          </div>
+          <p id="orderSubmittedMeta"></p>
+        </div>
+        <div class="order-heading-actions">
+          <a id="viewGridLink" class="button button-secondary" href="/">View submitted grid</a>
+          <button id="archiveOrderButton" class="button button-secondary" type="button" hidden>Archive</button>
+          <button id="restoreOrderButton" class="button button-secondary" type="button" hidden>Restore</button>
+          <button id="deleteOrderButton" class="button button-danger-outline" type="button" hidden>Delete</button>
+        </div>
+      </header>
+
+      <section id="legacySnapshotNotice" class="snapshot-notice" hidden>
+        This order predates submitted-layout snapshots. Quantities are shown in the current order-form layout.
+      </section>
+
+      <section class="order-summary-grid" aria-label="Order summary">
+        <article class="order-card order-summary-card">
+          <header><h2>Order summary</h2></header>
+          <dl id="orderSummaryDetails" class="order-detail-list"></dl>
+        </article>
+
+        <article class="order-card order-delivery-card">
+          <header><h2>Delivery details</h2></header>
+          <dl id="orderDeliveryDetails" class="order-detail-list"></dl>
+        </article>
+      </section>
+
+      <section class="order-card order-products-card">
+        <header class="order-card-heading">
+          <div><h2>Products</h2><p id="orderProductSummary"></p></div>
+          <a id="secondaryGridLink" class="text-link" href="/">Open read-only grid</a>
+        </header>
+        <div id="orderAreas" class="order-areas"></div>
+      </section>
+
+      <section class="order-lower-grid">
+        <article class="order-card">
+          <header><h2>Files</h2></header>
+          <div id="orderFiles" class="order-files"></div>
+        </article>
+        <article class="order-card">
+          <header><h2>Activity</h2></header>
+          <ol id="orderTimeline" class="order-timeline"></ol>
+        </article>
+      </section>
+    </div>
+  </main>
+
+  <dialog id="deleteOrderDialog" class="order-dialog">
+    <form id="deleteOrderForm">
+      <header>
+        <div><h2>Delete order</h2><p>This permanently removes the order, history and stored files.</p></div>
+        <button id="closeDeleteDialog" type="button" aria-label="Close">×</button>
+      </header>
+      <label><span id="deleteOrderLabel">Type the order reference to confirm</span><input id="deleteOrderConfirmation" autocomplete="off" required></label>
+      <footer>
+        <button id="cancelDeleteOrder" class="button button-secondary" type="button">Cancel</button>
+        <button id="confirmDeleteOrder" class="button button-danger" type="submit">Delete permanently</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <script type="module" src="/orders/view/order-view.js?v=20260805-1"></script>
+</body>
+</html>
