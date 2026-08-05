@@ -1,4 +1,6 @@
 (() => {
+  if (document.body.classList.contains("order-form-page") && globalThis.BPS_ORDER_READONLY) return;
+
   if (document.body.classList.contains("account-page") && !document.querySelector('script[data-account-role-ux="true"]')) {
     const roleScript = document.createElement("script");
     roleScript.src = "/account-role-ux.js?v=20260804-4";
