@@ -1,5 +1,5 @@
 import { PRODUCT_CATALOG } from "./catalog.js";
-import { createAccriviaSiteAreaXlsx, createAccriviaXlsx } from "./xlsx.js";
+import { createAccriviaSiteAreaXlsx } from "./xlsx.js";
 
 const MAX_PRODUCT_QUANTITY = 99999;
 const MAX_FILENAME_LENGTH = 100;
@@ -21,9 +21,7 @@ export async function replaceAreaExportsWithCombined(env, payload, result, auth)
     .filter(([, area]) => hasAreaProducts(area));
   if (!areaEntries.length) return result;
 
-  const legacyRows = [];
   const siteAreaRows = [];
-  const includeLegacySeparators = areaEntries.length > 1;
   const onlyAreaLabel = areaEntries.length === 1
     ? upper(areaEntries[0][1]?.label || areaEntries[0][0] || "AREA")
     : "";
@@ -34,20 +32,16 @@ export async function replaceAreaExportsWithCombined(env, payload, result, auth)
     const combinedRows = buildCombinedRows(area, label);
     if (!combinedRows.length) continue;
 
-    if (includeLegacySeparators) legacyRows.push([label, "", 1]);
-    legacyRows.push(...combinedRows.map((row) => [row.sku, "", row.quantity]));
-
     combinedRows.forEach((row, index) => {
       siteAreaRows.push([index === 0 && !omitDefaultSingleTab ? label : "", row.sku, "", row.quantity]);
     });
   }
 
-  if (!legacyRows.length || !siteAreaRows.length) {
+  if (!siteAreaRows.length) {
     throw new Error("The combined Accrivia export contains no products.");
   }
 
   const notes = buildDeliveryNotesDescription(payload);
-  legacyRows.push(["NOTES", notes, 1]);
   siteAreaRows.push(["", "NOTES", notes, 1]);
 
   const pickup = isPickup(payload?.deliveryType);
@@ -68,67 +62,61 @@ export async function replaceAreaExportsWithCombined(env, payload, result, auth)
     salesRepCode: upper(payload?.salesRepCode || ""),
   };
 
-  const legacyWorkbook = createAccriviaXlsx({ ...common, productRows: legacyRows });
-  const siteAreaWorkbook = createAccriviaSiteAreaXlsx({ ...common, productRows: siteAreaRows });
-
+  const workbook = createAccriviaSiteAreaXlsx({ ...common, productRows: siteAreaRows });
   const revisionNo = Number(result.revisionNo || 1);
-  const baseFilename = buildCombinedExportFilename(account.company_name, reference, revisionNo).replace(/\.xlsx$/i, "");
-  const oldFilename = `${baseFilename}-OLD.xlsx`;
-  const newFilename = `${baseFilename}-NEW.xlsx`;
+  const filename = buildCombinedExportFilename(account.company_name, reference, revisionNo);
   const firstOldKey = String(result.generatedFiles[0]?.r2Key || "");
   const directory = firstOldKey.includes("/")
     ? firstOldKey.slice(0, firstOldKey.lastIndexOf("/"))
     : ["orders", String(account.id), orderDate.slice(0, 4), orderDate.slice(5, 7), submissionId, `revision-${revisionNo}`].join("/");
+  const r2Key = `${directory}/${filename}`;
 
-  const exports = [
-    { floor: "combined-old", floorLabel: "Combined (Old)", filename: oldFilename, workbook: legacyWorkbook, itemCount: legacyRows.length },
-    { floor: "combined-new", floorLabel: "Combined (New)", filename: newFilename, workbook: siteAreaWorkbook, itemCount: siteAreaRows.length },
-  ];
-  const generatedFiles = [];
+  await env.ORDER_FILES.put(r2Key, workbook.bytes, {
+    httpMetadata: { contentType: workbook.mimeType },
+    customMetadata: {
+      submissionId,
+      orderNumber: reference,
+      accountId: String(account.id),
+      floor: "combined-new",
+      floorLabel: "Accrivia order file",
+      revision: String(revisionNo),
+    },
+  });
 
-  for (const file of exports) {
-    const r2Key = `${directory}/${file.filename}`;
-    await env.ORDER_FILES.put(r2Key, file.workbook.bytes, {
-      httpMetadata: { contentType: file.workbook.mimeType },
-      customMetadata: {
-        submissionId,
-        orderNumber: reference,
-        accountId: String(account.id),
-        floor: file.floor,
-        floorLabel: file.floorLabel,
-        revision: String(revisionNo),
-      },
-    });
+  const insertResult = await env.DB.prepare(
+    `INSERT INTO order_files (submission_id, floor, floor_label, filename, r2_key, item_count, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(
+    submissionId,
+    "combined-new",
+    "Accrivia order file",
+    filename,
+    r2Key,
+    siteAreaRows.length,
+    new Date().toISOString(),
+  ).run();
+  const fileId = Number(insertResult?.meta?.last_row_id || 0);
+  if (!fileId) throw new Error("The Accrivia order file could not be recorded.");
 
-    const insertResult = await env.DB.prepare(
-      `INSERT INTO order_files (submission_id, floor, floor_label, filename, r2_key, item_count, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    ).bind(submissionId, file.floor, file.floorLabel, file.filename, r2Key, file.itemCount, new Date().toISOString()).run();
-    const fileId = Number(insertResult?.meta?.last_row_id || 0);
-    if (!fileId) throw new Error(`The ${file.floorLabel} Accrivia export could not be recorded.`);
-
-    generatedFiles.push({
-      id: fileId,
-      floor: file.floor,
-      floorLabel: file.floorLabel,
-      filename: file.filename,
-      itemCount: file.itemCount,
-      r2Key,
-      revision: revisionNo,
-      downloadUrl: `/api/files/${fileId}`,
-    });
-  }
+  const generatedFile = {
+    id: fileId,
+    floor: "combined-new",
+    floorLabel: "Accrivia order file",
+    filename,
+    itemCount: siteAreaRows.length,
+    r2Key,
+    revision: revisionNo,
+    downloadUrl: `/api/files/${fileId}`,
+  };
 
   for (const file of result.generatedFiles) {
     const oldKey = String(file?.r2Key || "");
     const oldId = Number(file?.id || 0);
-    if (oldKey && !generatedFiles.some((generated) => generated.r2Key === oldKey)) {
-      await env.ORDER_FILES.delete(oldKey).catch(() => null);
-    }
+    if (oldKey && oldKey !== r2Key) await env.ORDER_FILES.delete(oldKey).catch(() => null);
     if (oldId) await env.DB.prepare(`DELETE FROM order_files WHERE id = ?`).bind(oldId).run().catch(() => null);
   }
 
-  result.generatedFiles = generatedFiles;
+  result.generatedFiles = [generatedFile];
   return result;
 }
 
