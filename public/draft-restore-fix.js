@@ -16,7 +16,6 @@
     ["product-quantity-authority", "/product-quantity-authority.js?v=20260731-1"],
     ["order-selection-source", "/order-selection-source.js?v=20260731-4"],
     ["admin-testing", "/admin-testing.js?v=20260731-4"],
-    ["orders-navigation", "/orders-navigation.js?v=20260803-1"],
     ["calendar-control", "/calendar-control.js?v=20260801-3"],
     ["portal-identity-ux", "/portal-identity-ux.js?v=20260731-2"],
     ["inline-tab-rename", "/inline-tab-rename.js?v=20260801-4"],
