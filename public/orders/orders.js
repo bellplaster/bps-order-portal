@@ -1,16 +1,12 @@
-import {
-  fetchOrders,
-  permanentlyDeleteOrder,
-  setOrderStatus,
-  signOut,
-} from "./order-service.js";
+import { fetchOrders, signOut } from "./order-service.js";
 
+const PAGE_SIZE = 25;
 const state = {
   orders: [],
   viewer: null,
   staff: [],
   accounts: [],
-  pendingDelete: null,
+  page: 1,
 };
 
 const elements = {};
@@ -33,44 +29,40 @@ function cacheElements() {
     "staffFilterField",
     "staffFilter",
     "statusFilter",
+    "sortFilter",
     "refreshOrdersButton",
     "ordersCount",
     "ordersUpdated",
-    "ordersList",
+    "ordersTableBody",
+    "ordersMobileList",
+    "ordersEmpty",
+    "ordersLoading",
+    "ordersRange",
+    "ordersPageLabel",
+    "previousOrdersPage",
+    "nextOrdersPage",
     "logoutButton",
     "createOrderButton",
     "orderFormLink",
     "accountLink",
-    "deleteOrderDialog",
-    "deleteOrderForm",
-    "deleteOrderMessage",
-    "deleteOrderLabel",
-    "deleteOrderConfirmation",
-    "confirmDeleteOrder",
-    "closeDeleteDialog",
-    "cancelDeleteOrder",
   ].forEach((id) => {
     elements[id] = document.getElementById(id);
   });
 }
 
 function bindEvents() {
-  elements.ordersSearch.addEventListener("input", renderOrders);
+  elements.ordersSearch.addEventListener("input", resetAndRender);
   elements.customerFilter.addEventListener("change", () => {
     updateStaffFilterForCustomer();
-    renderOrders();
+    resetAndRender();
   });
-  elements.staffFilter.addEventListener("change", renderOrders);
-  elements.statusFilter.addEventListener("change", renderOrders);
+  elements.staffFilter.addEventListener("change", resetAndRender);
+  elements.statusFilter.addEventListener("change", resetAndRender);
+  elements.sortFilter.addEventListener("change", resetAndRender);
   elements.refreshOrdersButton.addEventListener("click", loadOrders);
+  elements.previousOrdersPage.addEventListener("click", () => changePage(-1));
+  elements.nextOrdersPage.addEventListener("click", () => changePage(1));
   elements.logoutButton.addEventListener("click", logout);
-  elements.deleteOrderForm.addEventListener("submit", confirmPermanentDelete);
-  elements.closeDeleteDialog.addEventListener("click", closeDeleteDialog);
-  elements.cancelDeleteOrder.addEventListener("click", closeDeleteDialog);
-  elements.deleteOrderDialog.addEventListener("cancel", (event) => {
-    event.preventDefault();
-    closeDeleteDialog();
-  });
 }
 
 async function loadOrders() {
@@ -82,12 +74,13 @@ async function loadOrders() {
     state.viewer = result.viewer || {};
     state.staff = Array.isArray(result.staff) ? result.staff : [];
     state.accounts = Array.isArray(result.accounts) ? result.accounts : [];
+    state.page = 1;
     configureScope();
     renderOrders();
     elements.ordersUpdated.textContent = `Updated ${formatTime(new Date())}`;
   } catch (error) {
     state.orders = [];
-    elements.ordersList.replaceChildren(emptyState(error.message || String(error)));
+    renderOrders();
     showMessage(withRequestId(error), "error");
   } finally {
     setBusy(false);
@@ -100,6 +93,7 @@ function configureScope() {
   const customerService = scope === "staff";
   const globalScope = administrator || customerService;
 
+  document.body.dataset.orderScope = scope;
   elements.ordersScopeDescription.textContent = administrator
     ? "View and manage orders across every customer account, including administrator tests."
     : customerService
@@ -157,19 +151,43 @@ function updateStaffFilterForCustomer() {
   }
 }
 
+function resetAndRender() {
+  state.page = 1;
+  renderOrders();
+}
+
+function changePage(direction) {
+  const orders = filteredOrders();
+  const pageCount = Math.max(1, Math.ceil(orders.length / PAGE_SIZE));
+  state.page = Math.min(pageCount, Math.max(1, state.page + direction));
+  renderOrders();
+  document.querySelector(".orders-index-card")?.scrollIntoView({ block: "start" });
+}
+
 function renderOrders() {
   const orders = filteredOrders();
+  const pageCount = Math.max(1, Math.ceil(orders.length / PAGE_SIZE));
+  if (state.page > pageCount) state.page = pageCount;
+
+  const start = (state.page - 1) * PAGE_SIZE;
+  const visible = orders.slice(start, start + PAGE_SIZE);
+  elements.ordersTableBody.replaceChildren();
+  elements.ordersMobileList.replaceChildren();
+
+  visible.forEach((order) => {
+    elements.ordersTableBody.append(renderOrderRow(order));
+    elements.ordersMobileList.append(renderMobileOrder(order));
+  });
+
+  const empty = orders.length === 0;
+  elements.ordersEmpty.hidden = !empty;
   elements.ordersCount.textContent = `${orders.length} order${orders.length === 1 ? "" : "s"}`;
-  elements.ordersList.replaceChildren();
-
-  if (!orders.length) {
-    elements.ordersList.append(emptyState("No orders match the current filters."));
-    return;
-  }
-
-  const fragment = document.createDocumentFragment();
-  orders.forEach((order) => fragment.append(renderOrderCard(order)));
-  elements.ordersList.append(fragment);
+  elements.ordersRange.textContent = empty
+    ? "0 orders"
+    : `${start + 1}–${Math.min(start + PAGE_SIZE, orders.length)} of ${orders.length}`;
+  elements.ordersPageLabel.textContent = `Page ${state.page} of ${pageCount}`;
+  elements.previousOrdersPage.disabled = state.page <= 1;
+  elements.nextOrdersPage.disabled = state.page >= pageCount;
 }
 
 function filteredOrders() {
@@ -178,7 +196,7 @@ function filteredOrders() {
   const staffId = Number(elements.staffFilter.value || 0);
   const status = elements.statusFilter.value;
 
-  return state.orders.filter((order) => {
+  const filtered = state.orders.filter((order) => {
     if (accountId && Number(order.account_id) !== accountId) return false;
     if (staffId && Number(order.created_by_user_id) !== staffId) return false;
     if (status && String(order.status || "").toLowerCase() !== status) return false;
@@ -198,121 +216,142 @@ function filteredOrders() {
     ].join(" ").toLowerCase();
     return searchable.includes(query);
   });
+
+  return filtered.sort((left, right) => {
+    const sort = elements.sortFilter.value;
+    if (sort === "oldest") return dateValue(left.created_at) - dateValue(right.created_at);
+    if (sort === "required") {
+      const leftDate = dateValue(`${left.order_details?.required_date || "9999-12-31"}T00:00:00`);
+      const rightDate = dateValue(`${right.order_details?.required_date || "9999-12-31"}T00:00:00`);
+      return leftDate - rightDate || dateValue(right.created_at) - dateValue(left.created_at);
+    }
+    return dateValue(right.created_at) - dateValue(left.created_at);
+  });
 }
 
-function renderOrderCard(order) {
+function renderOrderRow(order) {
   const details = order.order_details || {};
-  const archived = String(order.status || "").toLowerCase() === "archived";
-  const card = node("article", `order-card${archived ? " is-archived" : ""}`);
-
-  const header = node("header", "order-card-header");
-  const identity = node("div");
-  identity.append(
-    textNode("span", "order-card-customer", [order.company_name, order.debtor_code].filter(Boolean).join(" · ") || "Customer"),
-  );
-  const title = node("h2", "order-card-title");
-  title.append(
-    textNode("strong", "", order.customer_reference || "No reference"),
-    textNode("span", "", `Created by ${displayUsername(order.created_by_username || order.created_by_name)} · ${formatDateTime(order.created_at)}`),
-  );
-  identity.append(title);
-  header.append(
-    identity,
-    textNode("span", `order-status status-${safeToken(order.status)}`, statusLabel(order.status)),
-  );
-
-  const body = node("dl", "order-card-body");
-  [
-    ["Required", joinValues(formatDate(details.required_date), timeSlotLabel(details.time_slot))],
-    ["Delivery", deliveryTypeLabel(details.delivery_type)],
-    ["Address", details.delivery_address || "—"],
-    ["Contact", joinValues(details.contact, details.mobile)],
-  ].forEach(([label, value]) => {
-    const item = node("div", "order-detail");
-    item.append(textNode("dt", "", label), textNode("dd", "", value || "—"));
-    body.append(item);
+  const row = document.createElement("tr");
+  const url = orderUrl(order.submission_id);
+  row.tabIndex = 0;
+  row.dataset.orderUrl = url;
+  row.addEventListener("click", () => window.location.assign(url));
+  row.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    window.location.assign(url);
   });
 
-  const footer = node("footer", "order-card-footer");
-  const files = node("div", "order-files");
-  const latestFiles = latestFilesByArea(order.files || []);
-  latestFiles.forEach((file, index) => {
-    const link = textNode("a", "", latestFiles.length === 1 ? "Download Excel" : `Download ${file.floor_label || file.floor || index + 1}`);
-    link.href = file.download_url;
-    link.download = file.filename || "";
-    files.append(link);
-  });
-  if (!latestFiles.length) files.append(textNode("span", "", "No file available"));
-
-  const actions = node("div", "order-actions");
-  if (order.can_archive) {
-    actions.append(actionButton("Archive", "neutral", () => changeOrderStatus(order, "archive")));
-  }
-  if (order.can_restore) {
-    actions.append(actionButton("Restore", "neutral", () => changeOrderStatus(order, "restore")));
-  }
-  if (order.can_delete) {
-    actions.append(actionButton("Delete order", "danger", () => openDeleteDialog(order)));
-  }
-
-  footer.append(files, actions);
-  card.append(header, body, footer);
-  return card;
+  row.append(
+    tableCell(orderIdentity(order), "orders-order-cell"),
+    tableCell(submittedIdentity(order), "orders-submitted-cell"),
+    tableCell(customerIdentity(order), "orders-customer-cell"),
+    tableCell(requiredIdentity(details), "orders-required-cell"),
+    tableCell(deliveryIdentity(details), "orders-delivery-cell"),
+    tableCell(itemIdentity(order), "orders-number-column"),
+    tableCell(statusBadge(order.status), "orders-status-column"),
+    tableCell(text("span", "orders-row-arrow", "›"), "orders-open-column"),
+  );
+  return row;
 }
 
-async function changeOrderStatus(order, action) {
-  const verb = action === "archive" ? "Archive" : "Restore";
-  const confirmed = window.confirm(`${verb} order ${order.customer_reference}?`);
-  if (!confirmed) return;
+function renderMobileOrder(order) {
+  const details = order.order_details || {};
+  const link = document.createElement("a");
+  link.className = "orders-mobile-row";
+  link.href = orderUrl(order.submission_id);
 
-  clearMessage();
-  try {
-    await setOrderStatus(order.submission_id, action);
-    showMessage(`Order ${order.customer_reference} was ${action === "archive" ? "archived" : "restored"}.`, "success");
-    await loadOrders();
-  } catch (error) {
-    showMessage(withRequestId(error), "error");
-  }
+  const header = document.createElement("div");
+  header.className = "orders-mobile-header";
+  header.append(orderIdentity(order), statusBadge(order.status));
+
+  const meta = document.createElement("div");
+  meta.className = "orders-mobile-meta";
+  meta.append(
+    labelledValue("Customer", order.company_name || "—"),
+    labelledValue("Required", requiredText(details)),
+    labelledValue("Delivery", deliveryTypeLabel(details.delivery_type)),
+    labelledValue("Items", `${Number(order.item_count || 0)} lines · ${Number(order.unit_count || 0)} units`),
+  );
+  link.append(header, meta);
+  return link;
 }
 
-function openDeleteDialog(order) {
-  state.pendingDelete = order;
-  elements.deleteOrderMessage.textContent = `This permanently removes order ${order.customer_reference}, its history record and stored Excel files. This cannot be undone.`;
-  elements.deleteOrderLabel.textContent = `Type ${order.customer_reference} to confirm`;
-  elements.deleteOrderConfirmation.value = "";
-  elements.deleteOrderDialog.showModal();
-  elements.deleteOrderConfirmation.focus();
+function orderIdentity(order) {
+  const block = document.createElement("div");
+  block.className = "orders-primary";
+  block.append(
+    text("strong", "", order.customer_reference || "No reference"),
+    text("span", "", `Placed by ${displayUsername(order.created_by_username || order.created_by_name)}`),
+  );
+  return block;
 }
 
-function closeDeleteDialog() {
-  state.pendingDelete = null;
-  elements.deleteOrderConfirmation.value = "";
-  elements.deleteOrderDialog.close();
+function submittedIdentity(order) {
+  const block = document.createElement("div");
+  block.className = "orders-secondary";
+  block.append(
+    text("strong", "", formatDate(order.created_at)),
+    text("span", "", formatClock(order.created_at)),
+  );
+  return block;
 }
 
-async function confirmPermanentDelete(event) {
-  event.preventDefault();
-  const order = state.pendingDelete;
-  if (!order) return;
+function customerIdentity(order) {
+  const block = document.createElement("div");
+  block.className = "orders-secondary";
+  block.append(
+    text("strong", "", order.company_name || "—"),
+    text("span", "", order.debtor_code || ""),
+  );
+  return block;
+}
 
-  if (elements.deleteOrderConfirmation.value.trim() !== String(order.customer_reference || "").trim()) {
-    elements.deleteOrderConfirmation.setCustomValidity("The reference does not match.");
-    elements.deleteOrderConfirmation.reportValidity();
-    elements.deleteOrderConfirmation.setCustomValidity("");
-    return;
-  }
+function requiredIdentity(details) {
+  const block = document.createElement("div");
+  block.className = "orders-secondary";
+  block.append(
+    text("strong", "", formatRequiredDate(details.required_date) || "—"),
+    text("span", "", timeSlotLabel(details.time_slot)),
+  );
+  return block;
+}
 
-  elements.confirmDeleteOrder.disabled = true;
-  try {
-    await permanentlyDeleteOrder(order.submission_id);
-    closeDeleteDialog();
-    showMessage(`Order ${order.customer_reference} was permanently deleted.`, "success");
-    await loadOrders();
-  } catch (error) {
-    showMessage(withRequestId(error), "error");
-  } finally {
-    elements.confirmDeleteOrder.disabled = false;
-  }
+function deliveryIdentity(details) {
+  const block = document.createElement("div");
+  block.className = "orders-secondary";
+  block.append(
+    text("strong", "", deliveryTypeLabel(details.delivery_type)),
+    text("span", "", details.delivery_address || "No address"),
+  );
+  return block;
+}
+
+function itemIdentity(order) {
+  const block = document.createElement("div");
+  block.className = "orders-item-count";
+  block.append(
+    text("strong", "", String(Number(order.item_count || 0))),
+    text("span", "", `${Number(order.unit_count || 0)} units`),
+  );
+  return block;
+}
+
+function statusBadge(value) {
+  return text("span", `order-status status-${safeToken(value)}`, statusLabel(value));
+}
+
+function tableCell(content, className = "") {
+  const cell = document.createElement("td");
+  if (className) cell.className = className;
+  cell.append(content);
+  return cell;
+}
+
+function labelledValue(label, value) {
+  const item = document.createElement("div");
+  item.append(text("span", "", label), text("strong", "", value || "—"));
+  return item;
 }
 
 async function logout() {
@@ -320,22 +359,13 @@ async function logout() {
   try {
     await signOut();
   } catch (_error) {
-    // A stale session may already be invalid. Redirecting still clears the visible portal state.
+    // Redirecting still clears the visible portal state when the session is stale.
   }
   window.location.assign("/signin/");
 }
 
-function latestFilesByArea(files) {
-  const latest = new Map();
-  files.forEach((file) => {
-    const key = String(file.floor || file.floor_label || "combined");
-    if (!latest.has(key)) latest.set(key, file);
-  });
-  return [...latest.values()];
-}
-
 function setBusy(busy) {
-  elements.ordersList.setAttribute("aria-busy", String(busy));
+  elements.ordersLoading.hidden = !busy;
   elements.refreshOrdersButton.disabled = busy;
 }
 
@@ -355,17 +385,6 @@ function withRequestId(error) {
   return error?.requestId ? `${error.message} Request ID: ${error.requestId}` : error?.message || String(error);
 }
 
-function emptyState(message) {
-  return textNode("div", "orders-empty", message);
-}
-
-function actionButton(label, className, handler) {
-  const button = textNode("button", `order-action ${className}`.trim(), label);
-  button.type = "button";
-  button.addEventListener("click", handler);
-  return button;
-}
-
 function option(value, label) {
   const item = document.createElement("option");
   item.value = value;
@@ -373,20 +392,19 @@ function option(value, label) {
   return item;
 }
 
-function node(tagName, className = "") {
+function text(tagName, className, value) {
   const element = document.createElement(tagName);
   if (className) element.className = className;
-  return element;
-}
-
-function textNode(tagName, className, value) {
-  const element = node(tagName, className);
   element.textContent = value == null || value === "" ? "—" : String(value);
   return element;
 }
 
-function joinValues(...values) {
-  return values.map((value) => String(value || "").trim()).filter(Boolean).join(" · ") || "—";
+function orderUrl(submissionId) {
+  return `/orders/view/?id=${encodeURIComponent(submissionId)}`;
+}
+
+function requiredText(details) {
+  return [formatRequiredDate(details.required_date), timeSlotLabel(details.time_slot)].filter(Boolean).join(" · ") || "—";
 }
 
 function statusLabel(value) {
@@ -395,8 +413,8 @@ function statusLabel(value) {
 }
 
 function timeSlotLabel(value) {
-  const labels = { "1ST": "1st Load", "2ND": "2nd Load", AM: "AM", PM: "PM", ANY: "Anytime" };
-  return labels[String(value || "").toUpperCase()] || String(value || "Anytime");
+  const labels = { "1ST": "1st", "2ND": "2nd", AM: "AM", PM: "PM", ANY: "Any" };
+  return labels[String(value || "").toUpperCase()] || "No default";
 }
 
 function deliveryTypeLabel(value) {
@@ -417,6 +435,16 @@ function displayUsername(value) {
 }
 
 function formatDate(value) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return String(value || "—");
+  return new Intl.DateTimeFormat("en-AU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(parsed);
+}
+
+function formatRequiredDate(value) {
   if (!value) return "";
   const parsed = new Date(`${value}T00:00:00`);
   if (Number.isNaN(parsed.getTime())) return String(value);
@@ -427,13 +455,10 @@ function formatDate(value) {
   }).format(parsed);
 }
 
-function formatDateTime(value) {
+function formatClock(value) {
   const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return String(value || "Unknown time");
+  if (Number.isNaN(parsed.getTime())) return "";
   return new Intl.DateTimeFormat("en-AU", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
     hour: "numeric",
     minute: "2-digit",
   }).format(parsed);
@@ -444,6 +469,11 @@ function formatTime(value) {
     hour: "numeric",
     minute: "2-digit",
   }).format(value);
+}
+
+function dateValue(value) {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime();
 }
 
 function safeToken(value) {
