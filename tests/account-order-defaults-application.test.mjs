@@ -4,22 +4,30 @@ import test from "node:test";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
-test("optional Account select prompts remain selectable", async () => {
+test("optional Account select prompts remain selectable and update the live model", async () => {
   const source = await read("public/account-admin-shopify-polish.js");
 
   assert.match(source, /emptyOption\.disabled = false/);
   assert.match(source, /new Option\("Any", "ANY"\)/);
+  assert.match(source, /function syncInMemoryDefaults\(select\)/);
+  assert.match(source, /orderDefaults\.timeSlot = select\.value/);
+  assert.match(source, /syncSelect\(select, \{ updateModel: true \}\)/);
   assert.doesNotMatch(source, /emptyOption\.disabled = true/);
 });
 
-test("order defaults are applied to the matching order-form controls", async () => {
+test("order defaults explicitly clear and apply the matching order-form controls", async () => {
   const bridge = await read("public/portal-state-bridge.js");
 
   assert.match(bridge, /function applyOrderDefaults\(defaults\)/);
   assert.match(bridge, /setValue\("reference", defaults\.reference\)/);
   assert.match(bridge, /setValue\("requiredDate", defaults\.requiredDate\)/);
-  assert.match(bridge, /selectRadio\("timeSlot", timeSlot\)/);
-  assert.match(bridge, /selectRadio\("deliveryType", deliveryType\)/);
+  assert.match(bridge, /clearChoiceGroup\("timeSlot"\)/);
+  assert.match(bridge, /selectChoice\("timeSlot", timeSlot\)/);
+  assert.match(bridge, /clearChoiceGroup\("deliveryType"\)/);
+  assert.match(bridge, /selectChoice\("deliveryType", deliveryType\)/);
+  assert.match(bridge, /clearChoiceGroup\("deliveryExtra"\)/);
+  assert.match(bridge, /window\.initialiseOrderDetailFields\?\.\(\)/);
+  assert.match(bridge, /window\.formatOrderDetailFields\?\.\(\)/);
   assert.match(bridge, /\["Crane Delivery", "Mechanical \(Forklift\/Crane\/Own\)"\]/);
   assert.match(bridge, /payload\.profile\?\.orderDefaults/);
 });
