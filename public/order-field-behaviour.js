@@ -95,7 +95,7 @@
   function stateFor(field) {
     let state = typingState.get(field);
     if (!state) {
-      state = { disabled: Boolean(field.value), previousValue: String(field.value || "") };
+      state = { disabled: Boolean(field.value) };
       typingState.set(field, state);
     }
     return state;
@@ -130,12 +130,13 @@
     }
     if (config.type === "reference") {
       field.inputMode = "text";
+      field.maxLength = 80;
       field.removeAttribute("pattern");
       field.removeAttribute("title");
     }
   }
 
-  function validateField(field, { show = true } = {}) {
+  function validateField(field) {
     const config = fields[field?.id];
     if (!config) return true;
     const value = String(field.value || "").trim();
@@ -145,20 +146,8 @@
     else if (config.type === "phone") valid = isValidAustralianPhone(value);
     else if (config.type === "street" && value) valid = /^(?=.*[\p{L}\p{N}])[\p{L}\p{M}\p{N} .,'’&/#()\-]+$/u.test(value);
 
-    const message = valid ? "" : config.message;
-    field.setCustomValidity(message);
+    field.setCustomValidity(valid ? "" : config.message);
     field.classList.toggle("is-order-field-invalid", !valid);
-    let error = document.getElementById(`${field.id}OrderValidationMessage`);
-    if (!error) {
-      error = document.createElement("small");
-      error.id = `${field.id}OrderValidationMessage`;
-      error.className = "order-field-validation-message";
-      error.hidden = true;
-      error.setAttribute("aria-live", "polite");
-      field.insertAdjacentElement("afterend", error);
-    }
-    error.textContent = message;
-    error.hidden = valid || !show;
     return valid;
   }
 
@@ -173,7 +162,6 @@
     if (String(event.inputType || "").startsWith("delete") || hasSelection || editingEarlierText || event.inputType === "insertFromPaste") {
       state.disabled = true;
     }
-    state.previousValue = String(field.value || "");
   }
 
   function onInput(event) {
@@ -193,7 +181,7 @@
 
     if (config.type === "phone") field.value = formatAustralianPhone(field.value, { typing: true });
     else capitaliseInitialTyping(field, config.capitalisation);
-    if (field.classList.contains("is-order-field-invalid")) validateField(field, { show: true });
+    if (field.classList.contains("is-order-field-invalid")) validateField(field);
   }
 
   function onBlur(event) {
@@ -203,7 +191,7 @@
     if (config.type === "phone") field.value = formatAustralianPhone(field.value);
     else if (config.type === "instructions") field.value = cleanInstructions(field.value);
     else field.value = cleanSingleLine(field.value);
-    validateField(field, { show: true });
+    validateField(field);
     if (field.id === "deliveryAddressSearch") event.stopPropagation();
   }
 
