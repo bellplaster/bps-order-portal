@@ -30,6 +30,7 @@ async function initialise() {
 function cacheElements() {
   [
     "logoutButton",
+    "printOrderButton",
     "orderViewMessage",
     "orderViewLoading",
     "orderViewContent",
@@ -37,16 +38,16 @@ function cacheElements() {
     "orderStatus",
     "orderSubmittedMeta",
     "viewGridLink",
-    "secondaryGridLink",
     "legacySnapshotNotice",
-    "orderSummaryDetails",
-    "orderDeliveryDetails",
+    "orderFulfilmentSummary",
     "orderProductSummary",
     "orderAreas",
-    "orderLowerGrid",
+    "orderDeliveryAddress",
+    "orderSummaryDetails",
+    "orderInstructionsBlock",
+    "orderInstructions",
     "orderFilesCard",
     "orderFiles",
-    "orderTimeline",
     "archiveOrderButton",
     "restoreOrderButton",
     "deleteOrderButton",
@@ -64,6 +65,7 @@ function cacheElements() {
 
 function bindEvents() {
   elements.logoutButton.addEventListener("click", logout);
+  elements.printOrderButton.addEventListener("click", () => window.print());
   elements.archiveOrderButton.addEventListener("click", () => updateStatus("archive"));
   elements.restoreOrderButton.addEventListener("click", () => updateStatus("restore"));
   elements.deleteOrderButton.addEventListener("click", openDeleteDialog);
@@ -82,6 +84,9 @@ function renderOrder(result) {
   const details = snapshot.details || {};
   const viewerRole = String(result.viewer?.role || "").toLowerCase();
   const internalViewer = viewerRole === "admin" || viewerRole === "customer_service";
+  const productLines = Number(snapshot.totals?.lineCount || 0);
+  const totalUnits = Number(snapshot.totals?.unitCount || 0);
+  const areaCount = Number(snapshot.totals?.areaCount || 0);
 
   document.title = `${order.customerReference || "Order"} | Bell Plaster Order Portal`;
   elements.orderReference.textContent = `Order ${order.customerReference || ""}`.trim();
@@ -89,44 +94,97 @@ function renderOrder(result) {
   elements.orderStatus.textContent = statusLabel(order.status);
   elements.orderSubmittedMeta.textContent = `Submitted ${formatDateTime(order.createdAt)} by ${displayActorName(order.createdByUsername || order.createdByName)}`;
 
-  const gridUrl = `/?viewOrder=${encodeURIComponent(order.submissionId)}&fromOrder=1`;
-  elements.viewGridLink.href = gridUrl;
-  elements.secondaryGridLink.href = gridUrl;
+  elements.viewGridLink.href = `/?viewOrder=${encodeURIComponent(order.submissionId)}&fromOrder=1`;
   elements.legacySnapshotNotice.hidden = snapshot.layoutSource !== "current";
 
+  renderFulfilmentSummary(elements.orderFulfilmentSummary, details);
+  renderDeliveryAddress(elements.orderDeliveryAddress, details);
   renderDefinitionList(elements.orderSummaryDetails, [
     ["Reference", details.reference || order.customerReference],
-    ["Required date", formatRequiredDate(details.requiredDate)],
-    ["Time slot", timeSlotLabel(details.timeSlot)],
-    ["Delivery type", deliveryTypeLabel(details.deliveryType)],
-    ["Product lines", String(Number(snapshot.totals?.lineCount || 0))],
-    ["Total units", String(Number(snapshot.totals?.unitCount || 0))],
-  ]);
-
-  renderDefinitionList(elements.orderDeliveryDetails, [
-    ["Contact", details.contact || "—"],
-    ["Phone", details.mobile || "—"],
-    ["Address", details.deliveryAddress || [details.addressLine1, details.addressLine2].filter(Boolean).join(", ") || "—"],
-    ["Extras", (details.extras || []).join(", ") || "None"],
-    ["Instructions", details.deliveryInstructions || "—"],
     ["Placed under", [displayCompanyName(order.companyName), String(order.debtorCode || "").toUpperCase()].filter(Boolean).join(" · ") || "—"],
+    ["Product lines", String(productLines)],
+    ["Total units", String(totalUnits)],
   ]);
 
-  const areaCount = Number(snapshot.totals?.areaCount || 0);
-  elements.orderProductSummary.textContent = `${Number(snapshot.totals?.lineCount || 0)} product lines across ${areaCount} tab${areaCount === 1 ? "" : "s"}.`;
+  const instructions = String(details.deliveryInstructions || "").trim();
+  elements.orderInstructionsBlock.hidden = !instructions;
+  elements.orderInstructions.textContent = instructions;
+
+  elements.orderProductSummary.textContent = `${productLines} product line${productLines === 1 ? "" : "s"} across ${areaCount} tab${areaCount === 1 ? "" : "s"}.`;
   state.activeAreaIndex = 0;
   renderAreas(snapshot.areas || []);
 
   elements.orderFilesCard.hidden = !internalViewer;
-  elements.orderLowerGrid.classList.toggle("is-single", !internalViewer);
   if (internalViewer) renderFiles(result.files || []);
-  renderTimeline(result.events || []);
 
   elements.archiveOrderButton.hidden = order.canArchive !== true;
   elements.restoreOrderButton.hidden = order.canRestore !== true;
   elements.deleteOrderButton.hidden = order.canDelete !== true;
   elements.orderViewLoading.hidden = true;
   elements.orderViewContent.hidden = false;
+}
+
+function renderFulfilmentSummary(root, details) {
+  root.replaceChildren();
+  const required = [
+    formatRequiredDate(details.requiredDate),
+    timeSlotLabel(details.timeSlot),
+  ].filter((value) => value && value !== "—" && value !== "Not selected").join(" · ") || "Not selected";
+
+  [
+    ["Delivery", deliveryTypeLabel(details.deliveryType)],
+    ["Required", required],
+    ["Extras", (details.extras || []).join(", ") || "None"],
+  ].forEach(([label, value]) => {
+    const item = document.createElement("div");
+    item.append(text("span", "", label), text("strong", "", value));
+    root.append(item);
+  });
+}
+
+function renderDeliveryAddress(root, details) {
+  root.replaceChildren();
+  const contact = String(details.contact || "").trim();
+  const phone = String(details.mobile || "").trim();
+  const addressLines = deliveryAddressParts(details);
+  const addressQuery = addressLines.join(", ");
+
+  if (contact) root.append(text("strong", "order-address-name", contact));
+
+  const address = document.createElement("address");
+  address.className = "order-address-lines";
+  if (addressLines.length) {
+    addressLines.forEach((line) => address.append(text("span", "", line)));
+  } else {
+    address.append(text("span", "", "No delivery address provided"));
+  }
+  root.append(address);
+
+  if (phone) {
+    const phoneLink = document.createElement("a");
+    phoneLink.className = "order-address-phone";
+    phoneLink.href = `tel:${phone.replace(/[^\d+]/g, "")}`;
+    phoneLink.textContent = phone;
+    root.append(phoneLink);
+  }
+
+  if (addressQuery) {
+    const mapLink = document.createElement("a");
+    mapLink.className = "order-address-map";
+    mapLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressQuery)}`;
+    mapLink.target = "_blank";
+    mapLink.rel = "noopener noreferrer";
+    mapLink.textContent = "View map";
+    root.append(mapLink);
+  }
+}
+
+function deliveryAddressParts(details) {
+  const combined = String(details.deliveryAddress || "").trim();
+  if (combined) return combined.split(/\s*,\s*/).map((part) => part.trim()).filter(Boolean);
+  return [details.addressLine1, details.addressLine2]
+    .map((part) => String(part || "").trim())
+    .filter(Boolean);
 }
 
 function renderDefinitionList(root, rows) {
@@ -184,7 +242,7 @@ function renderAreas(areas) {
     panel.setAttribute("role", "tabpanel");
     panel.setAttribute("aria-labelledby", tabId);
     panel.hidden = areaIndex !== state.activeAreaIndex;
-    panel.append(renderAreaTable(area));
+    panel.append(text("h3", "order-print-area-title", label), renderAreaTable(area));
     if (area.otherProducts) panel.append(text("p", "order-area-note", area.otherProducts));
     panels.append(panel);
   });
@@ -223,6 +281,8 @@ function areaTabLabel(area, index) {
 }
 
 function renderAreaTable(area) {
+  const shell = document.createElement("div");
+  shell.className = "order-lines-shell";
   const table = document.createElement("table");
   table.className = "order-lines-table";
   table.innerHTML = "<thead><tr><th>Product</th><th>SKU</th><th class=\"line-quantity\">Quantity</th></tr></thead>";
@@ -253,7 +313,8 @@ function renderAreaTable(area) {
   });
 
   table.append(body);
-  return table;
+  shell.append(table);
+  return shell;
 }
 
 function groupAreaLines(area) {
@@ -295,20 +356,6 @@ function renderFiles(files) {
     );
     link.append(identity, text("b", "", "Download XLSX"));
     elements.orderFiles.append(link);
-  });
-}
-
-function renderTimeline(events) {
-  elements.orderTimeline.replaceChildren();
-  if (!events.length) {
-    elements.orderTimeline.append(emptyState("No activity has been recorded."));
-    return;
-  }
-
-  events.slice(0, 12).forEach((event) => {
-    const item = document.createElement("li");
-    item.append(text("strong", "", event.stage || "Order updated"), text("span", "", formatDateTime(event.created_at)));
-    elements.orderTimeline.append(item);
   });
 }
 
