@@ -19,6 +19,9 @@
     "Pickup (Customer to collect)",
   ]);
 
+  // Compatibility is intentionally one-way. Historical stored labels may be
+  // read into the canonical model, but current values are never written back
+  // using retired delivery terms.
   const LEGACY_DELIVERY_TYPE_MAP = new Map([
     ["Manual Unload (Knauf Labour)", "Hand Unload"],
     ["Mechanical (Forklift/Crane/Own)", "Forklift Delivery"],
