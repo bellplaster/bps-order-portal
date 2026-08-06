@@ -16,6 +16,7 @@ test("self-drilling bugles use the same thin divider as the Duo accessory transi
   assert.match(source, /makeFastenerRow\(floor, label, sku, index === 0\)/);
   assert.doesNotMatch(source, /function makeSeparatorRow/);
   assert.doesNotMatch(source, /fragment\.append\(makeSeparatorRow\(\)\)/);
+  assert.doesNotMatch(source, /colSpan\s*=\s*3/);
 });
 
 test("legacy spacer rows are removed during rerender", async () => {
