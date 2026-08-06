@@ -278,10 +278,11 @@
         updateActive();
       } else if (event.key === "Enter") {
         event.preventDefault();
-        if (activeIndex >= 0) void choose(suggestions[activeIndex]);
-        else {
-          input.dispatchEvent(new Event("change", { bubbles: true }));
+        if (activeIndex >= 0) {
+          void choose(suggestions[activeIndex]);
+        } else {
           close();
+          input.dispatchEvent(new Event("change", { bubbles: true }));
         }
       } else if (event.key === "Escape") {
         event.preventDefault();
