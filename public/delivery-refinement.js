@@ -1,4 +1,7 @@
 (() => {
+  if (window.__bpsDeliveryRefinementLoaded) return;
+  window.__bpsDeliveryRefinementLoaded = true;
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initialiseDeliveryRefinement, { once: true });
   } else {
