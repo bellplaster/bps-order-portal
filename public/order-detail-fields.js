@@ -279,7 +279,10 @@
       } else if (event.key === "Enter") {
         event.preventDefault();
         if (activeIndex >= 0) void choose(suggestions[activeIndex]);
-        else close();
+        else {
+          input.dispatchEvent(new Event("change", { bubbles: true }));
+          close();
+        }
       } else if (event.key === "Escape") {
         event.preventDefault();
         close();
