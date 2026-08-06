@@ -14,11 +14,13 @@ function browserRules() {
   const document = {
     readyState: "loading",
     addEventListener() {},
+    getElementById() { return null; },
   };
   vm.runInNewContext(source, {
     window,
     document,
     WeakMap,
+    Map,
     String,
     RegExp,
   });
@@ -36,6 +38,7 @@ test("common Australian phone numbers are formatted consistently", () => {
     ["1900123456", "1900 123 456"],
     ["93881669", "9388 1669"],
     ["+61412345678", "+61 412 345 678"],
+    ["+61393881669", "+61 3 9388 1669"],
   ]);
 
   for (const [input, expected] of examples) {
@@ -45,28 +48,50 @@ test("common Australian phone numbers are formatted consistently", () => {
   }
 });
 
-test("capitalisation is a suggestion rather than a permanent formatter", () => {
+test("loaded defaults are naturalised without forcing deliberately mixed case", () => {
+  const rules = browserRules();
+  assert.equal(rules.formatLoadedValue("DOUGLAS PHUNG", "person", "words"), "Douglas Phung");
+  assert.equal(
+    rules.formatLoadedValue("125 SUSSEX STREET, PASCOE VALE VIC 3044", "street", "words"),
+    "125 Sussex Street, Pascoe Vale VIC 3044",
+  );
+  assert.equal(
+    rules.formatLoadedValue("CONTACT ME WHEN ARRIVING", "instructions", "sentence"),
+    "Contact me when arriving",
+  );
+  assert.equal(rules.formatLoadedValue("McDonald site", "reference", "sentence"), "McDonald site");
+});
+
+test("capitalisation is an initial suggestion and respects later manual edits", () => {
   const rules = browserRules();
   assert.equal(rules.suggestCapitalisation("douglas phung", "words"), "Douglas Phung");
   assert.equal(rules.suggestCapitalisation("125 sussex street", "words"), "125 Sussex Street");
   assert.equal(rules.suggestCapitalisation("monday deliver", "sentence"), "Monday deliver");
   assert.equal(rules.suggestCapitalisation("contact me when arriving", "sentence"), "Contact me when arriving");
 
-  assert.match(source, /startsWith\("delete"\)[\s\S]*state\.disabled = true/);
-  assert.match(source, /hasSelection[\s\S]*state\.disabled = true/);
+  assert.match(source, /inputType\.startsWith\("delete"\)[\s\S]*assistanceEnabled = false/);
+  assert.match(source, /hasSelection[\s\S]*assistanceEnabled = false/);
+  assert.match(source, /editingEarlierText[\s\S]*assistanceEnabled = false/);
   assert.doesNotMatch(source, /\.toUpperCase\(\)/);
 });
 
-test("order form loads shared behaviour before the legacy refinement", () => {
-  const shared = indexHtml.indexOf("/order-field-behaviour.js?v=20260806-1");
-  const legacy = indexHtml.indexOf("/phone-date-refinement.js");
+test("shared behaviour loads before all order application scripts", () => {
+  const shared = indexHtml.indexOf("/order-field-behaviour.js?v=20260806-2");
+  const app = indexHtml.indexOf("/app.js?");
+  const details = indexHtml.indexOf("/order-detail-fields.js?");
+  const legacyUtility = indexHtml.indexOf("/phone-date-refinement.js?");
   assert.ok(shared > -1);
-  assert.ok(legacy > shared);
+  assert.ok(app > shared);
+  assert.ok(details > shared);
+  assert.ok(legacyUtility > shared);
+  assert.match(indexHtml, /order-field-behaviour\.css\?v=20260806-1/);
 });
 
 test("references remain required but may contain natural customer text and symbols", () => {
   assert.match(source, /field\.removeAttribute\("pattern"\)/);
   assert.match(source, /field\.maxLength = 80/);
+  assert.doesNotMatch(indexHtml, /id="reference"[^>]*pattern=/);
+  assert.match(indexHtml, /id="reference"[^>]*maxlength="80"/);
   assert.match(submitSource, /function cleanOrderReference/);
   assert.doesNotMatch(submitSource, /\^\\d\+\(\?:-\\d\+\)\*\$/);
   assert.match(submitSource, /payload\.reference = reference/);
