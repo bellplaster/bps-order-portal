@@ -67,11 +67,58 @@
     },
   });
 
+  const NASAHI = Object.freeze({
+    panels: {
+      columns: ["2200", "2400", "2550", "2700", "2850", "3000", "3300"],
+      rows: [
+        ["Nasahi Panel 50mm", [["1P502200", "Nasahi Panel 50mm", "2200"], ["1P502400", "Nasahi Panel 50mm", "2400"], ["1P502550", "Nasahi Panel 50mm", "2550"], ["1P502700", "Nasahi Panel 50mm", "2700"], ["1P502850", "Nasahi Panel 50mm", "2850"], ["1P503000", "Nasahi Panel 50mm", "3000"], null]],
+        ["Nasahi Panel LD 75mm", [["1P752200LD", "Nasahi Panel LD 75mm", "2200"], ["1P752400LD", "Nasahi Panel LD 75mm", "2400"], ["1P752550LD", "Nasahi Panel LD 75mm", "2550"], ["1P752700LD", "Nasahi Panel LD 75mm", "2700"], ["1P752850LD", "Nasahi Panel LD 75mm", "2850"], ["1P753000LD", "Nasahi Panel LD 75mm", "3000"], ["1P753300LD", "Nasahi Panel LD 75mm", "3300"]]],
+      ],
+    },
+    accessories: [
+      ["75mm Nasahi Panels Flooring SQ (10 Pack)", "1800 x 600 mm", "1P751800SQ"],
+      ["AAC Base Sealer", "5 L", "AACBS"],
+      ["Corrosion Paint", "250 mL", "ACP250"],
+      ["AAC Adhesive", "20 kg", "ADH20"],
+      ["Party Wall Angle Bracket (500 Pack)", "", "APW01"],
+      ["C Batten 16mm (20 Pack)", "2.85 m", "BC162850"],
+      ["C Batten 24mm (12 Pack)", "2.85 m", "BC242850"],
+      ["C Batten 35mm", "3.0 m", "BC353000"],
+      ["H Section 50mm", "3.0 m", "BH503000"],
+      ["Fire Rated Caulking", "600 mL", "FRIC600"],
+      ["Concrete Screw M8 x 100mm (50 Pack)", "", "SCON100"],
+      ["Metal Batten Screw 20mm (500 Pack)", "", "SSHX20"],
+      ["Steel Panel Screw 90mm (500 Pack)", "", "SSHX90"],
+      ["Timber Panel Screw 100mm Bugle (500 Pack)", "", "STBB100"],
+      ["Timber Panel Screw 150mm Hex (250 Pack)", "", "STHX150"],
+      ["Timber Batten Screw 25mm Hex (500 Pack)", "", "STHX25"],
+      ["Timber Batten Screw 35mm Hex (500 Pack)", "", "STHX35"],
+      ["Timber Panel Screw 45mm Hex (1000 Pack)", "", "STHX45"],
+    ],
+  });
+
+  const PROPANEL = Object.freeze({
+    panels: {
+      columns: ["2200", "2400", "2700", "2850", "3000", "3300"],
+      rows: [
+        ["AAC Panel 50 mm (15 Pack)", [["BPS/2200-50MM", "AAC Panel 50 mm (15 Pack)", "2200"], ["BPS/99939", "AAC Panel 50 mm (15 Pack)", "2400"], ["BPS/162758", "AAC Panel 50 mm (15 Pack)", "2700"], ["BPS/162756", "AAC Panel 50 mm (15 Pack)", "2850"], ["BPS/162760", "AAC Panel 50 mm (15 Pack)", "3000"], null]],
+        ["AAC Panel 75 mm (10 Pack)", [null, ["BPS/118014", "AAC Panel 75 mm (10 Pack)", "2400"], ["BPS/118016", "AAC Panel 75 mm (10 Pack)", "2700"], ["BPS/118019", "AAC Panel 75 mm (10 Pack)", "2850"], ["BPS/118020", "AAC Panel 75 mm (10 Pack)", "3000"], ["BPS/126504", "AAC Panel 75 mm (10 Pack)", "3300"]]],
+      ],
+    },
+    accessories: [["Unitex AAC Adhesive", "20 kg", "BPS/UNITEXAD"]],
+  });
+
+  const AAC_BRANDS = Object.freeze({
+    hebel: { label: "Hebel", render: renderHebelBrand },
+    nasahi: { label: "Nasahi", render: renderNasahiBrand },
+    propanel: { label: "Propanel", render: renderPropanelBrand },
+  });
+
   const renderer = function renderWithRondoHebelCatalogue(floor, ...args) {
     registerCatalogue();
     const result = previousRenderer.call(this, floor, ...args);
     renderRondoExtensions(floor);
-    renderHebel(floor);
+    renderAacSection(floor);
     return result;
   };
   renderer.__rondoHebelCatalogue = true;
@@ -92,17 +139,7 @@
     const key = keyFor(sku, lineIdentity);
     if (!state.catalog) state.catalog = {};
     const existing = state.catalog[key] || {};
-    state.catalog[key] = {
-      ...existing,
-      sku,
-      stockCode: sku,
-      label,
-      description: label,
-      detail,
-      lineIdentity,
-      mapped: true,
-      available: true,
-    };
+    state.catalog[key] = { ...existing, sku, stockCode: sku, label, description: label, detail, lineIdentity, mapped: true, available: true };
     return key;
   }
 
@@ -118,9 +155,11 @@
     definition.rows.forEach(([, cells], rowIndex) => cells.forEach((entry, cellIndex) => {
       if (entry) register(entry[0], entry[1], entry[2], matrixLineIdentity(scope, rowIndex, cellIndex));
     }));
-    (definition.accessories || []).forEach(([label, sku], index) => {
-      register(sku, label, "", accessoryLineIdentity(scope, index));
-    });
+    (definition.accessories || []).forEach(([label, sku], index) => register(sku, label, "", accessoryLineIdentity(scope, index)));
+  }
+
+  function registerAccessoryList(accessories, scope) {
+    accessories.forEach(([label, detail, sku], index) => register(sku, label, detail, accessoryLineIdentity(scope, index)));
   }
 
   function registerCatalogue() {
@@ -129,9 +168,11 @@
     registerDefinition(RONDO.duo, "rondo-duo");
     registerDefinition(HEBEL.panels, "hebel-panels");
     registerDefinition(HEBEL.steel, "hebel-steel");
-    HEBEL.compounds.forEach(([label, detail, sku], index) => {
-      register(sku, label, detail, `hebel-compounds-${index}`);
-    });
+    registerAccessoryList(HEBEL.compounds, "hebel-compounds");
+    registerDefinition(NASAHI.panels, "nasahi-panels");
+    registerAccessoryList(NASAHI.accessories, "nasahi-accessories");
+    registerDefinition(PROPANEL.panels, "propanel-panels");
+    registerAccessoryList(PROPANEL.accessories, "propanel-accessories");
   }
 
   function makeTable(className, widths) {
@@ -169,9 +210,7 @@
       name.scope = "row";
       name.textContent = label;
       row.append(name);
-      cells.forEach((entry, cellIndex) => {
-        row.append(quantityCell(floor, entry, matrixLineIdentity(scope, rowIndex, cellIndex)));
-      });
+      cells.forEach((entry, cellIndex) => row.append(quantityCell(floor, entry, matrixLineIdentity(scope, rowIndex, cellIndex))));
       tbody.append(row);
     });
   }
@@ -203,40 +242,90 @@
   function renderRondoExtensions(floor) {
     const section = document.querySelector(`#${CSS.escape(floor)}OrderSheet .rondo-category`);
     if (!section || section.querySelector(".suspended-grid-table")) return;
-    section.append(
-      renderRondoGridTable(floor, RONDO.suspended, "rondo-grid-table suspended-grid-table", "rondo-suspended"),
-      renderRondoGridTable(floor, RONDO.duo, "rondo-grid-table duo-grid-table", "rondo-duo"),
-    );
+    section.append(renderRondoGridTable(floor, RONDO.suspended, "rondo-grid-table suspended-grid-table", "rondo-suspended"), renderRondoGridTable(floor, RONDO.duo, "rondo-grid-table duo-grid-table", "rondo-duo"));
   }
 
-  function renderHebel(floor) {
+  function renderAacSection(floor) {
     const partiwall = document.querySelector(`#${CSS.escape(floor)}OrderSheet .partiwall-category`);
     const column = partiwall?.parentElement;
-    if (!column || column.querySelector(".hebel-category")) return;
+    if (!column || column.querySelector(".aac-category")) return;
 
     const section = document.createElement("section");
-    section.className = "lower-catalogue-section hebel-category";
-    const heading = document.createElement("h3");
-    heading.className = "lower-category-title";
-    heading.textContent = "HEBEL";
-    section.append(heading, renderHebelPanels(floor), renderHebelCompounds(floor), renderHebelSteel(floor));
+    section.className = "lower-catalogue-section hebel-category aac-category";
+    section.dataset.activeBrand = "hebel";
+
+    const tabs = document.createElement("div");
+    tabs.className = "aac-brand-tabs";
+    tabs.setAttribute("role", "tablist");
+    tabs.setAttribute("aria-label", "AAC brands");
+
+    const content = document.createElement("div");
+    content.className = "aac-brand-content";
+
+    Object.entries(AAC_BRANDS).forEach(([key, brand], index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "aac-brand-tab";
+      button.textContent = brand.label;
+      button.dataset.brand = key;
+      button.setAttribute("role", "tab");
+      button.setAttribute("aria-selected", index === 0 ? "true" : "false");
+      button.tabIndex = index === 0 ? 0 : -1;
+      if (index === 0) button.classList.add("is-active");
+      tabs.append(button);
+    });
+
+    tabs.addEventListener("click", (event) => {
+      const button = event.target.closest(".aac-brand-tab");
+      if (button) activateAacBrand(section, floor, button.dataset.brand);
+    });
+
+    tabs.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      event.preventDefault();
+      const buttons = [...tabs.querySelectorAll(".aac-brand-tab")];
+      const current = Math.max(0, buttons.indexOf(document.activeElement));
+      let next = current;
+      if (event.key === "ArrowRight") next = (current + 1) % buttons.length;
+      if (event.key === "ArrowLeft") next = (current - 1 + buttons.length) % buttons.length;
+      if (event.key === "Home") next = 0;
+      if (event.key === "End") next = buttons.length - 1;
+      buttons[next].focus();
+      activateAacBrand(section, floor, buttons[next].dataset.brand);
+    });
+
+    section.append(tabs, content);
     column.insertBefore(section, partiwall);
+    activateAacBrand(section, floor, "hebel");
   }
 
-  function renderHebelPanels(floor) {
-    const table = makeTable("hebel-panel-table", [38, 8.86, 8.86, 8.86, 8.86, 8.86, 8.86, 8.84]);
+  function activateAacBrand(section, floor, brandKey) {
+    const brand = AAC_BRANDS[brandKey] || AAC_BRANDS.hebel;
+    section.dataset.activeBrand = brandKey;
+    section.querySelectorAll(".aac-brand-tab").forEach((button) => {
+      const active = button.dataset.brand === brandKey;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-selected", active ? "true" : "false");
+      button.tabIndex = active ? 0 : -1;
+    });
+    section.querySelector(".aac-brand-content").replaceChildren(...brand.render(floor));
+  }
+
+  function renderMatrixTable(floor, definition, className, scope) {
+    const remainder = 62 / definition.columns.length;
+    const table = makeTable(className, [38, ...definition.columns.map(() => remainder)]);
     const tbody = document.createElement("tbody");
-    appendHeader(tbody, "Product", HEBEL.panels.columns);
-    appendMatrixRows(tbody, floor, HEBEL.panels, "hebel-panels");
+    appendHeader(tbody, "Product", definition.columns);
+    appendMatrixRows(tbody, floor, definition, scope);
     table.append(tbody);
     return table;
   }
 
-  function renderHebelCompounds(floor) {
-    const table = makeTable("hebel-compounds-table", [58, 22, 20]);
+  function renderAccessoryTable(floor, title, accessories, className, scope) {
+    const table = makeTable(className, [58, 22, 20]);
     const tbody = document.createElement("tbody");
-    appendHeader(tbody, "Compounds & Coatings", ["Size", "Qty"]);
-    HEBEL.compounds.forEach(([label, detail, sku], index) => {
+    appendHeader(tbody, title, ["Size", "Qty"]);
+    accessories.forEach(([label, detail, sku], index) => {
       const row = document.createElement("tr");
       const name = document.createElement("th");
       name.scope = "row";
@@ -244,20 +333,23 @@
       const size = document.createElement("td");
       size.className = "lower-item-detail";
       size.textContent = detail;
-      row.append(name, size, createQuantityCell(floor, keyFor(sku, `hebel-compounds-${index}`)));
+      row.append(name, size, createQuantityCell(floor, keyFor(sku, accessoryLineIdentity(scope, index))));
       tbody.append(row);
     });
     table.append(tbody);
     return table;
   }
 
-  function renderHebelSteel(floor) {
-    const table = makeTable("hebel-steel-table", [58, 21, 21]);
-    const tbody = document.createElement("tbody");
-    appendHeader(tbody, "Top Hats & Angles", HEBEL.steel.columns);
-    appendMatrixRows(tbody, floor, HEBEL.steel, "hebel-steel");
-    table.append(tbody);
-    return table;
+  function renderHebelBrand(floor) {
+    return [renderMatrixTable(floor, HEBEL.panels, "hebel-panel-table", "hebel-panels"), renderAccessoryTable(floor, "Compounds & Coatings", HEBEL.compounds, "hebel-compounds-table", "hebel-compounds"), renderMatrixTable(floor, HEBEL.steel, "hebel-steel-table", "hebel-steel")];
+  }
+
+  function renderNasahiBrand(floor) {
+    return [renderMatrixTable(floor, NASAHI.panels, "hebel-panel-table nasahi-panel-table", "nasahi-panels"), renderAccessoryTable(floor, "Nasahi Accessories", NASAHI.accessories, "hebel-compounds-table nasahi-accessories-table", "nasahi-accessories")];
+  }
+
+  function renderPropanelBrand(floor) {
+    return [renderMatrixTable(floor, PROPANEL.panels, "hebel-panel-table propanel-panel-table", "propanel-panels"), renderAccessoryTable(floor, "Accessories", PROPANEL.accessories, "hebel-compounds-table propanel-accessories-table", "propanel-accessories")];
   }
 
   function refreshExistingSheets() {
@@ -268,6 +360,6 @@
     });
   }
 
-  globalThis.BpsRondoHebelCatalogue = Object.freeze({ RONDO, HEBEL, keyFor });
+  globalThis.BpsRondoHebelCatalogue = Object.freeze({ RONDO, HEBEL, NASAHI, PROPANEL, keyFor });
   queueMicrotask(refreshExistingSheets);
 })();

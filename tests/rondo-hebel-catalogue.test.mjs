@@ -20,10 +20,14 @@ const expectedSkus = [
   "21969", "81462", "118283", "118284", "118891", "21965", "21987",
   "21933", "21935", "21949", "111161", "25594",
   "21909", "105536", "168890", "141233", "24092", "126323",
+  "1P502200", "1P502400", "1P502550", "1P502700", "1P502850", "1P503000",
+  "1P752200LD", "1P752400LD", "1P752550LD", "1P752700LD", "1P752850LD", "1P753000LD", "1P753300LD",
+  "1P751800SQ", "AACBS", "ACP250", "ADH20", "APW01", "BC162850", "BC242850", "BC353000", "BH503000", "FRIC600", "SCON100", "SSHX20", "SSHX90", "STBB100", "STHX150", "STHX25", "STHX35", "STHX45",
+  "BPS/2200-50MM", "BPS/99939", "BPS/162758", "BPS/162756", "BPS/162760", "BPS/118014", "BPS/118016", "BPS/118019", "BPS/118020", "BPS/126504", "BPS/UNITEXAD",
 ];
 
-test("every supplied Rondo and Hebel SKU is registered", () => {
-  expectedSkus.forEach((sku) => assert.match(source, new RegExp(`[\"']${sku}[\"']`), `Missing SKU ${sku}`));
+test("every supplied Rondo and AAC SKU is registered", () => {
+  expectedSkus.forEach((sku) => assert.match(source, new RegExp(`[\"']${sku.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\"']`), `Missing SKU ${sku}`));
 });
 
 test("manager catalogue order uses three equal desktop columns", () => {
@@ -43,22 +47,22 @@ test("lower-products stylesheet is the sole catalogue column-layout owner", () =
 
 test("catalogue renderers load once in deterministic document order", () => {
   const lowerIndex = index.indexOf('/lower-products-refinement.js?v=20260801-3');
-  const catalogueIndex = index.indexOf('/rondo-hebel-catalogue.js?v=20260805-1');
+  const catalogueIndex = index.indexOf('/rondo-hebel-catalogue.js?v=20260806-1');
   const additionalIndex = index.indexOf('/additional-products-refinement.js?v=20260729-2');
   assert.ok(lowerIndex >= 0, "lower catalogue renderer is missing");
-  assert.ok(catalogueIndex > lowerIndex, "Rondo/Hebel must wrap the lower renderer");
+  assert.ok(catalogueIndex > lowerIndex, "Rondo/AAC must wrap the lower renderer");
   assert.ok(additionalIndex > catalogueIndex, "Additional Products must wrap the completed catalogue renderer");
   assert.equal((index.match(/rondo-hebel-catalogue\.js/g) || []).length, 1);
   assert.doesNotMatch(loader, /rondo-hebel-catalogue\.js/);
 });
 
 test("the deployed page requests the current catalogue assets", () => {
-  assert.match(index, /lower-products-refinement\.css\?v=20260801-3/);
+  assert.match(index, /lower-products-refinement\.css\?v=20260806-1/);
   assert.match(index, /lower-products-refinement\.js\?v=20260801-3/);
   assert.doesNotMatch(index, /lower-products-refinement\.js\?v=20260801-2/);
   assert.match(index, /experience-refinement\.css\?v=20260801-1/);
   assert.doesNotMatch(index, /experience-refinement\.css\?v=20260724-2/);
-  assert.match(index, /rondo-hebel-catalogue\.js\?v=20260805-1/);
+  assert.match(index, /rondo-hebel-catalogue\.js\?v=20260806-1/);
   assert.match(index, /draft-restore-fix\.js\?v=20260805-1/);
 });
 
@@ -97,16 +101,23 @@ test("Rondo accessories are visually separated without another heading", () => {
   assert.doesNotMatch(source, /Clips & Brackets/);
 });
 
-test("Hebel is inserted into the same third column directly above Partiwalls", () => {
+test("AAC tabs are inserted into the same third column directly above Partiwalls", () => {
   assert.match(source, /const partiwall = document\.querySelector/);
   assert.match(source, /const column = partiwall\?\.parentElement/);
   assert.match(source, /column\.insertBefore\(section, partiwall\)/);
-  assert.match(source, /hebel-panel-table", \[38,/);
+  assert.match(source, /section\.className = "lower-catalogue-section hebel-category aac-category"/);
+  assert.match(source, /AAC_BRANDS/);
+  assert.match(source, /activateAacBrand\(section, floor, "hebel"\)/);
+});
+
+test("AAC tabs use the same maroon catalogue heading treatment", () => {
+  assert.match(styles, /\.aac-brand-tabs\{[^}]*background:#a62b45/);
+  assert.match(styles, /\.aac-brand-tab\{[^}]*background:#a62b45[^}]*color:#fff/);
+  assert.match(styles, /\.aac-brand-tab\.is-active\{[^}]*background:#7f1f34[^}]*box-shadow:inset 0 -3px 0 #fff/);
 });
 
 test("new tables use the existing lower catalogue and quantity controls", () => {
   assert.match(source, /lower-catalogue-table/);
-  assert.match(source, /lower-category-title/);
   assert.match(source, /createQuantityCell\(floor,/);
   assert.doesNotMatch(source, /className = ["']qty["']/);
 });
@@ -128,8 +139,10 @@ test("line identity survives payload reconciliation and Accrivia export", () => 
   assert.match(exporter, /const key = String\(item\.lineIdentity \|\| item\.sku\)/);
 });
 
-test("catalogue styles retain Rondo and Hebel rules", () => {
+test("catalogue styles retain Rondo, Hebel and AAC rules", () => {
   assert.match(styles, /\.rondo-grid-table/);
   assert.match(styles, /\.hebel-panel-table/);
   assert.match(styles, /\.hebel-category/);
+  assert.match(styles, /\.aac-brand-tabs/);
+  assert.match(styles, /\.aac-brand-tab/);
 });
