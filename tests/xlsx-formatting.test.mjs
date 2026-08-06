@@ -29,18 +29,37 @@ test("production export writes tab names in column A and NOTES in the stock code
   });
   const xml = workbookText(workbook);
 
-  assert.match(xml, /<c r="A12" s="9" t="inlineStr"><is><t xml:space="preserve">TAB 1<\/t><\/is><\/c>/);
-  assert.match(xml, /<c r="A13" s="7"\/>/);
-  assert.match(xml, /<c r="B13" s="7" t="inlineStr"><is><t xml:space="preserve">NOTES<\/t><\/is><\/c>/);
-  assert.match(xml, /<c r="C13" s="7" t="inlineStr">/);
-  assert.match(xml, /<c r="D13" s="8"><v>1<\/v><\/c>/);
+  assert.match(xml, /<c r="A12"[^>]*t="inlineStr"><is><t xml:space="preserve">TAB 1<\/t><\/is><\/c>/);
+  assert.match(xml, /<c r="A13"[^>]*\/>/);
+  assert.match(xml, /<c r="B13"[^>]*t="inlineStr"><is><t xml:space="preserve">NOTES<\/t><\/is><\/c>/);
+  assert.match(xml, /<c r="C13"[^>]*t="inlineStr">/);
+  assert.match(xml, /<c r="D13"[^>]*><v>1<\/v><\/c>/);
 });
 
-test("production export retains the approved A-B and C-D column widths", () => {
+test("production export uses the approved A-C and D column widths", () => {
   const xml = workbookText(createAccriviaSiteAreaXlsx({
     ...common,
     productRows: [["TAB 1", "10SR1260", "", 1]],
   }));
 
-  assert.match(xml, /<col min="1" max="2" width="20" customWidth="1"\/><col min="3" max="4" width="10" customWidth="1"\/>/);
+  assert.match(xml, /<col min="1" max="3" width="20" customWidth="1"\/><col min="4" max="4" width="10" customWidth="1"\/>/);
+});
+
+test("production export includes the approved pretty workbook styling", () => {
+  const xml = workbookText(createAccriviaSiteAreaXlsx({
+    ...common,
+    productRows: [
+      ["TAB 1", "10SR1260", "", 1],
+      ["", "10SR1360", "", 2],
+      ["", "NOTES", "TIME SLOT: AM", 1],
+    ],
+  }));
+
+  assert.match(xml, /<name val="Arial"\/>/);
+  assert.match(xml, /<name val="Consolas"\/>/);
+  assert.match(xml, /fgColor rgb="FFA62B45"/);
+  assert.match(xml, /fgColor rgb="FFF1F3F2"/);
+  assert.match(xml, /fgColor rgb="FFFFF7DC"/);
+  assert.match(xml, /bottom style="medium"><color rgb="FF9DA5A2"/);
+  assert.match(xml, /<row r="13"[^>]*thickBot="1"/);
 });
