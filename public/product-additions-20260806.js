@@ -2,7 +2,7 @@
   const previousRenderer = window.renderUnifiedFloorSheet;
   if (typeof previousRenderer !== "function" || previousRenderer.__productAdditions20260806) return;
 
-  const RONDO_LENGTHS = ["1800", "2400", "2700", "3000", "3600", "6000", "6100"];
+  const RONDO_LENGTHS = ["1800", "2400", "2700", "3000", "3600", "6000"];
   const PRODUCTS = Object.freeze({
     rondo: {
       p40: {
@@ -97,7 +97,7 @@
   function makeFastenerRow(floor, label, sku, first) {
     const row = document.createElement("tr");
     row.className = "self-drilling-bugle-row";
-    if (first) row.style.borderTop = "1px solid #aeb6b4";
+    if (first) row.style.borderTop = "3px solid #bfc6c4";
 
     const name = document.createElement("th");
     name.scope = "row";
