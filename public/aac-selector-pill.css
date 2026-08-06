@@ -1,0 +1,10 @@
+.aac-brand-tabs{position:relative;isolation:isolate;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:4px;border:1px solid #a62b45;border-bottom:0;background:#a62b45;overflow:hidden}
+.aac-brand-tabs::before{content:"";position:absolute;z-index:0;top:4px;bottom:4px;left:4px;width:calc((100% - 16px)/3);border-radius:6px;background:#fff;box-shadow:0 2px 8px rgba(23,33,31,.18);transform:translateX(0);transition:transform .28s cubic-bezier(.22,.8,.28,1)}
+.aac-brand-tabs:has(.aac-brand-tab:nth-child(2).is-active)::before{transform:translateX(calc(100% + 4px))}
+.aac-brand-tabs:has(.aac-brand-tab:nth-child(3).is-active)::before{transform:translateX(calc(200% + 8px))}
+.aac-brand-tab{position:relative;z-index:1;appearance:none;height:26px;margin:0;padding:1px 7px;border:0;border-radius:6px;background:transparent;color:#fff;font:700 11px/24px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-align:center;text-transform:uppercase;cursor:pointer;transition:color .2s ease,transform .2s ease}
+.aac-brand-tab:hover:not(.is-active){background:rgba(255,255,255,.1)}
+.aac-brand-tab:focus-visible{outline:2px solid #fff;outline-offset:-3px}
+.aac-brand-tab.is-active{background:transparent;color:#7f1f34;box-shadow:none}
+.aac-brand-tab.is-active:focus-visible{outline-color:#7f1f34}
+@media(max-width:720px){.aac-brand-tabs{gap:3px;padding:4px}.aac-brand-tabs::before{width:calc((100% - 14px)/3)}.aac-brand-tabs:has(.aac-brand-tab:nth-child(2).is-active)::before{transform:translateX(calc(100% + 3px))}.aac-brand-tabs:has(.aac-brand-tab:nth-child(3).is-active)::before{transform:translateX(calc(200% + 6px))}.aac-brand-tab{height:32px;padding:4px 6px;line-height:22px}}
