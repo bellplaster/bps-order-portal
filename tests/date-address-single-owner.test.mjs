@@ -51,8 +51,11 @@ test("canonical required date controller owns the explicit calendar button and p
   assert.match(dateState, /setValue\(dayButton\.dataset\.date \|\| "", \{ emit: true \}\)/);
   assert.match(dateState, /hidden\.type = "hidden"/);
   assert.match(dateState, /hidden\.hidden = true/);
+  assert.match(dateState, /classList\.remove\("date-native-picker"\)/);
+  assert.doesNotMatch(dateState, /hidden\.type = "date"/);
+  assert.doesNotMatch(dateState, /className\s*=\s*"date-native-picker"/);
+  assert.doesNotMatch(dateState, /classList\.add\("date-native-picker"\)/);
   assert.doesNotMatch(dateState, /showPicker/);
-  assert.doesNotMatch(dateState, /date-native-picker/);
   assert.doesNotMatch(dateState, /setInterval/);
 
   await assert.rejects(
