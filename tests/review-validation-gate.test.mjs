@@ -18,7 +18,7 @@ test("field warnings remain hidden until the customer attempts review", () => {
 test("reference is presented as optional and does not block shared validation", () => {
   assert.match(index, /id="reference"[^>]*placeholder="Reference \(optional\)"/);
   assert.doesNotMatch(index, /id="reference"[^>]*\srequired(?:\s|>)/);
-  assert.match(index, /review-validation-gate\.js\?v=20260806-1/);
+  assert.match(index, /review-validation-gate\.js\?v=\d{8}-\d+/);
   assert.match(gate, /reference\.required = false/);
   assert.match(gate, /field\?\.id === "reference"/);
   assert.match(gate, /return true/);
