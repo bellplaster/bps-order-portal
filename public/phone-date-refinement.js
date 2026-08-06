@@ -2,29 +2,6 @@
   const MAX_QUANTITY = 10000;
   const EXTRAS_PLACEHOLDER = "Select extras (optional)";
 
-  function restoreNativeRequiredDate() {
-    const input = document.getElementById("requiredDate");
-    if (!input) return;
-
-    document.getElementById("requiredDateDisplay")?.remove();
-    document.querySelectorAll(".required-date-display, .date-leading-icon").forEach((node) => node.remove());
-
-    input.type = "date";
-    input.hidden = false;
-    input.disabled = false;
-    input.tabIndex = 0;
-    input.classList.remove("date-native-picker");
-    input.removeAttribute("style");
-    input.removeAttribute("aria-hidden");
-    input.setAttribute("aria-label", "Required date");
-
-    const label = input.closest(".sheet-field-row")?.querySelector("label");
-    if (label) label.htmlFor = "requiredDate";
-
-    const shell = input.closest(".date-input-shell");
-    if (shell) shell.replaceWith(input);
-  }
-
   function updateExtrasPlaceholder() {
     if (document.querySelector('input[name="deliveryExtra"]:checked')) return;
     document.querySelectorAll(".extras-dropdown > summary > span").forEach((label) => {
@@ -187,7 +164,6 @@
   }
 
   function start() {
-    restoreNativeRequiredDate();
     initialiseQuantityControls();
     updateExtrasPlaceholder();
     observeDynamicControls();
@@ -210,11 +186,8 @@
   else start();
 
   const style = document.createElement("style");
-  style.dataset.phoneDateRefinement = "true";
+  style.dataset.quantityRefinement = "true";
   style.textContent = `
-    .order-form-page #requiredDate{box-sizing:border-box!important;width:100%!important;height:39px!important;min-height:39px!important;margin:0!important;padding:0 14px 0 16px!important;color:#17211f!important;background:#fff!important;border:0!important;border-radius:0!important;outline:0!important;font:400 12px/1.35 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;text-align:left!important;cursor:pointer!important;color-scheme:light!important}
-    .order-form-page #requiredDate:focus{position:relative!important;z-index:2!important;box-shadow:inset 0 0 0 2px var(--bell-green)!important}
-    .order-form-page #requiredDate::-webkit-calendar-picker-indicator{width:16px!important;height:16px!important;margin-left:auto!important;padding:2px!important;opacity:.78!important;cursor:pointer!important}
     .quantity-input.is-large-quantity{font-size:9px!important;letter-spacing:-.25px!important}
     .future-confirmation:not([hidden]){display:inline-flex!important;align-items:center!important;gap:6px!important;min-width:142px!important;height:39px!important;margin:0!important;padding:0 9px!important;border:0!important;border-left:1px solid #ead9a6!important;background:#fff9ed!important;color:#725300!important;font-size:9px!important;font-weight:650!important;line-height:1!important;white-space:nowrap!important}
     .future-confirmation input[type="checkbox"]{width:13px!important;height:13px!important;min-height:13px!important;flex:0 0 13px!important;margin:0!important}

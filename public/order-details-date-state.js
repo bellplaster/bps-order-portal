@@ -1,6 +1,10 @@
 (() => {
+  if (window.__bpsRequiredDateControllerStarted) return;
+  window.__bpsRequiredDateControllerStarted = true;
+
   const DISPLAY_ID = "requiredDateDisplay";
   const HIDDEN_ID = "requiredDate";
+  const MESSAGE = "Enter a complete valid date.";
 
   function parseSmartDateDigits(value) {
     const digits = String(value || "").replace(/\D/g, "").slice(0, 6);
@@ -58,96 +62,166 @@
     return `${fullYear}-${parts.month}-${parts.day}`;
   }
 
-  function syncHidden(display, nativeInput) {
+  function fromIso(iso) {
+    const match = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return match ? `${match[3]}-${match[2]}-${match[1].slice(-2)}` : "";
+  }
+
+  function controls() {
+    return {
+      hidden: document.getElementById(HIDDEN_ID),
+      display: document.getElementById(DISPLAY_ID),
+    };
+  }
+
+  function ensureError(display) {
+    const id = `${DISPLAY_ID}OrderValidationMessage`;
+    let error = document.getElementById(id);
+    if (error) return error;
+    error = document.createElement("small");
+    error.id = id;
+    error.className = "order-field-validation-message";
+    error.hidden = true;
+    error.setAttribute("aria-live", "polite");
+    display.closest(".date-input-shell")?.insertAdjacentElement("afterend", error);
+    display.setAttribute("aria-describedby", id);
+    return error;
+  }
+
+  function clearValidation() {
+    const { display } = controls();
+    if (!display) return;
+    display.setCustomValidity("");
+    display.classList.remove("is-order-field-invalid");
+    display.removeAttribute("aria-invalid");
+    const error = document.getElementById(`${DISPLAY_ID}OrderValidationMessage`);
+    if (error) {
+      error.textContent = "";
+      error.hidden = true;
+    }
+  }
+
+  function validate({ show = true } = {}) {
+    const { hidden, display } = controls();
+    if (!hidden || !display) return false;
+    const valid = Boolean(hidden.value);
+    display.setCustomValidity(valid ? "" : MESSAGE);
+    display.classList.toggle("is-order-field-invalid", !valid);
+    display.toggleAttribute("aria-invalid", !valid);
+    const error = ensureError(display);
+    error.textContent = valid ? "" : MESSAGE;
+    error.hidden = valid || !show;
+    return valid;
+  }
+
+  function syncFromDisplay({ emit = true } = {}) {
+    const { hidden, display } = controls();
+    if (!hidden || !display) return "";
     const parts = parseSmartDateDigits(display.value);
     const formatted = displayDate(parts);
     if (display.value !== formatted) display.value = formatted;
     display.classList.toggle("has-date-value", Boolean(formatted));
-    nativeInput.value = toIso(parts);
-    nativeInput.dispatchEvent(new Event("input", { bubbles: true }));
-    if (nativeInput.value) nativeInput.dispatchEvent(new Event("change", { bubbles: true }));
+    const iso = toIso(parts);
+    const changed = hidden.value !== iso;
+    hidden.value = iso;
+    clearValidation();
+    if (emit && changed) {
+      hidden.dispatchEvent(new Event("input", { bubbles: true }));
+      hidden.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    return iso;
+  }
+
+  function syncFromHidden() {
+    const { hidden, display } = controls();
+    if (!hidden || !display) return;
+    const formatted = fromIso(hidden.value);
+    if (display.value !== formatted) display.value = formatted;
+    display.classList.toggle("has-date-value", Boolean(formatted));
+    clearValidation();
+  }
+
+  function setValue(value, { emit = false } = {}) {
+    const { hidden, display } = controls();
+    if (!hidden || !display) return false;
+    const source = String(value || "").trim();
+    const iso = /^\d{4}-\d{2}-\d{2}$/.test(source) ? source : toIso(parseSmartDateDigits(source));
+    const changed = hidden.value !== iso;
+    hidden.value = iso;
+    display.value = fromIso(iso);
+    display.classList.toggle("has-date-value", Boolean(display.value));
+    clearValidation();
+    if (emit && changed) hidden.dispatchEvent(new Event("change", { bubbles: true }));
+    return true;
   }
 
   function initialiseDateField() {
     const nativeInput = document.getElementById(HIDDEN_ID);
-    if (!nativeInput) return;
+    const display = document.getElementById(DISPLAY_ID);
+    if (!nativeInput || !display) return;
 
-    let shell = nativeInput.closest(".date-input-shell");
+    let shell = nativeInput.closest(".date-input-shell") || display.closest(".date-input-shell");
     if (!shell) {
       shell = document.createElement("div");
       shell.className = "date-input-shell";
-      nativeInput.parentNode?.insertBefore(shell, nativeInput);
-      shell.append(nativeInput);
+      display.parentNode?.insertBefore(shell, display);
     }
-
-    let display = document.getElementById(DISPLAY_ID);
-    if (!display) {
-      display = document.createElement("input");
-      display.id = DISPLAY_ID;
-      display.type = "text";
-      shell.append(display);
-    } else if (display.parentElement !== shell) {
-      shell.append(display);
-    }
+    if (display.parentElement !== shell) shell.append(display);
+    if (nativeInput.parentElement !== shell) shell.append(nativeInput);
 
     nativeInput.type = "date";
     nativeInput.hidden = false;
     nativeInput.disabled = false;
     nativeInput.tabIndex = -1;
-    nativeInput.classList.add("date-native-picker");
+    nativeInput.className = "date-native-picker";
     nativeInput.setAttribute("aria-label", "Choose required date from calendar");
 
+    display.type = "text";
     display.inputMode = "numeric";
     display.autocomplete = "off";
     display.maxLength = 8;
     display.placeholder = "dd-mm-yy";
     display.setAttribute("aria-label", "Required date, day month two digit year");
-    display.classList.toggle("has-date-value", Boolean(display.value));
-    document.querySelector('label[for="requiredDate"]')?.setAttribute("for", DISPLAY_ID);
+    document.querySelector(`label[for="${HIDDEN_ID}"], label[for="${DISPLAY_ID}"]`)?.setAttribute("for", DISPLAY_ID);
 
-    if (display.dataset.smartDateBound === "true") return;
-    display.dataset.smartDateBound = "true";
-
-    display.addEventListener("input", (event) => {
-      event.stopImmediatePropagation();
-      syncHidden(display, nativeInput);
-    }, true);
-
-    display.addEventListener("blur", () => syncHidden(display, nativeInput));
-    nativeInput.addEventListener("change", () => {
-      const match = String(nativeInput.value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
-      display.value = match ? `${match[3]}-${match[2]}-${match[1].slice(-2)}` : "";
-      display.classList.toggle("has-date-value", Boolean(display.value));
-    });
+    if (display.dataset.requiredDateBound !== "true") {
+      display.dataset.requiredDateBound = "true";
+      display.addEventListener("input", () => syncFromDisplay({ emit: true }));
+      display.addEventListener("blur", () => syncFromDisplay({ emit: false }));
+      nativeInput.addEventListener("change", syncFromHidden);
+    }
+    syncFromHidden();
   }
 
   function removeFixedStateField() {
     const input = document.getElementById("deliveryState");
-    if (!input || input.dataset.fixedStateRemoved === "true") return;
-    input.dataset.fixedStateRemoved = "true";
+    if (!input) return false;
     input.value = "VIC";
     input.type = "hidden";
+    input.hidden = true;
 
     const cell = input.closest(".structured-address-cell, .sheet-field-row, td");
-    if (!cell) return;
+    if (!cell) return true;
     const host = cell.parentElement;
-    host?.classList.add("order-address-without-state");
+    document.getElementById("orderForm")?.append(input);
     cell.remove();
+    host?.classList.add("order-address-without-state");
+    return true;
   }
 
   function start() {
     initialiseDateField();
-    removeFixedStateField();
+    if (removeFixedStateField()) return;
 
     const observer = new MutationObserver(() => {
-      initialiseDateField();
-      removeFixedStateField();
+      if (!removeFixedStateField()) return;
+      observer.disconnect();
     });
-    observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(document.getElementById("orderForm") || document.body, { childList: true, subtree: true });
   }
 
   const style = document.createElement("style");
-  style.dataset.orderDetailsDateState = "true";
+  style.id = "required-date-and-state-source-styles";
   style.textContent = `
     .date-input-shell{position:relative!important;display:block!important;width:100%!important;height:39px!important}
     .date-input-shell #requiredDateDisplay{box-sizing:border-box!important;width:100%!important;height:39px!important;margin:0!important;padding:0 42px 0 10px!important;color:#17211f!important;background:#fff!important;border:0!important;border-radius:0!important;outline:0!important;font:400 11px/39px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;text-align:left!important}
@@ -159,6 +233,14 @@
     .order-address-without-state{grid-template-columns:minmax(0,1fr) 110px!important}
   `;
   document.head.append(style);
+
+  window.BPSRequiredDate = {
+    setValue,
+    validate,
+    clearValidation,
+    syncFromDisplay,
+    syncFromHidden,
+  };
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
   else start();
