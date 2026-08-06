@@ -7,6 +7,7 @@ import { normaliseAustralianPhone } from "../functions/_shared/phone.js";
 
 const source = await readFile(new URL("../public/order-field-behaviour.js", import.meta.url), "utf8");
 const indexHtml = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
+const orderSource = await readFile(new URL("../public/app-order.js", import.meta.url), "utf8");
 const submitSource = await readFile(new URL("../functions/api/submit.js", import.meta.url), "utf8");
 
 function browserRules() {
@@ -84,18 +85,20 @@ test("shared behaviour loads before all order application scripts", () => {
   assert.ok(app > shared);
   assert.ok(details > shared);
   assert.ok(legacyUtility > shared);
-  assert.match(indexHtml, /order-field-behaviour\.css\?v=20260806-1/);
+  assert.match(indexHtml, /order-field-behaviour\.css\?v=20260806-2/);
 });
 
 test("references are optional for customers but retain natural text and symbols", () => {
+  assert.match(source, /reference: \{ type: "reference"[^\n]*required: false/);
   assert.match(source, /field\.removeAttribute\("pattern"\)/);
   assert.match(source, /field\.maxLength = 80/);
   assert.doesNotMatch(indexHtml, /id="reference"[^>]*pattern=/);
   assert.match(indexHtml, /id="reference"[^>]*maxlength="80"/);
   assert.match(indexHtml, /id="reference"[^>]*placeholder="Reference \(optional\)"/);
   assert.doesNotMatch(indexHtml, /id="reference"[^>]*\srequired(?:\s|>)/);
+  assert.match(orderSource, /reference: customerReference \|\| generatedReference\(submissionId\)/);
+  assert.match(orderSource, /customerReferenceProvided: Boolean\(customerReference\)/);
   assert.match(submitSource, /function cleanOrderReference/);
-  assert.doesNotMatch(submitSource, /\^\\d\+\(\?:-\\d\+\)\*\$/);
   assert.match(submitSource, /payload\.reference = reference/);
   assert.match(submitSource, /payload\.customerReference = reference/);
 });
