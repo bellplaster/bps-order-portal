@@ -12,6 +12,15 @@
   input.placeholder = "dd-mm-yyyy";
   input.setAttribute("aria-label", "Required date, day month year");
 
+  const valueDescriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value");
+  const nativeGet = valueDescriptor?.get?.bind(input);
+  const nativeSet = valueDescriptor?.set?.bind(input);
+  const readDisplay = () => nativeGet ? nativeGet() : input.getAttribute("value") || "";
+  const writeDisplay = (next) => {
+    if (nativeSet) nativeSet(String(next ?? ""));
+    else input.setAttribute("value", String(next ?? ""));
+  };
+
   function daysInMonth(year, month) {
     return new Date(year, month, 0).getDate();
   }
@@ -54,37 +63,53 @@
   }
 
   function syncFromDisplay({ emit = true } = {}) {
-    const parts = partsFromDigits(input.value);
+    const parts = partsFromDigits(readDisplay());
     const display = displayFromParts(parts);
-    if (input.value !== display) input.value = display;
+    if (readDisplay() !== display) writeDisplay(display);
 
     const iso = validIso(parts.day, parts.month, parts.year);
     input.dataset.iso = iso;
-    input.classList.toggle("has-date-value", Boolean(input.value));
-    input.setCustomValidity(input.value && !iso ? "Enter a complete valid date." : "");
+    input.classList.toggle("has-date-value", Boolean(display));
+    input.setCustomValidity(display && !iso ? "Enter a complete valid date." : "");
     if (emit && iso) input.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
   function setIso(value, { emit = false } = {}) {
     const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (!match) {
-      input.value = "";
+      writeDisplay("");
       input.dataset.iso = "";
       input.classList.remove("has-date-value");
       input.setCustomValidity("");
       return;
     }
     const [, year, month, day] = match;
-    input.value = `${day}-${month}-${year}`;
+    writeDisplay(`${day}-${month}-${year}`);
     input.dataset.iso = `${year}-${month}-${day}`;
     input.classList.add("has-date-value");
     input.setCustomValidity("");
     if (emit) input.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
+  if (valueDescriptor?.configurable) {
+    Object.defineProperty(input, "value", {
+      configurable: true,
+      enumerable: valueDescriptor.enumerable,
+      get: () => readDisplay(),
+      set: (next) => {
+        const value = String(next ?? "");
+        if (/^\d{4}-\d{2}-\d{2}$/.test(value)) setIso(value);
+        else {
+          writeDisplay(value);
+          syncFromDisplay({ emit: false });
+        }
+      },
+    });
+  }
+
   input.addEventListener("input", () => syncFromDisplay({ emit: true }));
   input.addEventListener("blur", () => {
-    if (!input.value) return;
+    if (!readDisplay()) return;
     syncFromDisplay({ emit: false });
   });
 
