@@ -14,8 +14,10 @@ function setStep(step, options = {}) {
 
 function validateForm() {
   clearMessages();
-  const reference = value("reference");
-  if (!reference) throw fieldError("reference", "Enter the customer order reference.");
+
+  if (!window.BPSOrderFields?.validateField?.("reference", { show: true })) {
+    throw fieldError("reference", "Enter the customer order reference.");
+  }
 
   const requiredDate = value("requiredDate");
   if (!requiredDate) throw fieldError("requiredDate", "Choose the required date.");
@@ -25,13 +27,16 @@ function validateForm() {
     throw new Error("Confirm the required date to continue.");
   }
 
-  const contact = value("contactName");
-  if (!contact || !/^[\p{L}\p{M}'’.\-\s]+$/u.test(contact)) {
-    throw fieldError("contactName", "Enter a valid contact name without numbers.");
+  if (!window.BPSOrderFields?.validateField?.("contactName", { show: true })) {
+    throw fieldError("contactName", "Use letters, spaces, apostrophes, hyphens and full stops only.");
   }
 
-  const mobile = normaliseMobile(value("contactMobile"));
-  if (!mobile) throw fieldError("contactMobile", "Enter a valid number.");
+  const phoneField = document.getElementById("contactMobile");
+  const mobile = window.BPSPhone?.normalise?.(phoneField?.value || "") || "";
+  if (!mobile || !window.BPSOrderFields?.validateField?.("contactMobile", { show: true })) {
+    throw fieldError("contactMobile", "Enter a valid Australian phone number.");
+  }
+  if (phoneField) phoneField.value = mobile;
 
   const deliveryType = selectedRadio("deliveryType");
   if (!deliveryTypes.has(deliveryType)) throw new Error("Choose a delivery type.");
@@ -41,6 +46,7 @@ function validateForm() {
     const line1 = value("deliveryAddressLine1");
     const line2 = value("deliveryAddressLine2");
     if (!line1 || !line2 || !/\bVIC\b/i.test(line2) || !/\b(?:3\d{3}|8\d{3})\b/.test(line2)) {
+      window.BPSOrderFields?.validateField?.("deliveryAddressSearch", { show: true });
       throw fieldError("deliveryAddressSearch", "Enter a complete Victorian street, suburb and postcode.");
     }
   }
@@ -57,7 +63,7 @@ function buildPayload() {
     reference: value("reference"),
     customer: state.account?.companyName || "",
     contact: value("contactName"),
-    mobile: normaliseMobile(value("contactMobile")) || value("contactMobile"),
+    mobile: window.BPSPhone?.normalise?.(value("contactMobile")) || value("contactMobile"),
     requiredDate: value("requiredDate"),
     futureDateConfirmed: document.getElementById("confirmFutureRequiredDate").checked,
     timeSlot: selectedRadio("timeSlot") || "ANY",
@@ -87,10 +93,11 @@ function buildFloorPayload(floor) {
 
 function deliveryTypeLabel(value) {
   const labels = {
-    "Manual Unload (Knauf Labour)": "Manual unload",
-    "Mechanical (Forklift/Crane/Own)": "Mechanical",
-    "Mixed Unload (Hand + Machine)": "Mixed unload",
-    "Pickup (Customer to collect)": "Pickup",
+    "Hand Unload": "Hand Unload",
+    "Forklift Delivery": "Forklift Delivery",
+    "Crane Delivery": "Crane Delivery",
+    "Delivery (No Assistance)": "Delivery (No Assistance)",
+    "Pickup (Customer to collect)": "Customer Pickup",
   };
   return labels[value] || "Not selected";
 }
@@ -136,17 +143,7 @@ function formatAddressForDisplay(input) {
     .replace(/\bVictoria\b/gi, "VIC")
     .replace(/\s+/g, " ")
     .trim();
-  if (!cleaned) return "";
-  return cleaned
-    .toLowerCase()
-    .replace(/\b([a-z])/g, (match) => match.toUpperCase())
-    .replace(/\bVic\b/g, "VIC")
-    .replace(/\bNsw\b/g, "NSW")
-    .replace(/\bQld\b/g, "QLD")
-    .replace(/\bSa\b/g, "SA")
-    .replace(/\bWa\b/g, "WA")
-    .replace(/\bAct\b/g, "ACT")
-    .replace(/\bNt\b/g, "NT");
+  return window.BPSOrderFields?.formatAddressDisplay?.(cleaned) || cleaned;
 }
 
 function reviewFieldClass(label) {
@@ -228,7 +225,7 @@ function showSuccess(result) {
   const screen = document.getElementById("successScreen");
   screen.hidden = false;
   document.getElementById("successTitle").textContent = "Order created";
-  document.getElementById("successSummary").textContent = "Your order has been saved. Accrivia files are ready.";
+  document.getElementById("successSummary").textContent = "Your order has been saved.";
   document.getElementById("orderNumberDisplay").textContent = result.customerReference || result.submissionId;
 
   const files = document.getElementById("generatedFiles");
