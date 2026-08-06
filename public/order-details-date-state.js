@@ -155,6 +155,16 @@
     return true;
   }
 
+  function openNativePicker(input) {
+    if (!input || input.disabled) return;
+    try {
+      if (typeof input.showPicker === "function") input.showPicker();
+      else input.focus();
+    } catch (_error) {
+      input.focus();
+    }
+  }
+
   function initialiseDateField() {
     const nativeInput = document.getElementById(HIDDEN_ID);
     const display = document.getElementById(DISPLAY_ID);
@@ -189,6 +199,15 @@
       display.addEventListener("input", () => syncFromDisplay({ emit: true }));
       display.addEventListener("blur", () => syncFromDisplay({ emit: false }));
       nativeInput.addEventListener("change", syncFromHidden);
+      nativeInput.addEventListener("click", (event) => {
+        event.preventDefault();
+        openNativePicker(nativeInput);
+      });
+      nativeInput.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        openNativePicker(nativeInput);
+      });
     }
     syncFromHidden();
   }
@@ -229,7 +248,7 @@
     .date-input-shell #requiredDateDisplay:not(.has-date-value){color:#aab0b2!important}
     .date-input-shell #requiredDateDisplay.has-date-value{color:#17211f!important}
     .date-input-shell #requiredDateDisplay:focus{position:relative!important;z-index:2!important;box-shadow:inset 0 0 0 1px var(--bell-green)!important}
-    .date-input-shell #requiredDate.date-native-picker{position:absolute!important;z-index:4!important;top:0!important;right:0!important;left:auto!important;width:40px!important;min-width:40px!important;height:39px!important;min-height:39px!important;margin:0!important;padding:0!important;opacity:.001!important;cursor:pointer!important}
+    .date-input-shell #requiredDate.date-native-picker{position:absolute!important;z-index:4!important;top:0!important;right:0!important;left:auto!important;width:40px!important;min-width:40px!important;height:39px!important;min-height:39px!important;margin:0!important;padding:0!important;opacity:.001!important;cursor:pointer!important;pointer-events:auto!important}
     .order-address-without-state{grid-template-columns:minmax(0,1fr) 110px!important}
   `;
   document.head.append(style);
