@@ -3,7 +3,7 @@
   if (typeof originalRenderer !== "function" || originalRenderer.__lowerCatalogueRefined) return;
 
   const ACCESSORY_PATTERN = /^(Stud Adhesive|Paper Tape|Fibreglass Tape)$/i;
-  const RONDO_LENGTHS = ["1800", "2400", "2700", "3000", "3600", "6000", "6100"];
+  const RONDO_LENGTHS = ["1800", "2400", "2700", "3000", "3600", "6000"];
   const REMOVED_LIST_ROWS = new Set([
     "basecote 45|10 kg",
     "sheetrock total lite (blue lid)|17.5 kg",
@@ -209,9 +209,9 @@
   function renderRondoCategory(floor, definition) {
     const section = makeCategory("RONDO/PVC", "rondo-category");
     const table = makeTable("rondo-table");
-    addColgroup(table, [34, 9.43, 9.43, 9.43, 9.43, 9.43, 9.43, 9.42]);
+    addColgroup(table, [34, 11, 11, 11, 11, 11, 11]);
     const tbody = document.createElement("tbody");
-    appendMatrixHeader(tbody, "Type", RONDO_LENGTHS);
+    appendMatrixHeader(tbody, "Product", RONDO_LENGTHS);
     const products = new Map();
     (definition?.rows || []).forEach((row) => {
       const label = String(row.label || "").trim();
@@ -350,17 +350,16 @@
   }
 
   function listRowSignature(row) {
-    return `${String(row?.label || "").trim().toLowerCase()}|${String(row?.detail || "").trim().toLowerCase()}`;
-  }
-
-  function hasValidProductKey(key) {
-    if (!key) return false;
-    const product = state.catalog?.[key];
-    const sku = String(product?.sku || "").trim().toUpperCase();
-    return Boolean(product && product.mapped !== false && sku && sku !== "N/A");
+    return `${String(row.label || "").trim().toLowerCase()}|${String(row.detail || "").trim().toLowerCase()}`;
   }
 
   function getSku(key) {
-    return String(state.catalog?.[key]?.sku || "").trim().toUpperCase();
+    return String(state.catalog?.[key]?.sku || state.catalog?.[key]?.stockCode || "").trim();
+  }
+
+  function hasValidProductKey(key) {
+    const product = key ? state.catalog?.[key] : null;
+    const sku = String(product?.sku || product?.stockCode || "").trim();
+    return Boolean(product && sku && !sku.toLowerCase().startsWith("pending"));
   }
 })();
