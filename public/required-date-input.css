@@ -1,0 +1,16 @@
+.order-form-page #requiredDate {
+  color: #17211f !important;
+  -webkit-text-fill-color: #17211f;
+  font-variant-numeric: tabular-nums;
+}
+
+.order-form-page #requiredDate::placeholder {
+  color: #9aa3a0 !important;
+  -webkit-text-fill-color: #9aa3a0;
+  opacity: 1;
+}
+
+.order-form-page #requiredDate:focus {
+  color: #17211f !important;
+  -webkit-text-fill-color: #17211f;
+}
