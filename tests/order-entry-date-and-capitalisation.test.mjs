@@ -3,35 +3,39 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const index = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
-const assistance = await readFile(new URL("../public/order-entry-assistance.js", import.meta.url), "utf8");
-const dateInput = await readFile(new URL("../public/required-date-input.js", import.meta.url), "utf8");
-const dateStyles = await readFile(new URL("../public/required-date-input.css", import.meta.url), "utf8");
+const fields = await readFile(new URL("../public/order-field-behaviour.js", import.meta.url), "utf8");
+const fieldStyles = await readFile(new URL("../public/order-field-behaviour.css", import.meta.url), "utf8");
+const order = await readFile(new URL("../public/app-order.js", import.meta.url), "utf8");
 
-test("reference is visibly optional in source and boot-time configuration", () => {
+test("reference optionality is owned by source, shared validation and core payload building", () => {
   assert.match(index, /id="reference"[^>]*placeholder="Reference \(optional\)"/);
   assert.doesNotMatch(index, /id="reference"[^>]*\srequired(?:\s|>)/);
-  assert.match(assistance, /reference\.placeholder = "Reference \(optional\)"/);
+  assert.match(fields, /reference: \{ type: "reference"[^\n]*required: false/);
+  assert.match(order, /customerReferenceProvided: Boolean\(customerReference\)/);
+  assert.match(order, /reference: customerReference \|\| generatedReference\(submissionId\)/);
 });
 
-test("keyboard capitalisation assists new words but stops after manual deletion", () => {
-  assert.match(assistance, /event\.key === "Backspace" \|\| event\.key === "Delete"/);
-  assert.match(assistance, /disableAssistance\(field\)/);
-  assert.match(assistance, /field\.setRangeText\(upper/);
-  assert.match(assistance, /disabled\.has\(field\)/);
-  assert.match(assistance, /disabled\.clear\(\)/);
+test("one shared controller owns capitalisation and respects manual editing", () => {
+  assert.match(fields, /function shouldCapitalise/);
+  assert.match(fields, /event\.preventDefault\(\)/);
+  assert.match(fields, /field\.setRangeText\(upper/);
+  assert.match(fields, /inputType\.startsWith\("delete"\)[\s\S]*assistanceEnabled = false/);
+  assert.doesNotMatch(index, /order-entry-assistance\.js/);
 });
 
-test("required date uses Australian keyboard entry and stores ISO for existing order logic", () => {
-  assert.match(index, /id="requiredDate"[^>]*type="text"[^>]*placeholder="dd-mm-yyyy"/);
-  assert.match(index, /required-date-input\.js\?v=20260806-1/);
-  assert.match(dateInput, /Number\(firstMonthDigit\) > 1/);
-  assert.match(dateInput, /month = `0\$\{firstMonthDigit\}`/);
-  assert.match(dateInput, /input\.dataset\.iso/);
-  assert.match(dateInput, /if \(id === "requiredDate"\) return input\.dataset\.iso/);
-  assert.match(dateInput, /Object\.defineProperty\(input, "value"/);
+test("required date has a visible Australian field and a hidden ISO source of truth", () => {
+  assert.match(index, /id="requiredDateDisplay"[^>]*placeholder="dd-mm-yyyy"/);
+  assert.match(index, /id="requiredDate" type="hidden"/);
+  assert.match(fields, /function datePartsFromDigits/);
+  assert.match(fields, /Number\(firstMonthDigit\) > 1/);
+  assert.match(fields, /month = `0\$\{firstMonthDigit\}`/);
+  assert.match(fields, /hidden\.value = iso/);
+  assert.match(order, /value\("requiredDate"\)/);
+  assert.doesNotMatch(index, /required-date-input\.(?:js|css)/);
 });
 
-test("typed date text is dark while the placeholder stays grey", () => {
-  assert.match(dateStyles, /#requiredDate \{[\s\S]*color: #17211f/);
-  assert.match(dateStyles, /#requiredDate::placeholder \{[\s\S]*color: #9aa3a0/);
+test("typed date text and review-gated validation are defined in the shared stylesheet", () => {
+  assert.match(fieldStyles, /#requiredDateDisplay \{[\s\S]*color: #17211f/);
+  assert.match(fieldStyles, /#requiredDateDisplay::placeholder \{[\s\S]*color: #9aa3a0/);
+  assert.match(fieldStyles, /not\(\.order-validation-attempted\) \.order-field-validation-message/);
 });
