@@ -5,7 +5,11 @@
 }
 
 .order-form-page .is-order-field-invalid {
-  box-shadow: inset 0 0 0 2px #c5284e !important;
+  box-shadow: inset 0 0 0 2px #c5284e;
+}
+
+.order-form-page:not(.order-validation-attempted) .is-order-field-invalid {
+  box-shadow: none;
 }
 
 .order-form-page .order-field-validation-message {
@@ -27,8 +31,9 @@
   pointer-events: none;
 }
 
-.order-form-page .order-field-validation-message[hidden] {
-  display: none !important;
+.order-form-page .order-field-validation-message[hidden],
+.order-form-page:not(.order-validation-attempted) .order-field-validation-message {
+  display: none;
 }
 
 .order-form-page .address-control > .order-field-validation-message {
@@ -38,6 +43,16 @@
 
 .order-form-page .instruction-sheet-row > .order-field-validation-message {
   left: 112px;
+}
+
+.order-form-page #requiredDateDisplay {
+  color: #17211f;
+  font-variant-numeric: tabular-nums;
+}
+
+.order-form-page #requiredDateDisplay::placeholder {
+  color: #9aa3a0;
+  opacity: 1;
 }
 
 @media (max-width: 760px) {
