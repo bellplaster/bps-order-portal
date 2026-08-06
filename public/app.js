@@ -26,9 +26,10 @@ const state = {
 
 const floorLabels = { ground: "Ground Floor", first: "1st Floor" };
 const deliveryTypes = new Set([
-  "Manual Unload (Knauf Labour)",
-  "Mechanical (Forklift/Crane/Own)",
-  "Mixed Unload (Hand + Machine)",
+  "Hand Unload",
+  "Forklift Delivery",
+  "Crane Delivery",
+  "Delivery (No Assistance)",
   "Pickup (Customer to collect)",
 ]);
 
@@ -94,10 +95,6 @@ function bindStaticActions() {
   });
 
   document.getElementById("requiredDate")?.addEventListener("change", updateFutureDateConfirmation);
-  document.getElementById("contactMobile")?.addEventListener("input", (event) => {
-    event.target.value = formatMobileTyping(event.target.value);
-    scheduleDraft();
-  });
 
   document.querySelectorAll("#orderForm input, #orderForm textarea").forEach((field) => {
     if (field.classList.contains("quantity-input")) return;
@@ -124,8 +121,8 @@ async function loadAccount() {
   }
 
   document.getElementById("customerName").value = state.account.companyName || "";
-  document.getElementById("contactName").value = state.account.defaultContactName || "";
-  document.getElementById("contactMobile").value = state.account.defaultMobile || "";
+  window.BPSOrderFields?.setValue("contactName", state.account.defaultContactName || "", { assist: true });
+  window.BPSOrderFields?.setValue("contactMobile", state.account.defaultMobile || "", { assist: true });
   document.getElementById("accountSummary").textContent = [state.account.companyName, state.account.debtorCode].filter(Boolean).join(" · ");
 }
 
@@ -282,42 +279,6 @@ async function loadCatalog() {
   if (typeof renderer !== "function") throw new Error("The unified board renderer did not load.");
   renderer("ground");
   renderer("first");
-}
-
-function enforceUppercaseGoogleAddress() {
-  const style = document.createElement("style");
-  style.textContent = ".pac-item,.pac-item-query{text-transform:uppercase}";
-  document.head.append(style);
-
-  let attempts = 0;
-  const timer = window.setInterval(() => {
-    attempts += 1;
-    const autocomplete = state.addressAutocomplete;
-    if (!autocomplete && attempts < 80) return;
-    window.clearInterval(timer);
-    if (!autocomplete?.addListener) return;
-    autocomplete.addListener("place_changed", () => {
-      window.setTimeout(() => {
-        const input = document.getElementById("deliveryAddressSearch");
-        if (!input?.value) return;
-        const formatted = formatAddressDisplay(input.value);
-        input.value = formatted;
-        document.getElementById("deliveryAddress").value = formatted;
-        document.getElementById("deliveryAddressLine1").value = document.getElementById("deliveryAddressLine1").value.toUpperCase();
-        document.getElementById("deliveryAddressLine2").value = document.getElementById("deliveryAddressLine2").value.toUpperCase();
-        scheduleDraft();
-      }, 0);
-    });
-  }, 250);
-}
-
-function formatAddressDisplay(value) {
-  return String(value || "")
-    .replace(/,?\s*Australia\s*$/i, "")
-    .replace(/\bVictoria\b/gi, "VIC")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toUpperCase();
 }
 
 function loadDeliveryRefinement() {
