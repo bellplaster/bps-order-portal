@@ -30,10 +30,7 @@
   });
 
   function slug(value) {
-    return String(value || "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
+    return String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   }
 
   function keyFor(sku) {
@@ -43,16 +40,7 @@
   function registerProduct(sku, label, detail = "") {
     if (!state.catalog || typeof state.catalog !== "object") state.catalog = {};
     const key = keyFor(sku);
-    state.catalog[key] = {
-      ...(state.catalog[key] || {}),
-      sku,
-      stockCode: sku,
-      label,
-      description: label,
-      detail,
-      mapped: true,
-      available: true,
-    };
+    state.catalog[key] = { ...(state.catalog[key] || {}), sku, stockCode: sku, label, description: label, detail, mapped: true, available: true };
     return key;
   }
 
@@ -69,18 +57,15 @@
       const label = candidate.querySelector("th")?.textContent?.trim().toLowerCase() || "";
       return aliases.some((alias) => label === alias.toLowerCase());
     });
-
     if (!row) {
       row = document.createElement("tr");
       tbody.append(row);
     }
-
     row.replaceChildren();
     const name = document.createElement("th");
     name.scope = "row";
     name.textContent = definition.label;
     row.append(name);
-
     RONDO_LENGTHS.forEach((length) => {
       const entry = definition.cells[length];
       row.append(createQuantityCell(floor, entry ? keyFor(entry[0]) : null));
@@ -88,17 +73,52 @@
   }
 
   function patchRondo(floor) {
-    const tbody = document.querySelector(`#${CSS.escape(floor)}OrderSheet .rondo-category .rondo-table tbody`);
-    if (!tbody) return;
+    const table = document.querySelector(`#${CSS.escape(floor)}OrderSheet .rondo-category .rondo-table`);
+    const tbody = table?.querySelector("tbody");
+    if (!table || !tbody) return;
+    const colgroup = table.querySelector("colgroup");
+    if (colgroup) {
+      colgroup.replaceChildren();
+      [34, 11, 11, 11, 11, 11, 11].forEach((width) => {
+        const col = document.createElement("col");
+        col.style.width = `${width}%`;
+        colgroup.append(col);
+      });
+    }
+    const header = tbody.querySelector(".lower-matrix-header");
+    if (header) {
+      const title = header.querySelector("th")?.textContent || "Product";
+      header.replaceChildren();
+      [title, ...RONDO_LENGTHS].forEach((text) => {
+        const th = document.createElement("th");
+        th.textContent = text;
+        header.append(th);
+      });
+    }
+    [...tbody.querySelectorAll("tr")].forEach((row) => {
+      while (row.children.length > 7) row.lastElementChild?.remove();
+    });
     replaceRondoRow(floor, tbody, PRODUCTS.rondo.p40, ["P40 Int"]);
     replaceRondoRow(floor, tbody, PRODUCTS.rondo.casing, ["Metal Casing Bead 10 mm", "PVC Casing Bead 10 mm"]);
   }
 
-  function makeFastenerRow(floor, label, sku, first) {
+  function makeSeparatorRow() {
+    const row = document.createElement("tr");
+    row.className = "self-drilling-bugle-separator";
+    const cell = document.createElement("td");
+    cell.colSpan = 3;
+    cell.setAttribute("aria-hidden", "true");
+    cell.style.height = "4px";
+    cell.style.padding = "0";
+    cell.style.background = "#aeb6b4";
+    cell.style.border = "0";
+    row.append(cell);
+    return row;
+  }
+
+  function makeFastenerRow(floor, label, sku) {
     const row = document.createElement("tr");
     row.className = "self-drilling-bugle-row";
-    if (first) row.style.borderTop = "3px solid #bfc6c4";
-
     const name = document.createElement("th");
     name.scope = "row";
     name.colSpan = 2;
@@ -110,15 +130,11 @@
   function patchFasteners(floor) {
     const tbody = document.querySelector(`#${CSS.escape(floor)}OrderSheet .fasteners-category .fasteners-table tbody`);
     if (!tbody) return;
-    tbody.querySelectorAll(".self-drilling-bugle-row").forEach((row) => row.remove());
-
-    const nailsHeader = [...tbody.querySelectorAll("tr")].find((row) => {
-      const first = row.querySelector("th")?.textContent?.trim().toLowerCase();
-      return first === "nails";
-    });
-
+    tbody.querySelectorAll(".self-drilling-bugle-row, .self-drilling-bugle-separator").forEach((row) => row.remove());
+    const nailsHeader = [...tbody.querySelectorAll("tr")].find((row) => row.querySelector("th")?.textContent?.trim().toLowerCase() === "nails");
     const fragment = document.createDocumentFragment();
-    PRODUCTS.fasteners.forEach(([label, sku], index) => fragment.append(makeFastenerRow(floor, label, sku, index === 0)));
+    fragment.append(makeSeparatorRow());
+    PRODUCTS.fasteners.forEach(([label, sku]) => fragment.append(makeFastenerRow(floor, label, sku)));
     if (nailsHeader) tbody.insertBefore(fragment, nailsHeader);
     else tbody.append(fragment);
   }
@@ -133,7 +149,6 @@
 
   renderer.__productAdditions20260806 = true;
   window.renderUnifiedFloorSheet = renderer;
-
   registerProducts();
   queueMicrotask(() => {
     const areas = Array.isArray(state?.deliveryAreas) ? state.deliveryAreas : [];
