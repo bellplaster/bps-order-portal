@@ -24,9 +24,12 @@ test("required date and delivery refinement have one deterministic lifecycle", a
   assert.ok(dateScript < appScript, "date controller must initialise before app lifecycle listeners");
   assert.ok(deliveryScript < phoneScript, "delivery layout must settle before phone-only refinement");
 
+  assert.match(dateState, /function parseSmartDateDigits/);
   assert.match(dateState, /dd-mm-yy/i);
   assert.match(dateState, /requiredDateDisplay/);
-  assert.doesNotMatch(fieldBehaviour, /requiredDateDisplay/);
+  assert.doesNotMatch(fieldBehaviour, /function parseSmartDateDigits/);
+  assert.doesNotMatch(fieldBehaviour, /function datePartsFromDigits/);
+  assert.match(fieldBehaviour, /BPSRequiredDate/);
   assert.doesNotMatch(phoneRefinement, /type\s*=\s*["']date["']/);
   assert.doesNotMatch(referencePlaceholder, /createElement\(["']script["']\)/);
   assert.match(deliveryRefinement, /__bpsDeliveryRefinementLoaded/);
