@@ -24,6 +24,7 @@
     ["portal-identity-ux", "/portal-identity-ux.js?v=20260731-2"],
     ["inline-tab-rename", "/inline-tab-rename.js?v=20260801-4"],
     ["board-area-summary", "/board-area-summary.js?v=20260801-3"],
+    ["compound-range-update", "/compound-range-update-20260807.js?v=20260807-1"],
   ];
 
   controllers.forEach(([marker, src]) => {
