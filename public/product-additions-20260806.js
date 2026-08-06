@@ -102,21 +102,17 @@
     replaceRondoRow(floor, tbody, PRODUCTS.rondo.casing, ["Metal Casing Bead 10 mm", "PVC Casing Bead 10 mm"]);
   }
 
-  function makeSeparatorRow() {
-    const row = document.createElement("tr");
-    row.className = "self-drilling-bugle-separator";
-    const cell = document.createElement("td");
-    cell.colSpan = 3;
-    cell.setAttribute("aria-hidden", "true");
-    cell.style.height = "4px";
-    cell.style.padding = "0";
-    cell.style.background = "#aeb6b4";
-    cell.style.border = "0";
-    row.append(cell);
-    return row;
+  function applyGroupSeparator(row) {
+    row.classList.add("self-drilling-bugle-group-start");
+    row.style.setProperty("height", "30px", "important");
+    [...row.children].forEach((cell) => {
+      cell.style.setProperty("height", "30px", "important");
+      cell.style.setProperty("min-height", "30px", "important");
+      cell.style.setProperty("border-top", "4px solid #c3c9c7", "important");
+    });
   }
 
-  function makeFastenerRow(floor, label, sku) {
+  function makeFastenerRow(floor, label, sku, groupStart = false) {
     const row = document.createElement("tr");
     row.className = "self-drilling-bugle-row";
     const name = document.createElement("th");
@@ -124,6 +120,7 @@
     name.colSpan = 2;
     name.textContent = label;
     row.append(name, createQuantityCell(floor, keyFor(sku)));
+    if (groupStart) applyGroupSeparator(row);
     return row;
   }
 
@@ -133,8 +130,7 @@
     tbody.querySelectorAll(".self-drilling-bugle-row, .self-drilling-bugle-separator").forEach((row) => row.remove());
     const nailsHeader = [...tbody.querySelectorAll("tr")].find((row) => row.querySelector("th")?.textContent?.trim().toLowerCase() === "nails");
     const fragment = document.createDocumentFragment();
-    fragment.append(makeSeparatorRow());
-    PRODUCTS.fasteners.forEach(([label, sku]) => fragment.append(makeFastenerRow(floor, label, sku)));
+    PRODUCTS.fasteners.forEach(([label, sku], index) => fragment.append(makeFastenerRow(floor, label, sku, index === 0)));
     if (nailsHeader) tbody.insertBefore(fragment, nailsHeader);
     else tbody.append(fragment);
   }
