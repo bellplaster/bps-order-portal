@@ -28,18 +28,6 @@
   }, { once: true });
   window.setTimeout(revealPortal, 3500);
 
-  const UPPERCASE_IDS = new Set([
-    "companyName",
-    "contactName",
-    "deliveryStreet",
-    "deliveryAddressSearch",
-    "deliveryInstructions",
-    "newDebtorCode",
-    "newCompanyName",
-    "editDebtorCode",
-    "editCompanyName",
-  ]);
-
   const ADDRESS_GROUPS = [
     {
       name: "order",
@@ -57,18 +45,22 @@
     },
   ];
 
-  const formattedFields = new WeakSet();
   const addressFields = new WeakSet();
-  let scanTimer = 0;
-  let scanAttempts = 0;
+  let scanQueued = false;
 
-  function uppercase(value) {
-    return String(value || "").toLocaleUpperCase("en-AU");
+  function addressDisplayValue(value) {
+    const text = String(value || "").trim();
+    return window.BPSOrderFields?.formatAddressDisplay?.(text) || text;
   }
 
-  function addressDisplayValue(value, group) {
-    const text = String(value || "").trim();
-    return group?.name === "account" ? text : uppercase(text);
+  function assignFieldValue(field, value, { address = false } = {}) {
+    if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) return;
+    const next = address ? addressDisplayValue(value) : String(value ?? "");
+    if (window.BPSOrderFields?.owns?.(field)) {
+      window.BPSOrderFields.setValue(field, next, { assist: true });
+    } else {
+      field.value = next;
+    }
   }
 
   function mergeManualStreetDetails(manualValue, resolvedValue) {
@@ -94,53 +86,11 @@
     return `${prefix}${/[\/,]$/.test(prefix) ? "" : " "}${resolved}`;
   }
 
-  function replaceFieldValue(field) {
-    if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) return false;
-    const previous = field.value;
-    const next = uppercase(previous);
-    if (next === previous) return false;
-    const start = field.selectionStart;
-    const end = field.selectionEnd;
-    field.value = next;
-    if (document.activeElement === field && start != null && end != null) {
-      try { field.setSelectionRange(start, end); } catch (_error) { }
-    }
-    return true;
-  }
-
-  function formatField(field) {
-    return UPPERCASE_IDS.has(field?.id) ? replaceFieldValue(field) : false;
-  }
-
   function emitFieldEvents(field) {
+    field.dataset.addressSelectionInProgress = "true";
     field.dispatchEvent(new Event("input", { bubbles: true }));
     field.dispatchEvent(new Event("change", { bubbles: true }));
-  }
-
-  function bindFormatting(field) {
-    if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) || formattedFields.has(field)) return;
-    formattedFields.add(field);
-    field.dataset.orderDetailFormatting = "uppercase";
-    field.style.textTransform = "uppercase";
-    const apply = (event) => {
-      if (!event?.isComposing) formatField(field);
-    };
-    field.addEventListener("input", apply);
-    field.addEventListener("change", apply);
-    field.addEventListener("blur", apply);
-    formatField(field);
-  }
-
-  function formatAllFields() {
-    UPPERCASE_IDS.forEach((id) => {
-      const field = document.getElementById(id);
-      if (field) formatField(field);
-    });
-    try {
-      if (document.body.classList.contains("order-form-page") && typeof parseAndStoreManualAddress === "function") {
-        parseAndStoreManualAddress();
-      }
-    } catch (_error) { }
+    delete field.dataset.addressSelectionInProgress;
   }
 
   function addressHost(input) {
@@ -228,19 +178,13 @@
           throw new Error("Choose a street address rather than a business or landmark.");
         }
         if (mode === "street" && street && place.street) {
-          const resolvedStreet = mergeManualStreetDetails(manualStreet, place.street);
-          street.value = addressDisplayValue(resolvedStreet, group);
+          assignFieldValue(street, mergeManualStreetDetails(manualStreet, place.street), { address: true });
         }
-        if (suburb && place.suburb) suburb.value = addressDisplayValue(place.suburb, group);
-        if (postcode) postcode.value = String(place.postcode || "").replace(/\D/g, "").slice(0, 4);
-        if (state) state.value = "VIC";
+        if (suburb && place.suburb) assignFieldValue(suburb, place.suburb, { address: true });
+        if (postcode) assignFieldValue(postcode, String(place.postcode || "").replace(/\D/g, "").slice(0, 4));
+        if (state) assignFieldValue(state, "VIC");
 
-        [street, suburb, postcode].filter(Boolean).forEach((field) => {
-          formatField(field);
-          field.dataset.addressSelectionInProgress = "true";
-          emitFieldEvents(field);
-          delete field.dataset.addressSelectionInProgress;
-        });
+        [street, suburb, postcode].filter(Boolean).forEach(emitFieldEvents);
 
         if (group.name === "order") {
           try { window.parseAndStoreManualAddress?.(); } catch (_error) { }
@@ -269,12 +213,12 @@
         button.setAttribute("aria-selected", String(index === activeIndex));
 
         const main = document.createElement("strong");
-        main.textContent = addressDisplayValue(suggestion.mainText || suggestion.text || "", group);
+        main.textContent = addressDisplayValue(suggestion.mainText || suggestion.text || "");
         button.append(main);
 
         if (suggestion.secondaryText) {
           const secondary = document.createElement("span");
-          secondary.textContent = addressDisplayValue(suggestion.secondaryText, group);
+          secondary.textContent = addressDisplayValue(suggestion.secondaryText);
           button.append(secondary);
         }
 
@@ -316,7 +260,6 @@
 
     input.addEventListener("input", () => {
       if (input.dataset.addressSelectionInProgress === "true") return;
-      formatField(input);
       window.clearTimeout(searchTimer);
       controller?.abort();
       if (input.value.trim().length < 2) return close();
@@ -366,13 +309,11 @@
     const style = document.createElement("style");
     style.id = "orderDetailFieldStyles";
     style.textContent = `
-      [data-order-detail-formatting="uppercase"]{text-transform:uppercase!important}
       .order-detail-autocomplete-host{position:relative!important;overflow:visible!important}
       .order-detail-autocomplete-host.has-order-detail-suggestions{z-index:100!important}
       .order-detail-suggestions{position:absolute;z-index:100002;top:100%;left:-1px;right:-1px;max-height:260px;overflow-y:auto;background:#fff;border:1px solid #cfd7d4;box-shadow:0 8px 20px rgba(23,33,31,.12)}
       .order-detail-suggestions[hidden]{display:none!important}
-      .order-detail-suggestion{box-sizing:border-box;width:100%;display:grid;gap:2px;margin:0;padding:8px 10px;text-align:left;text-transform:uppercase;color:#17211f;background:#fff;border:0;border-bottom:1px solid #e1e6e4;border-radius:0;cursor:pointer;font-family:inherit}
-      .account-page .order-detail-suggestions[data-group="account"] .order-detail-suggestion{text-transform:none}
+      .order-detail-suggestion{box-sizing:border-box;width:100%;display:grid;gap:2px;margin:0;padding:8px 10px;text-align:left;text-transform:none;color:#17211f;background:#fff;border:0;border-bottom:1px solid #e1e6e4;border-radius:0;cursor:pointer;font-family:inherit}
       .order-detail-suggestion:last-child{border-bottom:0}
       .order-detail-suggestion:hover,.order-detail-suggestion.is-active{background:#eef6f3}
       .order-detail-suggestion strong{font-size:11px;font-weight:650;line-height:1.25}
@@ -384,58 +325,45 @@
   }
 
   function scan() {
-    UPPERCASE_IDS.forEach((id) => {
-      const field = document.getElementById(id);
-      if (field) bindFormatting(field);
-    });
     ADDRESS_GROUPS.forEach(bindAddressGroup);
-    formatAllFields();
   }
 
-  function scheduleScan() {
-    if (scanTimer) return;
-    scanTimer = window.setTimeout(() => {
-      scanTimer = 0;
-      scanAttempts += 1;
+  function queueScan() {
+    if (scanQueued) return;
+    scanQueued = true;
+    queueMicrotask(() => {
+      scanQueued = false;
       scan();
-      if (scanAttempts < 80) scheduleScan();
-    }, scanAttempts < 10 ? 100 : 300);
+    });
   }
 
   const serverInitialiser = async function initialiseServerAddressFields() { scan(); };
   serverInitialiser.__managerAddressPatched = true;
   window.initialiseGoogleAddress = serverInitialiser;
   window.initialiseOrderDetailFields = scan;
-  window.formatOrderDetailFields = formatAllFields;
+  window.formatOrderDetailFields = () => window.BPSOrderFields?.normaliseCurrentValues?.();
   window.gm_authFailure = () => {};
   try { initialiseGoogleAddress = serverInitialiser; } catch (_error) { }
 
   installStyles();
-  document.addEventListener("submit", formatAllFields, true);
-  document.addEventListener("click", (event) => {
-    if (event.target.closest("#continueToReviewButton, #submitButton, #accountForm button[type='submit'], #accountForm button:not([type])")) {
-      formatAllFields();
-    }
-  }, true);
   document.addEventListener("mousedown", (event) => {
     if (event.target.closest(".order-detail-autocomplete-host")) return;
     document.querySelectorAll("[data-server-address-search='true']").forEach((input) => input.__closeOrderDetailSuggestions?.());
   });
 
-  const observer = new MutationObserver(scheduleScan);
+  const observer = new MutationObserver((records) => {
+    const relevant = records.some((record) => [...record.addedNodes].some((node) => {
+      if (!(node instanceof Element)) return false;
+      return ADDRESS_GROUPS.some((group) => node.id === group.streetId
+        || node.id === group.suburbId
+        || node.id === group.postcodeId
+        || node.querySelector?.(`#${group.streetId}, #${group.suburbId}, #${group.postcodeId}`));
+    }));
+    if (relevant) queueScan();
+  });
   observer.observe(document.documentElement, { childList: true, subtree: true });
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => {
-      scan();
-      scheduleScan();
-    }, { once: true });
-  } else {
-    scan();
-    scheduleScan();
-  }
-  window.addEventListener("pageshow", () => {
-    scan();
-    scheduleScan();
-  });
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", scan, { once: true });
+  else scan();
+  window.addEventListener("pageshow", scan);
 })();

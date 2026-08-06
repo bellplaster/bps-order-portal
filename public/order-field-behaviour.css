@@ -1,0 +1,49 @@
+.order-form-page .sheet-field-row,
+.order-form-page .address-control,
+.order-form-page .instruction-sheet-row {
+  position: relative;
+}
+
+.order-form-page .is-order-field-invalid {
+  box-shadow: inset 0 0 0 2px #c5284e !important;
+}
+
+.order-form-page .order-field-validation-message {
+  position: absolute;
+  z-index: 2200;
+  top: calc(100% - 1px);
+  left: 112px;
+  max-width: calc(100% - 120px);
+  margin: 0;
+  padding: 4px 7px;
+  color: #a61636;
+  background: #fff7f8;
+  border: 1px solid #efb8c4;
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 5px 12px rgba(78, 16, 31, .08);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.3;
+  pointer-events: none;
+}
+
+.order-form-page .order-field-validation-message[hidden] {
+  display: none !important;
+}
+
+.order-form-page .address-control > .order-field-validation-message {
+  left: 8px;
+  max-width: calc(100% - 16px);
+}
+
+.order-form-page .instruction-sheet-row > .order-field-validation-message {
+  left: 112px;
+}
+
+@media (max-width: 760px) {
+  .order-form-page .order-field-validation-message,
+  .order-form-page .instruction-sheet-row > .order-field-validation-message {
+    left: 8px;
+    max-width: calc(100% - 16px);
+  }
+}

@@ -7,12 +7,12 @@ const validationStyles = await readFile(new URL("../public/account-field-validat
 const accountPage = await readFile(new URL("../public/account/index.html", import.meta.url), "utf8");
 
 test("Account defaults preserve user-entered casing", () => {
-  const uppercaseIds = orderDetailFields.match(/const UPPERCASE_IDS = new Set\(\[(.*?)\]\);/s)?.[1] || "";
-  assert.doesNotMatch(uppercaseIds, /defaultContactName/);
-  assert.doesNotMatch(uppercaseIds, /defaultStreet/);
-  assert.doesNotMatch(uppercaseIds, /defaultSuburb/);
-  assert.doesNotMatch(uppercaseIds, /defaultInstructions/);
-  assert.match(orderDetailFields, /group\?\.name === "account" \? text : uppercase\(text\)/);
+  assert.doesNotMatch(orderDetailFields, /UPPERCASE_IDS/);
+  assert.doesNotMatch(orderDetailFields, /textTransform\s*=\s*["']uppercase/);
+  assert.doesNotMatch(orderDetailFields, /text-transform:\s*uppercase/);
+  assert.doesNotMatch(orderDetailFields, /toLocaleUpperCase/);
+  assert.match(orderDetailFields, /window\.BPSOrderFields\?\.formatAddressDisplay/);
+  assert.match(orderDetailFields, /text-transform:none/);
 });
 
 test("validation messages do not vertically centre adjacent Account fields", () => {

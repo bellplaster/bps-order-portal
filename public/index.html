@@ -24,6 +24,7 @@
   <link rel="stylesheet" href="/order-success-checkout-guard.css?v=20260804-1">
   <link rel="stylesheet" href="/order-readonly-mode.css?v=20260805-1">
   <link rel="stylesheet" href="/portal-layout-width.css?v=20260805-1">
+  <link rel="stylesheet" href="/order-field-behaviour.css?v=20260806-1">
 </head>
 <body class="order-form-page">
   <header class="portal-header">
@@ -69,7 +70,7 @@
           <div class="sheet-details-grid">
             <div class="sheet-field-row">
               <label for="reference">Reference</label>
-              <input id="reference" type="text" inputmode="text" pattern="[0-9]+(?:-[0-9]+)*" maxlength="30" autocomplete="off" required placeholder="Reference" title="Use numbers with optional dashes, for example 8888-1.">
+              <input id="reference" type="text" inputmode="text" maxlength="80" autocomplete="off" autocapitalize="sentences" required placeholder="Reference">
             </div>
             <div class="sheet-field-row">
               <label for="requiredDate">Required date</label>
@@ -77,11 +78,11 @@
             </div>
             <div class="sheet-field-row">
               <label for="contactName">Contact</label>
-              <input id="contactName" type="text" maxlength="100" autocomplete="name" required placeholder="Name">
+              <input id="contactName" type="text" maxlength="100" autocomplete="name" autocapitalize="words" required placeholder="Name">
             </div>
             <div class="sheet-field-row">
               <label for="contactMobile">Phone</label>
-              <input id="contactMobile" type="tel" maxlength="16" inputmode="tel" autocomplete="tel" required placeholder="Phone">
+              <input id="contactMobile" type="tel" maxlength="18" inputmode="tel" autocomplete="tel" required placeholder="Phone">
             </div>
           </div>
 
@@ -91,7 +92,7 @@
               <div class="delivery-address-field sheet-field-row sheet-field-wide">
                 <label for="deliveryAddressSearch">Address</label>
                 <div class="address-control">
-                  <input id="deliveryAddressSearch" type="text" maxlength="500" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="addressSearchResults" placeholder="Address">
+                  <input id="deliveryAddressSearch" type="text" maxlength="500" autocomplete="off" autocapitalize="words" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="addressSearchResults" placeholder="Address">
                   <button id="clearAddressButton" class="clear-input" type="button" aria-label="Clear delivery address" hidden>×</button>
                   <div id="addressSearchResults" class="address-search-results" role="listbox" hidden></div>
                 </div>
@@ -118,7 +119,7 @@
                   <div id="generatedDeliverySummary" class="generated-notes-content" aria-live="polite"></div>
                 </div>
                 <label class="additional-instructions-label" for="deliveryInstructions">Instructions</label>
-                <textarea id="deliveryInstructions" rows="3" maxlength="1500" placeholder="Access, unloading or site notes"></textarea>
+                <textarea id="deliveryInstructions" rows="3" maxlength="1500" autocapitalize="sentences" placeholder="Access, unloading or site notes"></textarea>
               </div>
 
               <div class="delivery-controls-stack">
@@ -196,12 +197,13 @@
     </form>
   </main>
 
+  <script src="/order-field-behaviour.js?v=20260806-2" defer></script>
   <script src="/app.js?v=20260805-1" defer></script>
   <script src="/app-products.js?v=20260731-3" defer></script>
   <script src="/app-order.js?v=20260805-1" defer></script>
   <script src="/order-selection-source.js?v=20260731-4" defer data-order-selection-source="true"></script>
   <script src="/app-address.js?v=20260731-1" defer></script>
-  <script src="/order-detail-fields.js?v=20260731-2" defer></script>
+  <script src="/order-detail-fields.js?v=20260806-1" defer></script>
   <script src="/linked-contact-picker.js?v=20260731-2" defer data-linked-contact-picker="true"></script>
   <script src="/board-refinement.js?v=20260724-7" defer></script>
   <script src="/lower-products-refinement.js?v=20260801-3" defer></script>
@@ -211,14 +213,13 @@
   <script src="/delivery-areas.js?v=20260724-1" defer></script>
   <script src="/source-truth-payload.js?v=20260801-2" defer></script>
   <script src="/payload-sku-bridge.js?v=20260731-1" defer></script>
-  <script src="/order-field-behaviour.js?v=20260806-1" defer></script>
-  <script src="/phone-date-refinement.js?v=20260730-1" defer></script>
+  <script src="/phone-date-refinement.js?v=20260806-1" defer></script>
   <script src="/additional-products-refinement.js?v=20260729-2" defer></script>
   <script src="/review-metrics-refinement.js?v=20260731-7" defer></script>
   <script src="/order-form-enhancements.js?v=20260731-3" defer data-order-form-enhancements="true"></script>
   <script src="/draft-restore-fix.js?v=20260805-1" defer></script>
   <script src="/order-readonly-mode.js?v=20260805-1" defer></script>
-  <script src="/portal-state-bridge.js?v=20260805-2" defer></script>
+  <script src="/portal-state-bridge.js?v=20260806-1" defer></script>
   <script src="/order-success-checkout.js?v=20260804-1" defer></script>
   <script src="/order-success-navigation.js?v=20260804-1" defer></script>
 </body>

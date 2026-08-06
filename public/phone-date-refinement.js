@@ -2,48 +2,6 @@
   const MAX_QUANTITY = 10000;
   const EXTRAS_PLACEHOLDER = "Select extras (optional)";
 
-  const phone = {
-    normalise(value, optional = false) {
-      let digits = String(value || "").replace(/\D/g, "");
-      if (!digits && optional) return "";
-      if (digits.startsWith("61") && digits.length >= 11) digits = `0${digits.slice(2)}`;
-      if (/^04\d{8}$/.test(digits)) return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`;
-      if (/^0[2378]\d{8}$/.test(digits)) return `${digits.slice(0, 2)} ${digits.slice(2, 6)} ${digits.slice(6)}`;
-      if (/^(?:1300|1800)\d{6}$/.test(digits)) return `${digits.slice(0, 4)} ${digits.slice(4, 7)} ${digits.slice(7)}`;
-      if (/^13\d{4}$/.test(digits)) return `${digits.slice(0, 2)} ${digits.slice(2, 4)} ${digits.slice(4)}`;
-      return "";
-    },
-    formatTyping(value) {
-      let digits = String(value || "").replace(/\D/g, "");
-      if (digits.startsWith("61")) digits = `0${digits.slice(2)}`;
-      digits = digits.slice(0, 10);
-      if (digits.startsWith("04")) return [digits.slice(0, 4), digits.slice(4, 7), digits.slice(7)].filter(Boolean).join(" ");
-      if (/^0[2378]/.test(digits)) return [digits.slice(0, 2), digits.slice(2, 6), digits.slice(6)].filter(Boolean).join(" ");
-      if (/^(1300|1800)/.test(digits)) return [digits.slice(0, 4), digits.slice(4, 7), digits.slice(7)].filter(Boolean).join(" ");
-      if (digits.startsWith("13")) return [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 6)].filter(Boolean).join(" ");
-      return digits;
-    },
-  };
-
-  function addressTitleCase(value) {
-    const cleaned = String(value || "")
-      .replace(/,?\s*Australia\s*$/i, "")
-      .replace(/\bVictoria\b/gi, "VIC")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (!cleaned) return "";
-    return cleaned
-      .toLowerCase()
-      .replace(/\b([a-z])/g, (match) => match.toUpperCase())
-      .replace(/\bVic\b/g, "VIC")
-      .replace(/\bNsw\b/g, "NSW")
-      .replace(/\bQld\b/g, "QLD")
-      .replace(/\bSa\b/g, "SA")
-      .replace(/\bWa\b/g, "WA")
-      .replace(/\bAct\b/g, "ACT")
-      .replace(/\bNt\b/g, "NT");
-  }
-
   function restoreNativeRequiredDate() {
     const input = document.getElementById("requiredDate");
     if (!input) return;
@@ -65,63 +23,6 @@
 
     const shell = input.closest(".date-input-shell");
     if (shell) shell.replaceWith(input);
-  }
-
-  function cleanReference(value) {
-    return String(value || "")
-      .replace(/[^0-9-]/g, "")
-      .replace(/-{2,}/g, "-")
-      .replace(/^-+/g, "")
-      .slice(0, 30);
-  }
-
-  function isValidReference(value) {
-    return /^\d+(?:-\d+)*$/.test(String(value || ""));
-  }
-
-  function initialiseReference() {
-    const input = document.getElementById("reference");
-    if (!input) return;
-    input.placeholder = "Reference";
-    input.inputMode = "text";
-    input.pattern = "[0-9]+(?:-[0-9]+)*";
-    input.maxLength = 30;
-    input.title = "Use numbers with optional dashes, for example 8888-1.";
-    input.value = cleanReference(input.value);
-    if (input.dataset.referenceFormat === "true") return;
-    input.dataset.referenceFormat = "true";
-    input.addEventListener("input", () => {
-      const cleaned = cleanReference(input.value);
-      if (input.value !== cleaned) input.value = cleaned;
-      input.setCustomValidity("");
-    });
-  }
-
-  function patchReferenceSetValue() {
-    if (typeof setValue !== "function" || setValue.__referenceFormat) return;
-    const original = setValue;
-    const patched = function setReferenceValue(id, nextValue, ...args) {
-      return original.call(this, id, id === "reference" ? cleanReference(nextValue) : nextValue, ...args);
-    };
-    patched.__referenceFormat = true;
-    try { setValue = patched; } catch (_error) { }
-  }
-
-  function patchReferenceValidation() {
-    if (typeof validateForm !== "function" || validateForm.__referenceFormat) return;
-    const original = validateForm;
-    const patched = function validateReferenceFormat(...args) {
-      const reference = document.getElementById("reference")?.value.trim() || "";
-      if (reference && !isValidReference(reference)) {
-        const message = "Use numbers with single dashes, for example 8888-1.";
-        if (typeof fieldError === "function") throw fieldError("reference", message);
-        throw new Error(message);
-      }
-      return original.apply(this, args);
-    };
-    patched.__referenceFormat = true;
-    window.validateForm = patched;
-    try { validateForm = patched; } catch (_error) { }
   }
 
   function updateExtrasPlaceholder() {
@@ -226,6 +127,8 @@
   }
 
   function initialiseQuantityControls() {
+    if (window.__bpsQuantityControlsStarted) return;
+    window.__bpsQuantityControlsStarted = true;
     document.querySelectorAll(".quantity-input").forEach(configureQuantityInput);
 
     document.addEventListener("input", (event) => {
@@ -283,25 +186,8 @@
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
   }
 
-  window.BPSPhone = phone;
-  window.formatAddressDisplay = addressTitleCase;
-  if (typeof normaliseMobile === "function") normaliseMobile = (value, optional = false) => phone.normalise(value, optional);
-  if (typeof formatMobileTyping === "function") formatMobileTyping = (value) => phone.formatTyping(value);
-  if (typeof formatMobileField === "function") formatMobileField = (event) => { event.target.value = phone.formatTyping(event.target.value); };
-
-  document.addEventListener("DOMContentLoaded", () => {
-    [document.getElementById("contactMobile"), document.getElementById("defaultMobile"), document.getElementById("newDefaultMobile")]
-      .filter(Boolean)
-      .forEach((input) => {
-        input.maxLength = 16;
-        input.placeholder = "Phone";
-        input.setAttribute("aria-label", "Phone");
-      });
-
+  function start() {
     restoreNativeRequiredDate();
-    initialiseReference();
-    patchReferenceSetValue();
-    patchReferenceValidation();
     initialiseQuantityControls();
     updateExtrasPlaceholder();
     observeDynamicControls();
@@ -312,34 +198,16 @@
       }
     });
 
-    const address = document.getElementById("deliveryAddressSearch");
-    if (address) {
-      const refine = () => {
-        if (address.value && address.value !== "Pickup") address.value = addressTitleCase(address.value);
-      };
-      address.addEventListener("change", refine);
-      address.addEventListener("blur", refine);
-    }
-
     const confirmation = document.getElementById("futureDateConfirmation");
     if (confirmation) {
       const text = confirmation.querySelector("span");
       if (text) text.textContent = "Confirm this date";
       confirmation.title = "This required date is more than six months away";
     }
+  }
 
-    let attempts = 0;
-    const repairTimer = window.setInterval(() => {
-      attempts += 1;
-      restoreNativeRequiredDate();
-      initialiseReference();
-      patchReferenceSetValue();
-      patchReferenceValidation();
-      updateExtrasPlaceholder();
-      document.querySelectorAll(".quantity-input").forEach(configureQuantityInput);
-      if (attempts >= 50) window.clearInterval(repairTimer);
-    }, 100);
-  });
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
+  else start();
 
   const style = document.createElement("style");
   style.dataset.phoneDateRefinement = "true";
