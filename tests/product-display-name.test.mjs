@@ -4,7 +4,15 @@ import test from "node:test";
 import vm from "node:vm";
 
 const source = await readFile(new URL("../public/payload-sku-bridge.js", import.meta.url), "utf8");
-const context = vm.createContext({ console });
+const document = {
+  createElement() {
+    return { dataset: {} };
+  },
+  head: {
+    append() {},
+  },
+};
+const context = vm.createContext({ console, document });
 vm.runInContext(source, context, { filename: "payload-sku-bridge.js" });
 const naming = context.BpsProductDisplayName;
 

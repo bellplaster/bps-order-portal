@@ -21,7 +21,6 @@
     ["product-quantity-authority", "/product-quantity-authority.js?v=20260731-1"],
     ["order-selection-source", "/order-selection-source.js?v=20260731-4"],
     ["admin-testing", "/admin-testing.js?v=20260731-4"],
-    ["calendar-control", "/calendar-control.js?v=20260801-3"],
     ["portal-identity-ux", "/portal-identity-ux.js?v=20260731-2"],
     ["inline-tab-rename", "/inline-tab-rename.js?v=20260801-4"],
     ["board-area-summary", "/board-area-summary.js?v=20260801-3"],
@@ -35,24 +34,6 @@
     script.dataset[marker.replace(/-([a-z])/g, (_match, letter) => letter.toUpperCase())] = "true";
     document.body.append(script);
   });
-
-  const syncRequiredDateState = () => {
-    const input = document.getElementById("requiredDate");
-    if (!(input instanceof HTMLInputElement)) return false;
-    input.classList.toggle("has-date-value", Boolean(input.value));
-    return true;
-  };
-
-  const initialiseRequiredDateState = () => {
-    const input = document.getElementById("requiredDate");
-    if (!(input instanceof HTMLInputElement)) return false;
-    syncRequiredDateState();
-    if (input.dataset.dateValueState !== "true") {
-      input.dataset.dateValueState = "true";
-      ["input", "change", "blur"].forEach((eventName) => input.addEventListener(eventName, syncRequiredDateState));
-    }
-    return true;
-  };
 
   const initialiseSafeOrderSubmission = () => {
     const form = document.getElementById("orderForm");
@@ -84,37 +65,10 @@
     return true;
   };
 
-  const start = () => {
-    initialiseRequiredDateState();
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initialiseSafeOrderSubmission, { once: true });
+  } else {
     initialiseSafeOrderSubmission();
-    let attempts = 0;
-    const timer = window.setInterval(() => {
-      attempts += 1;
-      initialiseRequiredDateState();
-      initialiseSafeOrderSubmission();
-      if (attempts >= 30) window.clearInterval(timer);
-    }, 100);
-  };
-
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
-  else start();
-
-  window.addEventListener("pageshow", () => {
-    syncRequiredDateState();
-    initialiseSafeOrderSubmission();
-  });
-
-  const style = document.createElement("style");
-  style.dataset.requiredDateValueState = "true";
-  style.textContent = `
-    .order-form-page #requiredDate.has-date-value,
-    .order-form-page #requiredDate.has-date-value::-webkit-datetime-edit,
-    .order-form-page #requiredDate.has-date-value::-webkit-datetime-edit-text,
-    .order-form-page #requiredDate.has-date-value::-webkit-datetime-edit-day-field,
-    .order-form-page #requiredDate.has-date-value::-webkit-datetime-edit-month-field,
-    .order-form-page #requiredDate.has-date-value::-webkit-datetime-edit-year-field {
-      color: #17211f !important;
-    }
-  `;
-  document.head.append(style);
+  }
+  window.addEventListener("pageshow", initialiseSafeOrderSubmission);
 })();
