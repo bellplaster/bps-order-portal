@@ -4,7 +4,6 @@
 
   const FIELD_CONFIGS = {
     reference: { type: "reference", capitalisation: "sentence", required: false, message: "" },
-    requiredDateDisplay: { type: "date", required: true, message: "Enter a complete valid date." },
     contactName: { type: "person", capitalisation: "words", required: true, message: "Use letters, spaces, apostrophes, hyphens and full stops only." },
     contactMobile: { type: "phone", required: true, message: "Enter a valid Australian phone number." },
     deliveryAddressSearch: { type: "street", capitalisation: "words", required: false, message: "Enter a valid street address." },
@@ -27,7 +26,7 @@
 
   function owns(target) {
     const field = fieldFor(target);
-    return Boolean(field && (FIELD_CONFIGS[field.id] || field.id === "requiredDate"));
+    return Boolean(field && (FIELD_CONFIGS[field.id] || field.id === "requiredDate" || field.id === "requiredDateDisplay"));
   }
 
   function cleanSingleLine(value, { trim = true } = {}) {
@@ -145,71 +144,6 @@
     return type === "street" ? restoreAddressAbbreviations(text) : text;
   }
 
-  function daysInMonth(year, month) {
-    return new Date(year, month, 0).getDate();
-  }
-
-  function datePartsFromDigits(value) {
-    const digits = String(value || "").replace(/\D/g, "").slice(0, 8);
-    const day = digits.slice(0, 2);
-    let month = "";
-    let year = "";
-    if (digits.length > 2) {
-      const firstMonthDigit = digits[2];
-      if (Number(firstMonthDigit) > 1) {
-        month = `0${firstMonthDigit}`;
-        year = digits.slice(3, 7);
-      } else {
-        month = digits.slice(2, 4);
-        year = digits.slice(4, 8);
-      }
-    }
-    return { day, month, year };
-  }
-
-  function dateDisplay(parts) {
-    let value = parts.day;
-    if (parts.day.length === 2) value += "-";
-    if (parts.month) value += parts.month;
-    if (parts.month.length === 2) value += "-";
-    if (parts.year) value += parts.year;
-    return value;
-  }
-
-  function dateIso(parts) {
-    const day = Number(parts.day);
-    const month = Number(parts.month);
-    const year = Number(parts.year);
-    if (parts.year.length !== 4 || year < 2000 || month < 1 || month > 12) return "";
-    if (day < 1 || day > daysInMonth(year, month)) return "";
-    return `${parts.year}-${parts.month.padStart(2, "0")}-${parts.day.padStart(2, "0")}`;
-  }
-
-  function setDateValue(iso, { emit = false } = {}) {
-    const hidden = document.getElementById("requiredDate");
-    const display = document.getElementById("requiredDateDisplay");
-    if (!hidden || !display) return false;
-    const match = String(iso || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    hidden.value = match ? `${match[1]}-${match[2]}-${match[3]}` : "";
-    display.value = match ? `${match[3]}-${match[2]}-${match[1]}` : "";
-    clearValidation(display);
-    if (emit) hidden.dispatchEvent(new Event("change", { bubbles: true }));
-    return true;
-  }
-
-  function syncDateFromDisplay({ emit = true } = {}) {
-    const hidden = document.getElementById("requiredDate");
-    const display = document.getElementById("requiredDateDisplay");
-    if (!hidden || !display) return "";
-    const parts = datePartsFromDigits(display.value);
-    display.value = dateDisplay(parts);
-    const iso = dateIso(parts);
-    hidden.value = iso;
-    display.setCustomValidity(display.value && !iso ? FIELD_CONFIGS.requiredDateDisplay.message : "");
-    if (emit && iso) hidden.dispatchEvent(new Event("change", { bubbles: true }));
-    return iso;
-  }
-
   function stateFor(field) {
     let state = typingState.get(field);
     if (!state) {
@@ -237,11 +171,6 @@
       field.removeAttribute("pattern");
       field.removeAttribute("title");
     }
-    if (config.type === "date") {
-      field.inputMode = "numeric";
-      field.maxLength = 10;
-      field.placeholder = "dd-mm-yyyy";
-    }
     stateFor(field);
   }
 
@@ -261,6 +190,10 @@
 
   function clearValidation(target) {
     const field = fieldFor(target);
+    if (field?.id === "requiredDateDisplay") {
+      window.BPSRequiredDate?.clearValidation?.();
+      return;
+    }
     if (!field || !FIELD_CONFIGS[field.id]) return;
     field.setCustomValidity("");
     field.classList.remove("is-order-field-invalid");
@@ -274,13 +207,15 @@
 
   function validateField(target, { show = true } = {}) {
     const field = fieldFor(target);
+    if (field?.id === "requiredDateDisplay" || field?.id === "requiredDate") {
+      return window.BPSRequiredDate?.validate?.({ show }) ?? Boolean(document.getElementById("requiredDate")?.value);
+    }
     const config = FIELD_CONFIGS[field?.id];
     if (!config) return true;
     configureField(field);
     const value = String(field.value || "").trim();
     let valid = true;
-    if (config.type === "date") valid = Boolean(document.getElementById("requiredDate")?.value);
-    else if (!value) valid = config.required !== true;
+    if (!value) valid = config.required !== true;
     else if (config.type === "person") valid = /^(?=.*\p{L})[\p{L}\p{M} .'’\-]+$/u.test(value);
     else if (config.type === "phone") valid = isValidAustralianPhone(value);
     else if (config.type === "street") valid = /^(?=.*[\p{L}\p{N}])[\p{L}\p{M}\p{N} .,'’&/#()\-]+$/u.test(value);
@@ -297,11 +232,13 @@
 
   function setValue(target, value, { assist = true, validate = false } = {}) {
     const field = fieldFor(target);
-    if (field?.id === "requiredDate") return setDateValue(value);
+    if (field?.id === "requiredDate" || field?.id === "requiredDateDisplay") {
+      return window.BPSRequiredDate?.setValue?.(value, { emit: false }) ?? false;
+    }
     const config = FIELD_CONFIGS[field?.id];
     if (!field || !config) return false;
     configureField(field);
-    field.value = config.type === "date" ? dateDisplay(datePartsFromDigits(value)) : formatLoadedValue(value, config.type, config.capitalisation);
+    field.value = formatLoadedValue(value, config.type, config.capitalisation);
     stateFor(field).assistanceEnabled = assist;
     clearValidation(field);
     if (validate) validateField(field, { show: true });
@@ -355,12 +292,11 @@
     const field = event.target;
     const config = FIELD_CONFIGS[field?.id];
     if (!config) return;
-    if (config.type === "date") syncDateFromDisplay({ emit: true });
-    else if (config.type === "reference") field.value = String(field.value || "").normalize("NFKC").replace(invisibleCharacters, "").replace(singleLineControls, " ").slice(0, 80);
+    if (config.type === "reference") field.value = String(field.value || "").normalize("NFKC").replace(invisibleCharacters, "").replace(singleLineControls, " ").slice(0, 80);
     else if (config.type === "phone") preservePhoneCursor(field, formatAustralianPhone(field.value, { typing: true }));
 
     const hasValue = Boolean(String(field.value || "").trim());
-    if (["person", "street", "date"].includes(config.type)) {
+    if (["person", "street"].includes(config.type)) {
       if (hasValue) validateField(field, { show: true });
       else clearValidation(field);
     } else if (field.classList.contains("is-order-field-invalid")) validateField(field, { show: true });
@@ -370,8 +306,7 @@
     const field = event.target;
     const config = FIELD_CONFIGS[field?.id];
     if (!config) return;
-    if (config.type === "date") syncDateFromDisplay({ emit: false });
-    else if (config.type === "phone") field.value = formatAustralianPhone(field.value);
+    if (config.type === "phone") field.value = formatAustralianPhone(field.value);
     else if (config.type === "instructions") field.value = cleanInstructions(field.value);
     else field.value = cleanSingleLine(field.value);
     validateField(field, { show: true });
@@ -380,11 +315,10 @@
   function normaliseCurrentValues() {
     Object.keys(FIELD_CONFIGS).forEach((id) => {
       const field = document.getElementById(id);
-      if (!field || document.activeElement === field || id === "requiredDateDisplay") return;
+      if (!field || document.activeElement === field) return;
       setValue(field, field.value, { assist: true });
     });
-    const hiddenDate = document.getElementById("requiredDate");
-    if (hiddenDate?.value) setDateValue(hiddenDate.value);
+    window.BPSRequiredDate?.syncFromHidden?.();
   }
 
   function start() {
@@ -393,8 +327,6 @@
       configureField(field);
       if (field.value) setValue(field, field.value, { assist: true });
     });
-    const hiddenDate = document.getElementById("requiredDate");
-    if (hiddenDate?.value) setDateValue(hiddenDate.value);
     document.addEventListener("focusin", (event) => {
       if (!FIELD_CONFIGS[event.target?.id]) return;
       configureField(event.target);
@@ -404,7 +336,7 @@
     document.addEventListener("blur", onBlur, true);
     document.getElementById("orderForm")?.addEventListener("reset", () => {
       typingState.clear?.();
-      queueMicrotask(() => setDateValue(""));
+      queueMicrotask(() => window.BPSRequiredDate?.setValue?.(""));
     });
     window.addEventListener("pageshow", normaliseCurrentValues);
   }
@@ -427,7 +359,7 @@
   window.BPSOrderFields = {
     owns,
     setValue,
-    setDateValue,
+    setDateValue: (value, options) => window.BPSRequiredDate?.setValue?.(value, options) ?? false,
     validateField,
     clearValidation,
     normaliseCurrentValues,
@@ -440,9 +372,6 @@
     isValidAustralianPhone,
     suggestCapitalisation,
     formatLoadedValue,
-    datePartsFromDigits,
-    dateDisplay,
-    dateIso,
   };
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
