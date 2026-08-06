@@ -4,6 +4,7 @@ import test from "node:test";
 
 const index = await readFile(new URL("../public/index.html", import.meta.url), "utf8");
 const fields = await readFile(new URL("../public/order-field-behaviour.js", import.meta.url), "utf8");
+const dateController = await readFile(new URL("../public/order-details-date-state.js", import.meta.url), "utf8");
 const fieldStyles = await readFile(new URL("../public/order-field-behaviour.css", import.meta.url), "utf8");
 const order = await readFile(new URL("../public/app-order.js", import.meta.url), "utf8");
 
@@ -26,11 +27,13 @@ test("one shared controller owns capitalisation and respects manual editing", ()
 test("required date has a visible Australian field and a hidden ISO source of truth", () => {
   assert.match(index, /id="requiredDateDisplay"[^>]*placeholder="dd-mm-yyyy"/);
   assert.match(index, /id="requiredDate" type="hidden"/);
-  assert.match(fields, /function datePartsFromDigits/);
-  assert.match(fields, /Number\(firstMonthDigit\) > 1/);
-  assert.match(fields, /month = `0\$\{firstMonthDigit\}`/);
-  assert.match(fields, /hidden\.value = iso/);
+  assert.match(dateController, /function parseSmartDateDigits/);
+  assert.match(dateController, /Number\(first\) > 1/);
+  assert.match(dateController, /month = `0\$\{first\}`/);
+  assert.match(dateController, /hidden\.value = iso/);
+  assert.match(dateController, /fullYear = 2000 \+ Number\(parts\.year\)/);
   assert.match(order, /value\("requiredDate"\)/);
+  assert.doesNotMatch(fields, /function parseSmartDateDigits/);
   assert.doesNotMatch(index, /required-date-input\.(?:js|css)/);
 });
 
