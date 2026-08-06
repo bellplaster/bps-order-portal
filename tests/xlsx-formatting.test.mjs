@@ -29,18 +29,18 @@ test("production export writes tab names in column A and NOTES in the stock code
   });
   const xml = workbookText(workbook);
 
-  assert.match(xml, /<c r="A12" s="9" t="inlineStr"><is><t xml:space="preserve">TAB 1<\/t><\/is><\/c>/);
-  assert.match(xml, /<c r="A13" s="7"\/>/);
-  assert.match(xml, /<c r="B13" s="7" t="inlineStr"><is><t xml:space="preserve">NOTES<\/t><\/is><\/c>/);
-  assert.match(xml, /<c r="C13" s="7" t="inlineStr">/);
-  assert.match(xml, /<c r="D13" s="8"><v>1<\/v><\/c>/);
+  assert.match(xml, /<c r="A12" s="6" t="inlineStr"><is><t xml:space="preserve">TAB 1<\/t><\/is><\/c>/);
+  assert.match(xml, /<c r="A13" s="22"\/>/);
+  assert.match(xml, /<c r="B13" s="20" t="inlineStr"><is><t xml:space="preserve">NOTES<\/t><\/is><\/c>/);
+  assert.match(xml, /<c r="C13" s="19" t="inlineStr">/);
+  assert.match(xml, /<c r="D13" s="21"><v>1<\/v><\/c>/);
 });
 
-test("production export retains the approved A-B and C-D column widths", () => {
+test("production export uses the approved A-C and D column widths", () => {
   const xml = workbookText(createAccriviaSiteAreaXlsx({
     ...common,
     productRows: [["TAB 1", "10SR1260", "", 1]],
   }));
 
-  assert.match(xml, /<col min="1" max="2" width="20" customWidth="1"\/><col min="3" max="4" width="10" customWidth="1"\/>/);
+  assert.match(xml, /<col min="1" max="3" width="20" customWidth="1"\/><col min="4" max="4" width="10" customWidth="1"\/>/);
 });
