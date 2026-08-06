@@ -1,7 +1,7 @@
 /*
  * Minimal Accrivia XLSX generator for Cloudflare Pages Functions.
  *
- * Two formats are supported during the Accrivia transition:
+ * Supported formats:
  * - legacy: A Stock Code, B Description, C Quan
  * - site-area: A SiteArea / Grid, B Stock Code, C Description, D Quan
  */
@@ -79,53 +79,106 @@ function buildSheetRows(data, productRows, format) {
 
   for (let row = 1; row <= 9; row += 1) {
     const valueCell = row === 2 || row === 3
-      ? numberCell(`B${row}`, 3, values[row - 1])
-      : textCell(`B${row}`, 2, values[row - 1]);
-    rows.push(rowXml(row, 2, [textCell(`A${row}`, 1, labels[row - 1]), valueCell]));
+      ? numberCell(`B${row}`, 25, values[row - 1])
+      : textCell(`B${row}`, 24, values[row - 1]);
+    rows.push(rowXml(row, 4, [
+      textCell(`A${row}`, 23, labels[row - 1]),
+      valueCell,
+      blankCell(`C${row}`, 10),
+      blankCell(`D${row}`, 10),
+    ], 18));
   }
+
+  rows.push(rowXml(10, columnCount, Array.from({ length: columnCount }, (_, index) => blankCell(`${columnName(index + 1)}10`, 5))));
 
   if (format === "site-area") {
     rows.push(rowXml(11, 4, [
-      textCell("A11", 5, "SiteArea / Grid"),
-      textCell("B11", 5, "Stock Code"),
-      textCell("C11", 5, "Description"),
-      textCell("D11", 6, "Quan"),
-    ]));
+      textCell("A11", 2, "SiteArea / Grid"),
+      textCell("B11", 3, "Stock Code"),
+      textCell("C11", 3, "Description"),
+      textCell("D11", 4, "Quan"),
+    ], 21));
+
+    const tabEndIndexes = findSiteAreaEndIndexes(productRows);
     productRows.forEach((product, index) => {
       const row = 12 + index;
       const areaValue = product[0];
       const stockCodeValue = product[1];
       const isNotesRow = String(stockCodeValue || "").trim().toUpperCase() === "NOTES";
       const hasTabLabel = String(areaValue || "").trim() !== "";
+      const isTabEnd = tabEndIndexes.has(index);
+
+      let areaStyle = hasTabLabel ? 13 : 7;
+      let productStyle = 10;
+      let quantityStyle = 11;
+
+      if (isTabEnd) {
+        areaStyle = 6;
+        productStyle = 8;
+        quantityStyle = 16;
+      }
+      if (isNotesRow) {
+        areaStyle = 22;
+        productStyle = 20;
+        quantityStyle = 21;
+      }
+
       rows.push(rowXml(row, 4, [
-        textCell(`A${row}`, hasTabLabel ? 9 : isNotesRow ? 7 : 0, areaValue),
-        textCell(`B${row}`, isNotesRow ? 7 : 0, stockCodeValue),
-        textCell(`C${row}`, isNotesRow ? 7 : 0, product[2]),
-        numberCell(`D${row}`, isNotesRow ? 8 : 4, product[3]),
-      ]));
+        textCell(`A${row}`, areaStyle, areaValue),
+        textCell(`B${row}`, productStyle, stockCodeValue),
+        textCell(`C${row}`, isNotesRow ? 19 : productStyle, product[2]),
+        numberCell(`D${row}`, quantityStyle, product[3]),
+      ], isNotesRow ? 21 : 18, isTabEnd || isNotesRow));
     });
   } else {
     rows.push(rowXml(11, 3, [
-      textCell("A11", 5, "Stock Code"),
-      textCell("B11", 5, "Description"),
-      textCell("C11", 6, "Quan"),
-    ]));
+      textCell("A11", 2, "Stock Code"),
+      textCell("B11", 3, "Description"),
+      textCell("C11", 4, "Quan"),
+    ], 21));
     productRows.forEach((product, index) => {
       const row = 12 + index;
       const stockCode = String(product[0] || "").trim();
       const isNotesRow = stockCode.toUpperCase() === "NOTES";
       const isTabRow = /^TAB\s+\d+$/i.test(stockCode);
-      const textStyle = isTabRow || isNotesRow ? 7 : 0;
-      const quantityStyle = isTabRow || isNotesRow ? 8 : 4;
+      const textStyle = isNotesRow ? 20 : isTabRow ? 13 : 10;
+      const quantityStyle = isNotesRow ? 21 : isTabRow ? 15 : 11;
       rows.push(rowXml(row, 3, [
         textCell(`A${row}`, textStyle, product[0]),
-        textCell(`B${row}`, textStyle, product[1]),
+        textCell(`B${row}`, isNotesRow ? 19 : textStyle, product[1]),
         numberCell(`C${row}`, quantityStyle, product[2]),
-      ]));
+      ], isNotesRow ? 21 : 18, isNotesRow));
     });
   }
 
   return rows.join("");
+}
+
+function findSiteAreaEndIndexes(productRows) {
+  const endIndexes = new Set();
+  let currentStart = -1;
+
+  productRows.forEach((product, index) => {
+    const isNotesRow = String(product?.[1] || "").trim().toUpperCase() === "NOTES";
+    const hasTabLabel = String(product?.[0] || "").trim() !== "";
+    if (isNotesRow) {
+      if (currentStart >= 0 && index > currentStart) endIndexes.add(index - 1);
+      return;
+    }
+    if (hasTabLabel) {
+      if (currentStart >= 0) endIndexes.add(index - 1);
+      currentStart = index;
+    }
+  });
+
+  if (currentStart >= 0) {
+    const lastProductIndex = productRows.findLastIndex(
+      (product) => String(product?.[1] || "").trim().toUpperCase() !== "NOTES",
+    );
+    if (lastProductIndex >= currentStart) endIndexes.add(lastProductIndex);
+  }
+
+  return endIndexes;
 }
 
 function worksheetPrefix() {
@@ -137,13 +190,13 @@ function worksheetPrefix() {
 
 function sheetLayout(format) {
   const columns = format === "site-area"
-    ? '<col min="1" max="2" width="20" customWidth="1"/>' +
-      '<col min="3" max="4" width="10" customWidth="1"/>'
+    ? '<col min="1" max="3" width="20" customWidth="1"/>' +
+      '<col min="4" max="4" width="10" customWidth="1"/>'
     : '<col min="1" max="2" width="20" customWidth="1"/>' +
       '<col min="3" max="3" width="10" customWidth="1"/>';
   return '<sheetViews><sheetView tabSelected="1" workbookViewId="0">' +
     '<selection activeCell="A1" sqref="A1"/></sheetView></sheetViews>' +
-    '<sheetFormatPr defaultRowHeight="15" x14ac:dyDescent="0.25"/>' +
+    '<sheetFormatPr defaultRowHeight="12" x14ac:dyDescent="0.2"/>' +
     `<cols>${columns}</cols>`;
 }
 
@@ -155,7 +208,7 @@ function contentTypesXml() {
     '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
     '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
     '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
-    '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>' +
+    '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties"/>' +
     '<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>' +
     '</Types>';
 }
@@ -190,30 +243,60 @@ function stylesXml() {
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
     '<numFmts count="1"><numFmt numFmtId="164" formatCode="dd-mm-yy"/></numFmts>' +
-    '<fonts count="3">' +
-    '<font><sz val="10"/><name val="Inter"/></font>' +
-    '<font><b/><sz val="10"/><name val="Inter"/></font>' +
-    '<font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Inter"/></font>' +
+    '<fonts count="5">' +
+    '<font><sz val="9"/><name val="Arial"/></font>' +
+    '<font><b/><sz val="9"/><name val="Arial"/></font>' +
+    '<font><b/><sz val="9"/><color rgb="FFFFFFFF"/><name val="Arial"/></font>' +
+    '<font><sz val="9"/><name val="Consolas"/></font>' +
+    '<font><b/><sz val="9"/><color rgb="FF5C4E18"/><name val="Arial"/></font>' +
     '</fonts>' +
-    '<fills count="4">' +
+    '<fills count="7">' +
     '<fill><patternFill patternType="none"/></fill>' +
     '<fill><patternFill patternType="gray125"/></fill>' +
     '<fill><patternFill patternType="solid"><fgColor rgb="FFA62B45"/><bgColor indexed="64"/></patternFill></fill>' +
-    '<fill><patternFill patternType="solid"><fgColor rgb="FF006557"/><bgColor indexed="64"/></patternFill></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFF7F8F7"/><bgColor indexed="64"/></patternFill></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFF1F3F2"/><bgColor indexed="64"/></patternFill></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFFFF7DC"/><bgColor indexed="64"/></patternFill></fill>' +
+    '<fill><patternFill patternType="solid"><fgColor rgb="FFFFFFFF"/><bgColor indexed="64"/></patternFill></fill>' +
     '</fills>' +
-    '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
+    '<borders count="8">' +
+    '<border><left/><right/><top/><bottom/><diagonal/></border>' +
+    '<border><left/><right/><top/><bottom style="thin"><color rgb="FFE9ECEB"/></bottom><diagonal/></border>' +
+    '<border><left/><right/><top/><bottom style="medium"><color rgb="FF9DA5A2"/></bottom><diagonal/></border>' +
+    '<border><left/><right style="thin"><color rgb="FFD9DEDC"/></right><top/><bottom style="thin"><color rgb="FFE9ECEB"/></bottom><diagonal/></border>' +
+    '<border><left style="medium"><color rgb="FFC3CAC7"/></left><right style="thin"><color rgb="FFDFE4E2"/></right><top/><bottom style="thin"><color rgb="FFE9ECEB"/></bottom><diagonal/></border>' +
+    '<border><left/><right/><top/><bottom style="thin"><color rgb="FFE8D694"/></bottom><diagonal/></border>' +
+    '<border><left/><right/><top style="medium"><color rgb="FFE8D694"/></top><bottom style="medium"><color rgb="FFE8D694"/></bottom><diagonal/></border>' +
+    '<border><left/><right/><top style="medium"><color rgb="FF9DA5A2"/></top><bottom style="thin"><color rgb="FFE9ECEB"/></bottom><diagonal/></border>' +
+    '</borders>' +
     '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
-    '<cellXfs count="10">' +
+    '<cellXfs count="26">' +
     '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
     '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
-    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>' +
-    '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyFont="1" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>' +
-    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
     '<xf numFmtId="0" fontId="2" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center"/></xf>' +
-    '<xf numFmtId="0" fontId="2" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
-    '<xf numFmtId="0" fontId="2" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>' +
-    '<xf numFmtId="0" fontId="2" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
-    '<xf numFmtId="0" fontId="2" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="2" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="2" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+    '<xf numFmtId="0" fontId="0" fillId="4" borderId="2" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>' +
+    '<xf numFmtId="0" fontId="0" fillId="4" borderId="4" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>' +
+    '<xf numFmtId="0" fontId="3" fillId="6" borderId="2" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>' +
+    '<xf numFmtId="0" fontId="1" fillId="4" borderId="7" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>' +
+    '<xf numFmtId="0" fontId="3" fillId="6" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>' +
+    '<xf numFmtId="0" fontId="1" fillId="6" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="3" fillId="6" borderId="2" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>' +
+    '<xf numFmtId="0" fontId="1" fillId="4" borderId="7" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>' +
+    '<xf numFmtId="0" fontId="1" fillId="4" borderId="7" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>' +
+    '<xf numFmtId="0" fontId="1" fillId="6" borderId="7" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="1" fillId="6" borderId="2" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="0" fillId="4" borderId="2" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>' +
+    '<xf numFmtId="0" fontId="3" fillId="6" borderId="2" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>' +
+    '<xf numFmtId="0" fontId="4" fillId="5" borderId="6" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>' +
+    '<xf numFmtId="0" fontId="4" fillId="5" borderId="6" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>' +
+    '<xf numFmtId="0" fontId="4" fillId="5" borderId="6" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="4" fillId="5" borderId="6" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>' +
+    '<xf numFmtId="0" fontId="1" fillId="3" borderId="3" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>' +
+    '<xf numFmtId="0" fontId="0" fillId="6" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>' +
+    '<xf numFmtId="164" fontId="0" fillId="6" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>' +
     '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
     '</styleSheet>';
 }
@@ -241,8 +324,10 @@ function textEntry(name, text) {
   return { name, bytes: new TextEncoder().encode(text) };
 }
 
-function rowXml(rowNumber, span, cells) {
-  return `<row r="${rowNumber}" spans="1:${span}" x14ac:dyDescent="0.25">${cells.join("")}</row>`;
+function rowXml(rowNumber, span, cells, height = null, thickBottom = false) {
+  const heightAttributes = height ? ` ht="${height}" customHeight="1"` : "";
+  const thickBottomAttribute = thickBottom ? ' thickBot="1"' : "";
+  return `<row r="${rowNumber}" spans="1:${span}"${heightAttributes}${thickBottomAttribute} x14ac:dyDescent="0.25">${cells.join("")}</row>`;
 }
 
 function textCell(reference, styleId, value) {
@@ -253,10 +338,8 @@ function textCell(reference, styleId, value) {
 }
 
 function numberCell(reference, styleId, value) {
-  const number = Number(value);
-  if (!Number.isFinite(number)) return blankCell(reference, styleId);
   const style = styleId > 0 ? ` s="${styleId}"` : "";
-  return `<c r="${reference}"${style}><v>${number}</v></c>`;
+  return `<c r="${reference}"${style}><v>${Number(value)}</v></c>`;
 }
 
 function blankCell(reference, styleId) {
@@ -279,7 +362,7 @@ function xmlEscape(value) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
+    .replace(/\"/g, "&quot;")
     .replace(/'/g, "&apos;");
 }
 
