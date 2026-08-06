@@ -25,6 +25,7 @@
   <link rel="stylesheet" href="/order-readonly-mode.css?v=20260805-1">
   <link rel="stylesheet" href="/portal-layout-width.css?v=20260805-1">
   <link rel="stylesheet" href="/order-field-behaviour.css?v=20260806-1">
+  <link rel="stylesheet" href="/required-date-input.css?v=20260806-1">
 </head>
 <body class="order-form-page">
   <header class="portal-header">
@@ -74,7 +75,7 @@
             </div>
             <div class="sheet-field-row">
               <label for="requiredDate">Required date</label>
-              <input id="requiredDate" type="date" required aria-label="Required date">
+              <input id="requiredDate" type="text" inputmode="numeric" maxlength="10" autocomplete="off" required placeholder="dd-mm-yyyy" aria-label="Required date, day month year">
             </div>
             <div class="sheet-field-row">
               <label for="contactName">Contact</label>
@@ -197,13 +198,15 @@
     </form>
   </main>
 
-  <script src="/order-field-behaviour.js?v=20260806-2" defer></script>
-  <script src="/review-validation-gate.js?v=20260806-1" defer></script>
+  <script src="/order-field-behaviour.js?v=20260806-3" defer></script>
+  <script src="/order-entry-assistance.js?v=20260806-1" defer></script>
+  <script src="/review-validation-gate.js?v=20260806-2" defer></script>
   <script src="/app.js?v=20260805-1" defer></script>
   <script src="/app-products.js?v=20260731-3" defer></script>
   <script src="/app-order.js?v=20260805-1" defer></script>
   <script src="/order-selection-source.js?v=20260731-4" defer data-order-selection-source="true"></script>
   <script src="/app-address.js?v=20260731-1" defer></script>
+  <script src="/required-date-input.js?v=20260806-1" defer></script>
   <script src="/order-detail-fields.js?v=20260806-1" defer></script>
   <script src="/linked-contact-picker.js?v=20260731-2" defer data-linked-contact-picker="true"></script>
   <script src="/board-refinement.js?v=20260724-7" defer></script>
