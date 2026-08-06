@@ -76,7 +76,7 @@
     ],
     accessories: [
       ["Stud Adhesive", "5.2 kg", "SADHPB5.2KG"],
-      ["Paper Tape", "75 m", "5PT75S"],
+      ["Paper Tape", "75 m", "15-611"],
       ["Paper Tape", "150 m", "15-610"],
       ["Fibreglass Tape", "90 m", "EASYTAPE90M"]
     ],
