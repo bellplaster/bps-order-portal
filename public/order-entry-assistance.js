@@ -8,7 +8,7 @@
     ["deliveryAddressSearch", "words"],
     ["deliveryInstructions", "sentence"],
   ]);
-  const disabled = new WeakSet();
+  const disabled = new Set();
 
   function fieldMode(field) {
     return field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement
@@ -60,12 +60,7 @@
     if (type.startsWith("delete") || /Paste|Drop|History/i.test(type) || editingEarlier || replacing) disableAssistance(field);
   }, true);
 
-  document.getElementById("orderForm")?.addEventListener("reset", () => {
-    MODES.forEach((_mode, id) => {
-      const field = document.getElementById(id);
-      if (field) disabled.delete?.(field);
-    });
-  });
+  document.getElementById("orderForm")?.addEventListener("reset", () => disabled.clear());
 
   const reference = document.getElementById("reference");
   if (reference) {
