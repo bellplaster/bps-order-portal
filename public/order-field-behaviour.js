@@ -307,7 +307,13 @@
       capitaliseInitialTyping(field, config.capitalisation);
     }
 
-    if (field.classList.contains("is-order-field-invalid")) validateField(field, { show: true });
+    const hasValue = Boolean(String(field.value || "").trim());
+    if (["person", "street"].includes(config.type)) {
+      if (hasValue) validateField(field, { show: true });
+      else clearValidation(field);
+    } else if (field.classList.contains("is-order-field-invalid")) {
+      validateField(field, { show: true });
+    }
   }
 
   function onBlur(event) {
