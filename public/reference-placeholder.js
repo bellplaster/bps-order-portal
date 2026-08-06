@@ -7,24 +7,9 @@
     reference.setAttribute("aria-label", "Reference, optional");
   }
 
-  function loadOrderDetailsBehaviour() {
-    if (document.querySelector('script[data-order-details-date-state="true"]')) return;
-    const script = document.createElement("script");
-    script.src = "/order-details-date-state.js?v=20260806-1";
-    script.defer = true;
-    script.dataset.orderDetailsDateState = "true";
-    document.body.append(script);
-  }
-
-  function start() {
-    applyReferenceCopy();
-    loadOrderDetailsBehaviour();
-  }
-
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", start, { once: true });
+    document.addEventListener("DOMContentLoaded", applyReferenceCopy, { once: true });
   } else {
-    start();
+    applyReferenceCopy();
   }
-  window.addEventListener("load", applyReferenceCopy, { once: true });
 })();
