@@ -76,7 +76,7 @@ test("capitalisation is an initial suggestion and respects later manual edits", 
 });
 
 test("shared behaviour loads before all order application scripts", () => {
-  const shared = indexHtml.indexOf("/order-field-behaviour.js?v=20260806-2");
+  const shared = indexHtml.search(/\/order-field-behaviour\.js\?v=\d{8}-\d+/);
   const app = indexHtml.indexOf("/app.js?");
   const details = indexHtml.indexOf("/order-detail-fields.js?");
   const legacyUtility = indexHtml.indexOf("/phone-date-refinement.js?");
@@ -87,11 +87,13 @@ test("shared behaviour loads before all order application scripts", () => {
   assert.match(indexHtml, /order-field-behaviour\.css\?v=20260806-1/);
 });
 
-test("references remain required but may contain natural customer text and symbols", () => {
+test("references are optional for customers but retain natural text and symbols", () => {
   assert.match(source, /field\.removeAttribute\("pattern"\)/);
   assert.match(source, /field\.maxLength = 80/);
   assert.doesNotMatch(indexHtml, /id="reference"[^>]*pattern=/);
   assert.match(indexHtml, /id="reference"[^>]*maxlength="80"/);
+  assert.match(indexHtml, /id="reference"[^>]*placeholder="Reference \(optional\)"/);
+  assert.doesNotMatch(indexHtml, /id="reference"[^>]*\srequired(?:\s|>)/);
   assert.match(submitSource, /function cleanOrderReference/);
   assert.doesNotMatch(submitSource, /\^\\d\+\(\?:-\\d\+\)\*\$/);
   assert.match(submitSource, /payload\.reference = reference/);
