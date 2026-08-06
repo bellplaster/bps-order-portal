@@ -1,17 +1,18 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
 test("required date and delivery refinement have one deterministic lifecycle", async () => {
-  const [index, fieldBehaviour, dateState, phoneRefinement, deliveryRefinement, referencePlaceholder] = await Promise.all([
+  const [index, fieldBehaviour, dateState, phoneRefinement, deliveryRefinement, referencePlaceholder, draftRestore] = await Promise.all([
     read("public/index.html"),
     read("public/order-field-behaviour.js"),
     read("public/order-details-date-state.js"),
     read("public/phone-date-refinement.js"),
     read("public/delivery-refinement.js"),
     read("public/reference-placeholder.js"),
+    read("public/draft-restore-fix.js"),
   ]);
 
   const dateScript = index.indexOf('/order-details-date-state.js?v=20260806-3');
@@ -32,8 +33,33 @@ test("required date and delivery refinement have one deterministic lifecycle", a
   assert.match(fieldBehaviour, /BPSRequiredDate/);
   assert.doesNotMatch(phoneRefinement, /type\s*=\s*["']date["']/);
   assert.doesNotMatch(referencePlaceholder, /createElement\(["']script["']\)/);
+  assert.doesNotMatch(draftRestore, /calendar-control/);
+  assert.doesNotMatch(draftRestore, /requiredDate/);
   assert.match(deliveryRefinement, /__bpsDeliveryRefinementLoaded/);
   assert.doesNotMatch(deliveryRefinement, /DD\/MM\/YYYY/);
+});
+
+test("canonical required date controller owns the explicit calendar button and panel", async () => {
+  const dateState = await read("public/order-details-date-state.js");
+
+  assert.match(dateState, /BUTTON_ID = "requiredDateCalendarButton"/);
+  assert.match(dateState, /PANEL_ID = "requiredDateCalendarPanel"/);
+  assert.match(dateState, /button\.addEventListener\("click"/);
+  assert.match(dateState, /if \(panel\.hidden\) openCalendar\(\)/);
+  assert.match(dateState, /panel\.hidden = false/);
+  assert.match(dateState, /required-date-calendar-open/);
+  assert.match(dateState, /setValue\(dayButton\.dataset\.date \|\| "", \{ emit: true \}\)/);
+  assert.match(dateState, /hidden\.type = "hidden"/);
+  assert.match(dateState, /hidden\.hidden = true/);
+  assert.doesNotMatch(dateState, /showPicker/);
+  assert.doesNotMatch(dateState, /date-native-picker/);
+  assert.doesNotMatch(dateState, /setInterval/);
+
+  await assert.rejects(
+    access(new URL("../public/calendar-control.js", import.meta.url)),
+    { code: "ENOENT" },
+    "the duplicate legacy calendar controller must not exist",
+  );
 });
 
 test("visible State is removed without clearing the hidden VIC value", async () => {
