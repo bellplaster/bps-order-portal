@@ -18,9 +18,13 @@ test("optional Account select prompts remain selectable and update the live mode
 test("order defaults explicitly clear and apply the matching order-form controls", async () => {
   const bridge = await read("public/portal-state-bridge.js");
 
-  assert.match(bridge, /function applyOrderDefaults\(defaults\)/);
+  assert.match(bridge, /function applyOrderDefaults\(defaults, profile = \{\}\)/);
   assert.match(bridge, /setValue\("reference", defaults\.reference\)/);
+  assert.match(bridge, /setValue\("contactName", defaults\.contact \|\| defaults\.contactName \|\| profile\.defaultContactName\)/);
+  assert.match(bridge, /setValue\("contactMobile", defaults\.phone \|\| defaults\.mobile \|\| profile\.defaultMobile\)/);
   assert.match(bridge, /setValue\("requiredDate", defaults\.requiredDate\)/);
+  assert.match(bridge, /setValue\("deliveryInstructions", defaults\.instructions\)/);
+  assert.match(bridge, /setValue\("deliveryAddressSearch", address\)/);
   assert.match(bridge, /clearChoiceGroup\("timeSlot"\)/);
   assert.match(bridge, /selectChoice\("timeSlot", timeSlot\)/);
   assert.match(bridge, /clearChoiceGroup\("deliveryType"\)/);
@@ -35,14 +39,14 @@ test("order defaults explicitly clear and apply the matching order-form controls
   assert.match(bridge, /select\.value = normalised/);
   assert.match(bridge, /\["Manual Unload \(Knauf Labour\)", "Hand Unload"\]/);
   assert.doesNotMatch(bridge, /\["Crane Delivery", "Mechanical \(Forklift\/Crane\/Own\)"\]/);
-  assert.match(bridge, /payload\.profile\?\.orderDefaults/);
+  assert.match(bridge, /applyOrderDefaults\(payload\.profile\?\.orderDefaults \|\| \{\}, payload\.profile \|\| \{\}\)/);
 });
 
 test("administrator Account defaults are not excluded from the order form", async () => {
   const bridge = await read("public/portal-state-bridge.js");
 
   assert.doesNotMatch(bridge, /profile\?\.role === "admin"/);
-  assert.match(bridge, /applyOrderDefaults\(payload\.profile\?\.orderDefaults \|\| \{\}\)/);
+  assert.match(bridge, /applyOrderDefaults\(payload\.profile\?\.orderDefaults \|\| \{\}, payload\.profile \|\| \{\}\)/);
 });
 
 test("Account cards share one left content inset", async () => {
