@@ -15,14 +15,12 @@ function setStep(step, options = {}) {
 function validateForm() {
   clearMessages();
 
-  if (!window.BPSOrderFields?.validateField?.("reference", { show: true })) {
-    throw fieldError("reference", "Enter the customer order reference.");
-  }
-
   const requiredDate = value("requiredDate");
-  if (!requiredDate) throw fieldError("requiredDate", "Choose the required date.");
+  if (!requiredDate || !window.BPSOrderFields?.validateField?.("requiredDateDisplay", { show: true })) {
+    throw fieldError("requiredDateDisplay", "Choose the required date.");
+  }
   const today = value("orderDateIso");
-  if (requiredDate < today) throw fieldError("requiredDate", "Required date cannot be earlier than today.");
+  if (requiredDate < today) throw fieldError("requiredDateDisplay", "Required date cannot be earlier than today.");
   if (daysBetween(today, requiredDate) >= 180 && !document.getElementById("confirmFutureRequiredDate").checked) {
     throw new Error("Confirm the required date to continue.");
   }
@@ -55,12 +53,20 @@ function validateForm() {
   return true;
 }
 
+function generatedReference(submissionId) {
+  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14);
+  return `WEB-${stamp}-${String(submissionId || "").replace(/-/g, "").slice(0, 4).toUpperCase()}`;
+}
+
 function buildPayload() {
   parseAndStoreManualAddress();
+  const submissionId = crypto.randomUUID();
+  const customerReference = value("reference");
   return {
-    submissionId: crypto.randomUUID(),
+    submissionId,
     orderDate: value("orderDateIso"),
-    reference: value("reference"),
+    reference: customerReference || generatedReference(submissionId),
+    customerReferenceProvided: Boolean(customerReference),
     customer: state.account?.companyName || "",
     contact: value("contactName"),
     mobile: window.BPSPhone?.normalise?.(value("contactMobile")) || value("contactMobile"),
@@ -153,7 +159,7 @@ function reviewFieldClass(label) {
 function renderReview() {
   const payload = buildPayload();
   const details = [
-    ["Order number", payload.reference],
+    ["Reference", value("reference") || "—"],
     ["Required date", `${formatDate(payload.requiredDate)} · ${timeSlotLabel(payload.timeSlot)}`],
     ["Contact", payload.contact],
     ["Phone", payload.mobile],
@@ -242,7 +248,7 @@ function showSuccess(result) {
 
 function applyPayload(payload) {
   state.suppressDraft = true;
-  setValue("reference", payload.reference || payload.customerReference || "");
+  setValue("reference", payload.customerReferenceProvided === false ? "" : payload.reference || payload.customerReference || "");
   setValue("contactName", payload.contact || payload.siteContact || state.account?.defaultContactName || "");
   setValue("contactMobile", payload.mobile || payload.siteContactPhone || state.account?.defaultMobile || "");
   setValue("requiredDate", payload.requiredDate || "");
