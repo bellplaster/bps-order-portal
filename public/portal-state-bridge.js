@@ -19,9 +19,6 @@
     "Pickup (Customer to collect)",
   ]);
 
-  // Compatibility is intentionally one-way: obsolete stored defaults are read
-  // into the current model, but current values are never translated back into
-  // the retired delivery-type vocabulary.
   const LEGACY_DELIVERY_TYPE_MAP = new Map([
     ["Manual Unload (Knauf Labour)", "Hand Unload"],
     ["Mechanical (Forklift/Crane/Own)", "Forklift Delivery"],
@@ -36,6 +33,7 @@
   }
 
   function setValue(id, value) {
+    if (window.BPSOrderFields?.setValue?.(id, value, { assist: true })) return;
     const field = document.getElementById(id);
     if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) {
       field.value = String(value || "");
@@ -81,10 +79,12 @@
     syncVisibleSelect(".delivery-select-deliveryType .delivery-select", deliveryType, deliveryType);
   }
 
-  function applyOrderDefaults(defaults) {
+  function applyOrderDefaults(defaults, profile = {}) {
     if (!defaults || typeof defaults !== "object") return;
 
     setValue("reference", defaults.reference);
+    setValue("contactName", defaults.contact || defaults.contactName || profile.defaultContactName);
+    setValue("contactMobile", defaults.phone || defaults.mobile || profile.defaultMobile);
     setValue("requiredDate", defaults.requiredDate);
     setValue("deliveryInstructions", defaults.instructions);
 
@@ -125,7 +125,7 @@
       const response = await fetch("/api/account", { credentials: "same-origin", headers: { Accept: "application/json" } });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok || payload.ok === false) return;
-      applyOrderDefaults(payload.profile?.orderDefaults || {});
+      applyOrderDefaults(payload.profile?.orderDefaults || {}, payload.profile || {});
     } catch (_error) {
       // The main order-form bootstrap owns account-load error reporting.
     }
