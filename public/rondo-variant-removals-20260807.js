@@ -209,9 +209,42 @@
     }
   }
 
+  function collapseNailsToSingleSize() {
+    document.querySelectorAll(".fasteners-table").forEach((table) => {
+      const header = [...table.querySelectorAll("tr.lower-matrix-header")]
+        .find((row) => rowLabel(row) === "NAILS");
+      if (!header) return;
+
+      const cells = [...header.children];
+      const thirty = cells.find((cell) => String(cell.textContent || "").trim() === "30 mm");
+      const forty = cells.find((cell) => String(cell.textContent || "").trim() === "40 mm");
+      if (forty) forty.remove();
+      if (thirty) thirty.colSpan = 2;
+
+      let row = header.nextElementSibling;
+      while (row && !row.classList.contains("lower-matrix-header") && !row.classList.contains("lower-group-heading")) {
+        if (row.children.length > 2) row.lastElementChild?.remove();
+        const quantity = row.children[1];
+        if (quantity) quantity.colSpan = 2;
+        row = row.nextElementSibling;
+      }
+    });
+  }
+
+  function placeDonnGridImmediatelyAfterDuo() {
+    document.querySelectorAll(".rondo-category").forEach((section) => {
+      const duo = section.querySelector(".duo-grid-table");
+      const donn = section.querySelector(".donn-grid-table");
+      if (!duo || !donn || duo.nextElementSibling === donn) return;
+      duo.insertAdjacentElement("afterend", donn);
+    });
+  }
+
   function apply() {
     purgeCatalogue();
     document.querySelectorAll(".rondo-expanded-group, .lower-catalogue-section").forEach(removeVariantsFromSection);
+    collapseNailsToSingleSize();
+    placeDonnGridImmediatelyAfterDuo();
   }
 
   const previousRenderer = window.renderUnifiedFloorSheet;
