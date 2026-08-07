@@ -13,13 +13,15 @@
     "49302400", "49302700",
     "49502400", "49502700",
     "51107200",
+    "66102700",
+    "67102400", "67102700",
+    "68102700",
+    "68107200", "69107200",
   ]);
 
   const COLUMN_RULES = Object.freeze({
     "RONDO WALL FRAMING": [
       ["2400", "2700", "3300"],
-      [],
-      ["3600"],
     ],
     "RONDO FURRING CHANNELS": [
       ["2700"],
@@ -29,6 +31,11 @@
       ["7200"],
     ],
     "RONDO TRACKS & DH TRACK": [
+      ["6000"],
+    ],
+    "RONDO HEAVY-DUTY WALL FRAMING": [
+      ["2400", "2700"],
+      ["7200"],
       ["6000"],
     ],
   });
@@ -70,6 +77,13 @@
 
   function rowLabel(row) {
     return normalise(row?.querySelector("th")?.textContent || row?.children?.[0]?.textContent);
+  }
+
+  function findTableByRowLabel(section, label) {
+    const target = normalise(label);
+    return [...section.querySelectorAll("table")].find((table) =>
+      [...table.rows].some((row) => rowLabel(row) === target),
+    );
   }
 
   function unavailableCellTemplate(table) {
@@ -152,7 +166,10 @@
     const tables = [...section.querySelectorAll("table")];
     rules.forEach((headings, tableIndex) => removeTableColumns(tables[tableIndex], headings));
 
-    if (title === "RONDO WALL FRAMING") consolidateWallFramingStudTables(section);
+    if (title === "RONDO WALL FRAMING") {
+      consolidateWallFramingStudTables(section);
+      removeTableColumns(findTableByRowLabel(section, "51 mm Track 0.50 BMT"), ["3600"]);
+    }
   }
 
   function apply() {
