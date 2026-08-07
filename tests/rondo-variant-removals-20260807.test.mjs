@@ -78,6 +78,28 @@ test("wall framing rows without long lengths receive unavailable cells", async (
   assert.match(source, /row\.append\(unavailableTemplate\.cloneNode\(false\)\)/);
 });
 
+test("nails render as a true single-size row with no 40 mm column", async () => {
+  const source = await read("public/rondo-variant-removals-20260807.js");
+
+  assert.match(source, /function collapseNailsToSingleSize\(\)/);
+  assert.match(source, /textContent \|\| ""\)\.trim\(\) === "30 mm"/);
+  assert.match(source, /textContent \|\| ""\)\.trim\(\) === "40 mm"/);
+  assert.match(source, /if \(forty\) forty\.remove\(\)/);
+  assert.match(source, /if \(thirty\) thirty\.colSpan = 2/);
+  assert.match(source, /quantity\.colSpan = 2/);
+  assert.match(source, /collapseNailsToSingleSize\(\)/);
+});
+
+test("DONN grid is kept directly under DUO grid before expanded Rondo sections", async () => {
+  const source = await read("public/rondo-variant-removals-20260807.js");
+
+  assert.match(source, /function placeDonnGridImmediatelyAfterDuo\(\)/);
+  assert.match(source, /section\.querySelector\("\.duo-grid-table"\)/);
+  assert.match(source, /section\.querySelector\("\.donn-grid-table"\)/);
+  assert.match(source, /duo\.insertAdjacentElement\("afterend", donn\)/);
+  assert.match(source, /placeDonnGridImmediatelyAfterDuo\(\)/);
+});
+
 test("removed Rondo variants are purged and controller is installed before floor rendering", async () => {
   const [source, index, loader] = await Promise.all([
     read("public/rondo-variant-removals-20260807.js"),
