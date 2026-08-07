@@ -61,9 +61,10 @@
     const label = document.querySelector('label[for="customerServiceCustomerAccount"]');
     if (!input || !label) return;
 
-    const indicator = label.querySelector(":scope > .required-field-indicator");
-    if (indicator) indicator.remove();
-    label.textContent = "Debtor Code";
+    if (directText(label) !== "Debtor Code") {
+      label.querySelector(":scope > .required-field-indicator")?.remove();
+      label.textContent = "Debtor Code";
+    }
     ensureIndicator(label);
     input.placeholder = "Debtor Code";
     input.setAttribute("aria-label", "Debtor Code");
@@ -102,6 +103,7 @@
     const suburbInput = document.getElementById("deliveryAddressSearch");
     const addressField = suburbInput?.closest(".delivery-address-field");
     const addressLabel = addressField?.querySelector(':scope > label[for="deliveryAddressSearch"]')
+      || addressField?.querySelector(":scope > label")
       || document.querySelector('label[for="deliveryAddressSearch"]');
 
     setConditionalIndicator(addressLabel, required);
@@ -129,13 +131,16 @@
   }
 
   function observeAddressStructure() {
-    const root = document.querySelector(".delivery-address-field");
+    const root = document.querySelector(".order-details-section");
     if (!root || root.dataset.requiredIndicatorObserved === "true") return;
     root.dataset.requiredIndicatorObserved = "true";
 
     const observer = new MutationObserver((records) => {
-      const relevant = records.some((record) => [...record.addedNodes, ...record.removedNodes]
-        .some((node) => node instanceof Element));
+      const relevant = records.some((record) => [...record.addedNodes, ...record.removedNodes].some((node) => {
+        if (!(node instanceof Element)) return false;
+        return node.matches?.(".delivery-address-field, .structured-address-cell, #deliveryStreet, #deliveryAddressSearch, #deliveryPostcode")
+          || node.querySelector?.(".delivery-address-field, .structured-address-cell, #deliveryStreet, #deliveryAddressSearch, #deliveryPostcode");
+      }));
       if (relevant) queueAddressRequirementSync();
     });
     observer.observe(root, { childList: true, subtree: true });
