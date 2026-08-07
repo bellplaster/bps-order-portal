@@ -38,6 +38,7 @@
   position: relative;
   min-width: 0;
   height: 39px;
+  border-right: 1px solid #d4d9d7;
   background: #fff;
 }
 
@@ -186,6 +187,10 @@
   .customer-service-phone-row {
     grid-column: span 1;
     border-right: 0 !important;
+  }
+
+  .customer-service-debtor-control {
+    border-right: 0;
   }
 
   .customer-service-debtor-results {
