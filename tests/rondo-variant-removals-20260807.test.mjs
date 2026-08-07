@@ -41,6 +41,16 @@ test("wall framing 4800 and 6000 lengths join the primary stud matrix", async ()
   assert.match(source, /if \(title === "RONDO WALL FRAMING"\) consolidateWallFramingStudTables\(section\)/);
 });
 
+test("consolidated wall framing length columns have equal widths", async () => {
+  const source = await read("public/rondo-variant-removals-20260807.js");
+
+  assert.match(source, /function equaliseWallFramingColumnWidths\(table\)/);
+  assert.match(source, /productColumn\.style\.width = "36%"/);
+  assert.match(source, /const lengthWidth = 64 \/ \(columnCount - 1\)/);
+  assert.match(source, /column\.style\.width = `\$\{lengthWidth\}%`/);
+  assert.match(source, /equaliseWallFramingColumnWidths\(primary\)/);
+});
+
 test("wall framing rows without long lengths receive unavailable cells", async () => {
   const source = await read("public/rondo-variant-removals-20260807.js");
 
