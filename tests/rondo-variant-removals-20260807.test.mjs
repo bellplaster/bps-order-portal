@@ -29,6 +29,26 @@ test("approved Rondo columns and SKUs are removed", async () => {
   assert.match(source, /\["6000"\]/);
 });
 
+test("wall framing 4800 and 6000 lengths join the primary stud matrix", async () => {
+  const source = await read("public/rondo-variant-removals-20260807.js");
+
+  assert.match(source, /function consolidateWallFramingStudTables\(section\)/);
+  assert.match(source, /\["4800", "6000"\]\.includes\(column\)/);
+  assert.match(source, /primaryHeader\.append\(cell\)/);
+  assert.match(source, /longRowsByLabel/);
+  assert.match(source, /row\.append\(cell\)/);
+  assert.match(source, /longLengths\.remove\(\)/);
+  assert.match(source, /if \(title === "RONDO WALL FRAMING"\) consolidateWallFramingStudTables\(section\)/);
+});
+
+test("wall framing rows without long lengths receive unavailable cells", async () => {
+  const source = await read("public/rondo-variant-removals-20260807.js");
+
+  assert.match(source, /unavailableCellTemplate/);
+  assert.match(source, /longColumns\.forEach/);
+  assert.match(source, /row\.append\(unavailableTemplate\.cloneNode\(false\)\)/);
+});
+
 test("removed Rondo variants are purged from catalogue and every rerender", async () => {
   const [source, loader] = await Promise.all([
     read("public/rondo-variant-removals-20260807.js"),
