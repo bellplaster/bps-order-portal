@@ -83,6 +83,30 @@
     return clone;
   }
 
+  function equaliseWallFramingColumnWidths(table) {
+    const header = table.querySelector("tr.lower-matrix-header, thead tr, tbody tr");
+    const columnCount = header?.children.length || 0;
+    if (columnCount !== 6) return;
+
+    let colgroup = table.querySelector("colgroup");
+    if (!colgroup) {
+      colgroup = document.createElement("colgroup");
+      table.prepend(colgroup);
+    }
+    colgroup.replaceChildren();
+
+    const productColumn = document.createElement("col");
+    productColumn.style.width = "36%";
+    colgroup.append(productColumn);
+
+    const lengthWidth = 64 / (columnCount - 1);
+    for (let index = 1; index < columnCount; index += 1) {
+      const column = document.createElement("col");
+      column.style.width = `${lengthWidth}%`;
+      colgroup.append(column);
+    }
+  }
+
   function consolidateWallFramingStudTables(section) {
     const tables = [...section.querySelectorAll("table")];
     const primary = tables[0];
@@ -116,11 +140,8 @@
       });
     });
 
-    const primaryCols = primary.querySelector("colgroup");
-    const longCols = [...longLengths.querySelectorAll("colgroup col")].slice(1);
-    if (primaryCols) longCols.forEach((col) => primaryCols.append(col));
-
     longLengths.remove();
+    equaliseWallFramingColumnWidths(primary);
   }
 
   function removeVariantsFromSection(section) {
