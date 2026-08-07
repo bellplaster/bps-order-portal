@@ -17,7 +17,8 @@ test("Gate Code focus uses the same thin active treatment as the other order con
 });
 
 test("N\/A uses Order Details typography without extra focus artefacts", () => {
-  assert.match(css, /\.gate-code-na\s*\{[^}]*font:\s*400 11px\/39px Inter, system-ui, sans-serif\s*!important;[^}]*box-shadow:\s*none\s*!important;/s);
+  assert.match(css, /\.gate-code-na\s*\{[^}]*font:\s*400 11px\/39px Inter, system-ui, sans-serif\s*!important;/s);
+  assert.match(css, /\.gate-code-na\s*\{[^}]*box-shadow:\s*none\s*!important;/s);
   assert.match(css, /\.gate-code-na > input\[type="checkbox"\][^{]*\{[^}]*width:\s*14px\s*!important;[^}]*height:\s*14px\s*!important;[^}]*box-shadow:\s*none\s*!important;/s);
   assert.match(css, /\.gate-code-na:focus-within\s*\{[^}]*box-shadow:\s*none\s*!important;/s);
 });
