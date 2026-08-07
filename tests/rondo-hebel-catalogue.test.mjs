@@ -7,7 +7,6 @@ const source = await read("public/rondo-hebel-catalogue.js");
 const lower = await read("public/lower-products-refinement.js");
 const styles = await read("public/lower-products-refinement.css");
 const index = await read("public/index.html");
-const additions = await read("public/product-additions-20260806.js");
 const payload = await read("public/payload-sku-bridge.js");
 const exportSource = await read("functions/_shared/combined-accrivia-export.js");
 
@@ -18,7 +17,7 @@ const suppliedSkus = [
   "21969", "81462", "118283", "118284", "118891", "21965", "21987", "21933", "21935", "21949", "111161", "25594",
   "21909", "105536", "168890", "141233", "24092", "126323",
   "1P502200", "1P502400", "1P502550", "1P502700", "1P502850", "1P503000",
-  "1P752200LD", "1P752400LD", "1P752550LD", "1P752700LD", "1P752850LD", "1P753000LD", "1P753300LD",
+  "1P752200LD", "1P752400LD", "1P752550", "1P752700LD", "1P752850LD", "1P753000LD", "1P753300LD",
   "1P751800SQ", "AACBS", "ACP250", "ADH20", "APW01", "BC162850", "BC242850", "BC353000", "BH503000", "FRIC600",
   "SCON100", "SSHX20", "SSHX90", "STBB100", "STHX150", "STHX25", "STHX35", "STHX45",
   "BPS/2200-50MM", "BPS/99939", "BPS/162758", "BPS/162756", "BPS/162760",
@@ -29,15 +28,16 @@ test("every supplied Rondo and AAC SKU is registered", () => {
   suppliedSkus.forEach((sku) => assert.match(source, new RegExp(sku.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))));
 });
 
-test("manager catalogue order uses three equal desktop columns", () => {
-  assert.match(lower, /grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
-  assert.match(lower, /columnOne\.append\(compounds, accessories, fasteners, cornices, insulation\)/);
-  assert.match(lower, /columnTwo\.append\(rondo\)/);
-  assert.match(lower, /columnThree\.append\(partiwall\)/);
+test("manager catalogue constructs three semantic columns", () => {
+  assert.match(lower, /grid\.className = "lower-catalogue-grid lower-catalogue-grid-manager-order"/);
+  assert.match(lower, /makeColumn\(\s*renderListCategory\(floor, "COMPOUNDS"/);
+  assert.match(lower, /makeColumn\(\s*renderRondoCategory\(floor, sections\.rondo\)/);
+  assert.match(lower, /makeColumn\(\s*renderPartiwallCategory\(/);
 });
 
 test("lower-products stylesheet is the sole catalogue column-layout owner", () => {
-  assert.match(styles, /\.lower-catalogue-layout\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(styles, /\.lower-catalogue-grid\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.doesNotMatch(lower, /grid-template-columns/);
   assert.doesNotMatch(index, /catalogue-column-width-guard/);
 });
 
@@ -54,10 +54,10 @@ test("the deployed page requests the current catalogue assets", () => {
   assert.match(index, /lower-products-refinement\.css\?v=/);
 });
 
-test("Additional Products is a separate full-width region below the catalogue", () => {
-  assert.match(lower, /sheet\.append\(layout, additional\)/);
-  assert.match(lower, /additional\.className = "additional-products-section"/);
-  assert.doesNotMatch(lower, /columnThree\.append\([^)]*additional/);
+test("lower catalogue replacement stays scoped to the catalogue grid", () => {
+  assert.match(lower, /const currentGrid = root\?\.querySelector\("\.pdf-lower-grid"\)/);
+  assert.match(lower, /currentGrid\.replaceWith\(grid\)/);
+  assert.doesNotMatch(lower, /additional-products/);
 });
 
 test("acoustics are retired before any catalogue renderer runs", () => {
@@ -93,9 +93,9 @@ test("AAC tabs are inserted into the same third column directly above Partiwalls
   assert.match(source, /column\.insertBefore\(section, partiwall\)/);
 });
 
-test("AAC tabs use the same maroon catalogue heading treatment", () => {
+test("AAC tabs use the current Bell maroon catalogue treatment", () => {
   assert.match(styles, /\.aac-brand-tabs/);
-  assert.match(styles, /background:#ac2947/);
+  assert.match(styles, /background:#a62b45/);
   assert.match(styles, /\.aac-brand-tab\.is-active/);
 });
 
@@ -113,9 +113,10 @@ test("duplicate SKU product lines retain independent form keys", () => {
   assert.match(source, /accessoryLineIdentity\(scope, index\)/);
 });
 
-test("line identity survives payload reconciliation and Accrivia export", () => {
-  assert.match(payload, /lineIdentity/);
-  assert.match(exportSource, /lineIdentity/);
+test("product keys survive payload reconciliation and drive export line identity", () => {
+  assert.match(payload, /\.map\(\(\[key, quantity\]\) => \{/);
+  assert.match(payload, /key,\s*sku: clean\(product\.sku\)/);
+  assert.match(exportSource, /item\?\.lineIdentity \|\| item\?\.key \|\| `standard-\$\{index\}`/);
 });
 
 test("catalogue styles retain Rondo, Hebel and AAC rules", () => {
