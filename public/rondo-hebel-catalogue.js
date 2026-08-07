@@ -105,7 +105,11 @@
         ["AAC Panel 75 mm (10 Pack)", [null, ["BPS/118014", "AAC Panel 75 mm (10 Pack)", "2400"], ["BPS/118016", "AAC Panel 75 mm (10 Pack)", "2700"], ["BPS/118019", "AAC Panel 75 mm (10 Pack)", "2850"], ["BPS/118020", "AAC Panel 75 mm (10 Pack)", "3000"], ["BPS/126504", "AAC Panel 75 mm (10 Pack)", "3300"]]],
       ],
     },
-    accessories: [["Unitex AAC Adhesive", "20 kg", "BPS/UNITEXAD"]],
+    accessories: [
+      ["Unitex AAC Adhesive", "20 kg", "BPS/UNITEXAD"],
+      ["24 mm Perforated Top Hat", "4800 mm", "BPS/21909"],
+      ["35 mm Perforated Top Hat", "4800 mm", "BPS/105536"],
+    ],
   });
 
   const AAC_BRANDS = Object.freeze({
@@ -321,10 +325,10 @@
     return table;
   }
 
-  function renderAccessoryTable(floor, title, accessories, className, scope) {
+  function renderAccessoryTable(floor, title, accessories, className, scope, detailHeading = "Size") {
     const table = makeTable(className, [58, 22, 20]);
     const tbody = document.createElement("tbody");
-    appendHeader(tbody, title, ["Size", "Qty"]);
+    appendHeader(tbody, title, [detailHeading, "Qty"]);
     accessories.forEach(([label, detail, sku], index) => {
       const row = document.createElement("tr");
       const name = document.createElement("th");
@@ -349,7 +353,7 @@
   }
 
   function renderPropanelBrand(floor) {
-    return [renderMatrixTable(floor, PROPANEL.panels, "hebel-panel-table propanel-panel-table", "propanel-panels"), renderAccessoryTable(floor, "Accessories", PROPANEL.accessories, "hebel-compounds-table propanel-accessories-table", "propanel-accessories")];
+    return [renderMatrixTable(floor, PROPANEL.panels, "hebel-panel-table propanel-panel-table", "propanel-panels"), renderAccessoryTable(floor, "Accessories", PROPANEL.accessories, "hebel-compounds-table propanel-accessories-table", "propanel-accessories", "Spec")];
   }
 
   function refreshExistingSheets() {
