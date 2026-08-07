@@ -292,12 +292,17 @@
 .order-form-page .delivery-instruction-controls .delivery-select {
   padding: 0 30px 0 8px !important;
   color: var(--ink) !important;
+  background-color: #fff !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
   text-align: left !important;
   text-align-last: left !important;
 }
 
 .order-form-page .delivery-instruction-controls .delivery-select.is-placeholder {
-  color: #aab0b2 !important;
+  color: #8f9996 !important;
+  background-color: #fff !important;
+  opacity: 1 !important;
 }
 
 .order-form-page .delivery-instruction-controls input[type="text"],
@@ -330,16 +335,18 @@
 .order-form-page .delivery-instruction-controls input:not([type]):focus-visible {
   position: relative !important;
   z-index: 2 !important;
-  box-shadow: inset 0 0 0 2px var(--bell-green) !important;
+  box-shadow: inset 0 0 0 1px var(--bell-green) !important;
 }
 
 .order-form-page .delivery-instruction-controls .gate-code-control.is-invalid input[type="text"] {
-  box-shadow: inset 0 0 0 2px var(--bell-maroon) !important;
+  box-shadow: inset 0 0 0 1px var(--bell-maroon) !important;
 }
 
 .order-form-page .delivery-instruction-controls input[type="text"]:disabled {
-  color: #8c9693 !important;
-  background: #f1f3f2 !important;
+  color: #aab0b2 !important;
+  background: #fff !important;
+  opacity: 1 !important;
+  cursor: default !important;
 }
 
 .order-form-page .delivery-instruction-controls label:has(input[type="checkbox"]) {
@@ -349,14 +356,47 @@
   display: inline-flex !important;
   align-items: center !important;
   justify-content: flex-start !important;
-  gap: 6px !important;
+  gap: 5px !important;
   margin: 0 !important;
   padding: 0 12px 0 8px !important;
   white-space: nowrap !important;
 }
 
 .order-form-page .gate-code-na {
+  color: var(--ink) !important;
+  background: #fff !important;
+  border: 0 !important;
   border-right: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  font: 400 11px/39px Inter, system-ui, sans-serif !important;
+  letter-spacing: 0 !important;
+}
+
+.order-form-page .gate-code-na > span {
+  color: inherit !important;
+  font: inherit !important;
+  line-height: inherit !important;
+}
+
+.order-form-page .gate-code-na > input[type="checkbox"] {
+  box-sizing: border-box !important;
+  width: 14px !important;
+  min-width: 14px !important;
+  max-width: 14px !important;
+  height: 14px !important;
+  min-height: 14px !important;
+  max-height: 14px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  accent-color: var(--bell-green, #006557);
+}
+
+.order-form-page .gate-code-na:focus-within {
+  outline: 0 !important;
+  box-shadow: none !important;
 }
 
 @media (max-width: 1050px) {
