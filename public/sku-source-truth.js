@@ -281,13 +281,12 @@
     const nails = state.layout.sections?.nails;
     if (nails) {
       const found = (nails.rows || []).find((row) => /zinc r\/s 2\.5 kg/i.test(String(row.label || "")));
-      nails.columns = ["30 mm", "40 mm"];
+      nails.columns = ["30 mm"];
       nails.rows = [{
         ...(found || {}),
         label: "Zinc R/S 2.5 kg",
         cells: [
-          assignKey(found?.cells?.[0], "nail-zinc-30", "PLAD3028Y", "Zinc R/S 2.5 kg", "30 mm"),
-          null
+          assignKey(found?.cells?.[0], "nail-zinc-30", "PLAD3028Y", "Zinc R/S 2.5 kg", "30 mm")
         ]
       }];
     }
