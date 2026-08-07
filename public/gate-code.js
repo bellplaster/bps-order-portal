@@ -27,54 +27,75 @@
         min-width:0;
       }
       .delivery-instruction-controls>.delivery-select-field>span{
+        min-width:0;
         border-left:0;
+      }
+      .gate-code-field{
+        min-width:0;
       }
       .gate-code-control{
         min-width:0;
         height:39px;
-        display:flex;
-        align-items:center;
-        gap:8px;
-        padding:0 8px;
+        display:grid;
+        grid-template-columns:minmax(0,1fr) 54px;
+        align-items:stretch;
+        padding:0;
         background:#fff;
         border-right:0;
       }
       .gate-code-control input[type="text"]{
-        width:82px;
+        width:100%;
         min-width:0;
-        height:30px;
+        height:39px;
         margin:0;
         padding:0 8px;
         color:var(--ink);
         background:#fff;
-        border:1px solid #d4d9d7;
+        border:0;
         border-radius:0!important;
         outline:0;
         font:inherit;
         font-size:11px;
+        line-height:39px;
+      }
+      .gate-code-control input[type="text"]::placeholder{
+        color:#aab0b2;
+        opacity:1;
       }
       .gate-code-control input[type="text"]:focus{
-        border-color:var(--bell-green);
-        box-shadow:inset 0 0 0 1px var(--bell-green);
+        position:relative;
+        z-index:2;
+        box-shadow:inset 0 0 0 2px var(--bell-green);
+      }
+      .gate-code-control input[type="text"]:disabled{
+        color:#9aa3a0;
+        background:#f7f8f8;
       }
       .gate-code-na{
-        display:inline-flex;
+        min-width:0;
+        height:39px;
+        display:flex;
         align-items:center;
+        justify-content:center;
         gap:5px;
+        margin:0;
+        padding:0 7px;
         white-space:nowrap;
         color:var(--ink);
+        background:#fff;
+        border-left:1px solid #d4d9d7;
         font-size:11px;
         cursor:pointer;
       }
       .gate-code-na input{
+        flex:0 0 14px;
         width:14px;
         height:14px;
         margin:0;
         accent-color:var(--bell-maroon);
       }
       .gate-code-control.is-invalid input[type="text"]{
-        border-color:#b42318;
-        box-shadow:inset 0 0 0 1px #b42318;
+        box-shadow:inset 0 0 0 2px #b42318;
       }
       @media(max-width:980px){
         .delivery-instruction-controls{
@@ -121,6 +142,7 @@
     const na = document.createElement("input");
     na.id = "gateCodeNotApplicable";
     na.type = "checkbox";
+    na.autocomplete = "off";
     const naText = document.createElement("span");
     naText.textContent = "N/A";
     naLabel.append(na, naText);
