@@ -76,7 +76,7 @@ test("stud tabs observe the catalogue lifecycle because Rondo extensions render 
 
 test("index loads the stud tab assets and disables caching", async () => {
   const [index, headers] = await Promise.all([read("public/index.html"), read("public/_headers")]);
-  assert.match(index, /studs-bmt-tabs-20260807\.css\?v=20260807-2/);
-  assert.match(index, /studs-bmt-tabs-20260807\.js\?v=20260807-2/);
+  assert.match(index, /studs-bmt-tabs-20260807\.css\?v=20260807-1/);
+  assert.match(index, /studs-bmt-tabs-20260807\.js\?v=20260807-1/);
   assert.match(headers, /Cache-Control: no-store/);
 });
