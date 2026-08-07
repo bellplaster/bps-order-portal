@@ -28,7 +28,8 @@ test("gate-code text input focus remains inside its own cell", async () => {
   const styles = await read("public/order-control-refinement.css");
 
   assert.match(styles, /delivery-instruction-controls input\[type="text"\]/);
-  assert.match(styles, /box-shadow: inset 0 0 0 2px var\(--bell-green\)/);
+  assert.match(styles, /box-shadow: inset 0 0 0 1px var\(--bell-green\)/);
+  assert.doesNotMatch(styles, /box-shadow: inset 0 0 0 2px var\(--bell-green\)/);
   assert.match(styles, /height: 39px !important/);
   assert.match(styles, /border-right: 1px solid #d4d9d7 !important/);
 });
