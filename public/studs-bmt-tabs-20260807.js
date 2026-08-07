@@ -9,13 +9,32 @@
     { key: "0.75", label: "0.75 BMT" },
     { key: "1.15", label: "1.15 BMT" },
   ]);
+  const STUD_VARIANTS = Object.freeze({
+    "0.50": Object.freeze({
+      "51 mm Stud": Object.freeze({ "3000": "40103000", "3600": "40103600" }),
+      "64 mm Stud": Object.freeze({ "3000": "11203000", "3600": "11203600", "4200": "11204200", "4800": "11204800", "6000": "11206000" }),
+    }),
+    "0.55": Object.freeze({
+      "76 mm Stud": Object.freeze({ "3000": "40303000", "3600": "40303600", "4200": "40304200", "4800": "40304800" }),
+      "92 mm Stud": Object.freeze({ "3000": "25103000", "3600": "25103600", "4200": "25104200", "4800": "25104800", "6000": "25106000" }),
+    }),
+    "0.75": Object.freeze({
+      "51 mm Stud": Object.freeze({ "3000": "48903000", "3600": "48903600" }),
+      "64 mm Stud": Object.freeze({ "3000": "49103000", "3600": "49103600", "4200": "49104200", "4800": "49104800", "6000": "49106000" }),
+      "76 mm Stud": Object.freeze({ "3000": "49303000", "3600": "49303600", "4200": "49304200", "4800": "49304800", "6000": "49306000" }),
+      "92 mm Stud": Object.freeze({ "3000": "49503000", "3600": "49503600", "4200": "49504200", "4800": "49504800", "6000": "49506000" }),
+      "150 mm Stud": Object.freeze({ "3000": "51103000", "3600": "51103600", "4200": "51104200", "4800": "51104800", "6000": "51106000" }),
+    }),
+    "1.15": Object.freeze({
+      "64 mm Stud": Object.freeze({ "3000": "66103000", "3600": "66103600", "4200": "66104200", "4800": "66104800" }),
+      "76 mm Stud": Object.freeze({ "3000": "67103000", "3600": "67103600", "4800": "67104800", "6000": "67106000" }),
+      "92 mm Stud": Object.freeze({ "3000": "68103000", "3600": "68103600", "4200": "68104200", "4800": "68104800", "6000": "68106000" }),
+      "150 mm Stud": Object.freeze({ "3000": "69103000", "3600": "69103600", "4200": "69104200", "4800": "69104800", "6000": "69106000" }),
+    }),
+  });
 
   function normalise(value) {
     return String(value || "").replace(/\s+/g, " ").trim().toUpperCase();
-  }
-
-  function rowLabel(row) {
-    return String(row?.querySelector("th")?.textContent || row?.children?.[0]?.textContent || "").trim();
   }
 
   function sectionTitle(section) {
@@ -28,66 +47,55 @@
       .find((section) => sectionTitle(section) === target);
   }
 
-  function matrixFromTable(table) {
-    if (!(table instanceof HTMLTableElement)) return null;
-    const header = table.querySelector("tr.lower-matrix-header, thead tr, tbody tr");
-    if (!header) return null;
-    const columns = [...header.children].slice(1).map((cell) => String(cell.textContent || "").trim());
-    const rows = [...table.rows].slice(1)
-      .filter((row) => !row.classList.contains("lower-group-heading") && !row.classList.contains("lower-matrix-header"))
-      .map((row) => ({ label: rowLabel(row), cells: [...row.children].slice(1) }));
-    return { columns, rows };
+  function findCatalogKey(sku) {
+    return Object.entries(state?.catalog || {}).find(([, product]) =>
+      String(product?.sku || product?.stockCode || "").trim() === sku,
+    )?.[0] || "";
   }
 
-  function collectStudMatrices() {
+  function floorIdFor(section) {
+    const sheet = section?.closest?.('[id$="OrderSheet"]');
+    return String(sheet?.id || "").replace(/OrderSheet$/, "");
+  }
+
+  function unavailableTemplate(sections) {
+    const cell = sections.flatMap((section) => [...section.querySelectorAll("td")])
+      .find((candidate) => !candidate.querySelector("input"));
+    if (!cell) throw new Error("STUDS: unavailable cell template not found");
+    const template = cell.cloneNode(false);
+    template.removeAttribute("id");
+    template.removeAttribute("data-product-key");
+    template.removeAttribute("data-key");
+    template.textContent = "";
+    return template;
+  }
+
+  function collectStudSources() {
     const standard = findSection("RONDO WALL FRAMING");
     const medium = findSection("RONDO MEDIUM GAUGE STUDS — 0.75 BMT");
     const heavy = findSection("RONDO HEAVY-DUTY WALL FRAMING");
     if (!standard || !medium || !heavy) return null;
-
-    const standardMatrix = matrixFromTable(standard.querySelector("table"));
-    const mediumTables = [...medium.querySelectorAll("table")];
-    const heavyTables = [...heavy.querySelectorAll("table")];
-    const mediumMatrices = mediumTables.slice(0, 2).map(matrixFromTable).filter(Boolean);
-    const heavyMatrices = heavyTables.slice(0, 2).map(matrixFromTable).filter(Boolean);
-    if (!standardMatrix || !mediumMatrices.length || !heavyMatrices.length) return null;
-
-    const records = [];
-    standardMatrix.rows.forEach((row) => {
-      const match = row.label.match(/^(\d+)\s*mm\s+Stud\s+(0\.50|0\.55)\s+BMT$/i);
-      if (!match) return;
-      records.push({ bmt: match[2], label: `${match[1]} mm Stud`, columns: standardMatrix.columns, cells: row.cells });
-    });
-    mediumMatrices.forEach((matrix) => matrix.rows.forEach((row) => {
-      if (!/^\d+\s*mm\s+Stud$/i.test(row.label)) return;
-      records.push({ bmt: "0.75", label: row.label, columns: matrix.columns, cells: row.cells });
-    }));
-    heavyMatrices.forEach((matrix) => matrix.rows.forEach((row) => {
-      const match = row.label.match(/^(\d+)\s*mm\s+Stud\s+1\.15\s+BMT$/i);
-      if (!match) return;
-      records.push({ bmt: "1.15", label: `${match[1]} mm Stud`, columns: matrix.columns, cells: row.cells });
-    }));
-
-    return { standard, medium, heavy, records };
+    const floor = floorIdFor(standard);
+    if (!floor) return null;
+    return {
+      standard,
+      medium,
+      heavy,
+      floor,
+      unavailableCell: unavailableTemplate([standard, medium, heavy]),
+    };
   }
 
-  function cloneCell(cell) {
-    if (!cell) return document.createElement("td");
-    const clone = cell.cloneNode(true);
-    clone.removeAttribute("id");
-    return clone;
+  function createStudCell(floor, sku, unavailableCell) {
+    if (!sku) return unavailableCell.cloneNode(false);
+    const key = findCatalogKey(sku);
+    if (!key) throw new Error(`STUDS: catalogue key missing for SKU ${sku}`);
+    if (typeof createQuantityCell !== "function") throw new Error("STUDS: createQuantityCell is unavailable");
+    return createQuantityCell(floor, key);
   }
 
-  function buildMatrix(records, bmt) {
-    const rowsByLabel = new Map();
-    records.filter((record) => record.bmt === bmt).forEach((record) => {
-      if (!rowsByLabel.has(record.label)) rowsByLabel.set(record.label, new Map());
-      const map = rowsByLabel.get(record.label);
-      record.columns.forEach((column, index) => {
-        if (!map.has(column)) map.set(column, record.cells[index]);
-      });
-    });
-
+  function buildMatrix(floor, bmt, unavailableCell) {
+    const variants = STUD_VARIANTS[bmt];
     const table = document.createElement("table");
     table.className = "lower-catalogue-table studs-bmt-table";
     const colgroup = document.createElement("colgroup");
@@ -108,13 +116,13 @@
     });
     tbody.append(header);
 
-    rowsByLabel.forEach((cellMap, label) => {
+    Object.entries(variants).forEach(([label, skuByLength]) => {
       const row = document.createElement("tr");
       const name = document.createElement("th");
       name.scope = "row";
       name.textContent = label;
       row.append(name);
-      LENGTHS.forEach((length) => row.append(cloneCell(cellMap.get(length))));
+      LENGTHS.forEach((length) => row.append(createStudCell(floor, skuByLength[length], unavailableCell)));
       tbody.append(row);
     });
 
@@ -137,7 +145,7 @@
     });
   }
 
-  function buildSection(records) {
+  function buildSection(floor, unavailableCell) {
     const section = document.createElement("section");
     section.className = "lower-catalogue-section studs-bmt-section";
 
@@ -171,7 +179,7 @@
       panel.setAttribute("role", "tabpanel");
       panel.hidden = index !== 0;
       if (index === 0) panel.classList.add("is-active");
-      panel.append(buildMatrix(records, tab.key));
+      panel.append(buildMatrix(floor, tab.key, unavailableCell));
       content.append(panel);
     });
 
@@ -198,11 +206,11 @@
   }
 
   function apply() {
-    const collected = collectStudMatrices();
+    const collected = collectStudSources();
     if (!collected) return false;
-    document.querySelectorAll(".studs-bmt-section").forEach((section) => section.remove());
 
-    const newSection = buildSection(collected.records);
+    const newSection = buildSection(collected.floor, collected.unavailableCell);
+    document.querySelectorAll(".studs-bmt-section").forEach((section) => section.remove());
     collected.standard.parentElement?.insertBefore(newSection, collected.standard);
 
     [collected.standard, collected.medium, collected.heavy].forEach((section) => {
@@ -237,7 +245,7 @@
     const root = document.querySelector(".floor-panels");
     if (!root || root.dataset.studsBmtObserved === "true") return;
     root.dataset.studsBmtObserved = "true";
-    const observer = new MutationObserver((mutations) => {
+    new MutationObserver((mutations) => {
       const catalogueChanged = mutations.some((mutation) => [...mutation.addedNodes].some((node) =>
         node instanceof Element && (
           node.matches?.(".rondo-expanded-group, .lower-catalogue-section")
@@ -245,8 +253,7 @@
         ),
       ));
       if (catalogueChanged) queueApply();
-    });
-    observer.observe(root, { childList: true, subtree: true });
+    }).observe(root, { childList: true, subtree: true });
   }
 
   function initialise() {
