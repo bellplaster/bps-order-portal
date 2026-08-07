@@ -1,3 +1,23 @@
+@import url("/customer-service-ordering.css?v=20260808-3");
+
+/*
+ * Keep the order workspace out of the first paint until account bootstrap has
+ * resolved. Customer Service changes the structure of Order Details after
+ * /api/account returns; revealing the base markup before that response causes
+ * the old two-column form to flash briefly on every refresh.
+ */
+.order-form-page .order-shell {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.order-form-page:has(#accountSummary:not(:empty)) .order-shell,
+.order-form-page:has(#adminOrderTools:not([hidden])) .order-shell {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity 120ms ease-out;
+}
+
 .order-form-page .sheet-field-row,
 .order-form-page .address-control,
 .order-form-page .instruction-sheet-row {
