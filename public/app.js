@@ -34,7 +34,6 @@ const deliveryTypes = new Set([
 ]);
 
 window.addEventListener("DOMContentLoaded", initialise);
-window.addEventListener("DOMContentLoaded", loadDeliveryRefinement);
 
 async function initialise() {
   bindStaticActions();
@@ -279,27 +278,4 @@ async function loadCatalog() {
   if (typeof renderer !== "function") throw new Error("The unified board renderer did not load.");
   renderer("ground");
   renderer("first");
-}
-
-function loadDeliveryRefinement() {
-  const style = document.createElement("link");
-  style.rel = "stylesheet";
-  style.href = "/final-ui-polish.css?v=20260729-3";
-  document.head.append(style);
-
-  const controlStyle = document.createElement("link");
-  controlStyle.rel = "stylesheet";
-  controlStyle.href = "/order-control-refinement.css?v=20260729-2";
-  document.head.append(controlStyle);
-
-  const script = document.createElement("script");
-  script.src = "/delivery-refinement.js?v=20260723-5";
-  script.defer = true;
-  script.addEventListener("load", () => {
-    const polish = document.createElement("script");
-    polish.src = "/final-ui-polish.js?v=20260723-4";
-    polish.defer = true;
-    document.body.append(polish);
-  });
-  document.body.append(script);
 }
