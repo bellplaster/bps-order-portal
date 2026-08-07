@@ -52,6 +52,39 @@ test("pack sizes and lengths are preserved for other catalogue products", () => 
   assert.equal(naming.productDisplayName({ label: "P01 External Angle 90°", detail: "2400 mm" }), "P01 External Angle 90° - 2400 mm");
 });
 
+test("stud review titles include the selected BMT derived from the SKU", () => {
+  assert.equal(
+    naming.productDisplayName({ sku: "48903000", label: "51 mm Stud", detail: "3000" }),
+    "51 mm Stud 0.75 BMT - 3000",
+  );
+  assert.equal(
+    naming.productDisplayName({ sku: "11204200", label: "64 mm Stud", detail: "4200" }),
+    "64 mm Stud 0.50 BMT - 4200",
+  );
+  assert.equal(
+    naming.productDisplayName({ sku: "25106000", label: "92 mm Stud", detail: "6000" }),
+    "92 mm Stud 0.55 BMT - 6000",
+  );
+});
+
+test("track review titles include the selected BMT derived from the SKU", () => {
+  assert.equal(
+    naming.productDisplayName({ sku: "49203000", label: "64 mm Track", detail: "3000" }),
+    "64 mm Track 0.75 BMT - 3000",
+  );
+  assert.equal(
+    naming.productDisplayName({ sku: "49003000", label: "51 mm Track", detail: "3000" }),
+    "51 mm Track 0.70 BMT - 3000",
+  );
+});
+
+test("existing BMT text is not duplicated", () => {
+  assert.equal(
+    naming.productDisplayName({ sku: "66103000", label: "64 mm Stud 1.15 BMT", detail: "3000" }),
+    "64 mm Stud 1.15 BMT - 3000",
+  );
+});
+
 test("detail is not duplicated when already present in the base name", () => {
   assert.equal(
     naming.productDisplayName({ label: "Villaboard 6 mm - 1200 x 3000 mm", detail: "3000 mm" }),
