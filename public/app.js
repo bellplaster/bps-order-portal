@@ -24,6 +24,8 @@ const state = {
   adminOrderAccountId: null,
   customerServiceAccounts: [],
   customerServiceOrderAccountId: null,
+  customerServiceDebtorMatches: [],
+  customerServiceDebtorActiveIndex: -1,
 };
 
 const floorLabels = { ground: "Ground Floor", first: "1st Floor" };
@@ -135,6 +137,8 @@ async function loadAccount() {
 function configureCustomerServiceOrderTools(accounts) {
   state.customerServiceAccounts = accounts.filter((account) => Number(account.active) === 1);
   state.customerServiceOrderAccountId = null;
+  state.customerServiceDebtorMatches = [];
+  state.customerServiceDebtorActiveIndex = -1;
   state.account.accountId = null;
   state.account.companyName = "Customer Service";
   state.account.debtorCode = "";
@@ -146,35 +150,19 @@ function configureCustomerServiceOrderTools(accounts) {
   ensureCustomerServiceOrderingStyles();
 
   const tools = document.getElementById("adminOrderTools");
-  if (!tools) return;
-  tools.hidden = false;
-  tools.className = "customer-service-order-tools";
-  tools.setAttribute("aria-label", "Customer service order account");
-  tools.innerHTML = `
-    <div class="customer-service-order-copy">
-      <strong>Place an order for a customer</strong>
-      <span>Select the debtor account this order belongs to. Your Customer Service username remains recorded as the person who placed it.</span>
-    </div>
-    <label class="customer-service-order-field" for="customerServiceCustomerAccount">
-      <span>Ordering for</span>
-      <select id="customerServiceCustomerAccount" required>
-        <option value="">Select customer account</option>
-      </select>
-    </label>`;
+  if (tools) {
+    tools.hidden = true;
+    tools.className = "admin-order-tools";
+    tools.removeAttribute("aria-label");
+    tools.replaceChildren();
+  }
 
-  const select = document.getElementById("customerServiceCustomerAccount");
-  state.customerServiceAccounts.forEach((account) => {
-    const option = document.createElement("option");
-    option.value = String(account.id);
-    option.textContent = `${account.company_name} · ${account.debtor_code}`;
-    select.append(option);
-  });
-  select.addEventListener("change", () => selectCustomerServiceOrderAccount(Number(select.value || 0)));
+  installCustomerServiceDebtorField();
 
   const customerName = document.getElementById("customerName");
   if (customerName) customerName.value = "";
   const summary = document.getElementById("accountSummary");
-  if (summary) summary.textContent = "Customer Service · Select customer";
+  if (summary) summary.textContent = "Customer Service · Select debtor";
 
   document.dispatchEvent(new CustomEvent("bps:order-account-changed", {
     detail: { accountId: null, role: "customer_service" },
@@ -185,9 +173,218 @@ function ensureCustomerServiceOrderingStyles() {
   if (document.querySelector('link[data-customer-service-ordering="true"]')) return;
   const stylesheet = document.createElement("link");
   stylesheet.rel = "stylesheet";
-  stylesheet.href = "/customer-service-ordering.css?v=20260808-1";
+  stylesheet.href = "/customer-service-ordering.css?v=20260808-2";
   stylesheet.dataset.customerServiceOrdering = "true";
   document.head.append(stylesheet);
+}
+
+function installCustomerServiceDebtorField() {
+  const grid = document.querySelector(".sheet-details-grid");
+  const referenceRow = document.getElementById("reference")?.closest(".sheet-field-row");
+  const requiredDateRow = document.getElementById("requiredDateDisplay")?.closest(".sheet-field-row");
+  const contactRow = document.getElementById("contactName")?.closest(".sheet-field-row");
+  const phoneRow = document.getElementById("contactMobile")?.closest(".sheet-field-row");
+  if (!grid || !referenceRow || !requiredDateRow || !contactRow || !phoneRow) return;
+
+  grid.classList.add("customer-service-details-grid");
+  referenceRow.classList.add("customer-service-reference-row");
+  requiredDateRow.classList.add("customer-service-required-date-row");
+  contactRow.classList.add("customer-service-contact-row");
+  phoneRow.classList.add("customer-service-phone-row");
+
+  let row = document.getElementById("customerServiceDebtorRow");
+  if (!row) {
+    row = document.createElement("div");
+    row.id = "customerServiceDebtorRow";
+    row.className = "sheet-field-row customer-service-debtor-row";
+
+    const label = document.createElement("label");
+    label.htmlFor = "customerServiceCustomerAccount";
+    label.textContent = "Debtor";
+
+    const control = document.createElement("div");
+    control.className = "customer-service-debtor-control";
+
+    const input = document.createElement("input");
+    input.id = "customerServiceCustomerAccount";
+    input.type = "text";
+    input.autocomplete = "off";
+    input.spellcheck = false;
+    input.required = true;
+    input.placeholder = "Debtor code or company";
+    input.setAttribute("role", "combobox");
+    input.setAttribute("aria-autocomplete", "list");
+    input.setAttribute("aria-expanded", "false");
+    input.setAttribute("aria-controls", "customerServiceDebtorResults");
+    input.setAttribute("aria-label", "Debtor code or company");
+
+    const results = document.createElement("div");
+    results.id = "customerServiceDebtorResults";
+    results.className = "customer-service-debtor-results";
+    results.setAttribute("role", "listbox");
+    results.hidden = true;
+
+    control.append(input, results);
+    row.append(label, control);
+    grid.insertBefore(row, referenceRow);
+  }
+
+  const input = document.getElementById("customerServiceCustomerAccount");
+  if (!(input instanceof HTMLInputElement) || input.dataset.debtorBound === "true") return;
+  input.dataset.debtorBound = "true";
+
+  input.addEventListener("focus", () => openCustomerServiceDebtorResults());
+  input.addEventListener("input", () => {
+    const selectedCode = String(input.dataset.selectedDebtorCode || "").trim().toLowerCase();
+    if (selectedCode && input.value.trim().toLowerCase() !== selectedCode) {
+      state.customerServiceOrderAccountId = null;
+      state.account.accountId = null;
+      delete input.dataset.selectedAccountId;
+      delete input.dataset.selectedDebtorCode;
+    }
+    openCustomerServiceDebtorResults(input.value);
+  });
+  input.addEventListener("keydown", handleCustomerServiceDebtorKeydown);
+
+  document.addEventListener("mousedown", (event) => {
+    if (!row.contains(event.target)) closeCustomerServiceDebtorResults();
+  });
+
+  document.getElementById("orderForm")?.addEventListener("reset", () => {
+    window.setTimeout(() => {
+      const selected = state.customerServiceAccounts.find(
+        (account) => Number(account.id) === Number(state.customerServiceOrderAccountId || 0),
+      ) || null;
+      syncCustomerServiceDebtorField(selected);
+    }, 0);
+  });
+}
+
+function openCustomerServiceDebtorResults(query = null) {
+  const input = document.getElementById("customerServiceCustomerAccount");
+  const results = document.getElementById("customerServiceDebtorResults");
+  if (!(input instanceof HTMLInputElement) || !results) return;
+
+  const selectedCode = String(input.dataset.selectedDebtorCode || "").trim().toLowerCase();
+  const typed = query == null ? input.value : String(query);
+  const search = selectedCode && typed.trim().toLowerCase() === selectedCode ? "" : typed;
+  state.customerServiceDebtorMatches = filterCustomerServiceAccounts(search);
+  state.customerServiceDebtorActiveIndex = -1;
+  renderCustomerServiceDebtorResults();
+  results.hidden = false;
+  input.setAttribute("aria-expanded", "true");
+}
+
+function closeCustomerServiceDebtorResults() {
+  const input = document.getElementById("customerServiceCustomerAccount");
+  const results = document.getElementById("customerServiceDebtorResults");
+  if (results) results.hidden = true;
+  if (input) {
+    input.setAttribute("aria-expanded", "false");
+    input.removeAttribute("aria-activedescendant");
+  }
+  state.customerServiceDebtorActiveIndex = -1;
+}
+
+function filterCustomerServiceAccounts(query) {
+  const needle = String(query || "").trim().toLowerCase();
+  const scored = state.customerServiceAccounts.map((account) => {
+    const company = String(account.company_name || "").trim();
+    const code = String(account.debtor_code || "").trim();
+    const companyKey = company.toLowerCase();
+    const codeKey = code.toLowerCase();
+    let score = 99;
+
+    if (!needle) score = 10;
+    else if (codeKey === needle) score = 0;
+    else if (companyKey === needle) score = 1;
+    else if (codeKey.startsWith(needle)) score = 2;
+    else if (companyKey.startsWith(needle)) score = 3;
+    else if (codeKey.includes(needle)) score = 4;
+    else if (companyKey.includes(needle)) score = 5;
+
+    return { account, companyKey, codeKey, score };
+  }).filter((item) => item.score < 99);
+
+  scored.sort((left, right) => left.score - right.score
+    || left.companyKey.localeCompare(right.companyKey)
+    || left.codeKey.localeCompare(right.codeKey));
+  return scored.slice(0, 8).map((item) => item.account);
+}
+
+function renderCustomerServiceDebtorResults() {
+  const results = document.getElementById("customerServiceDebtorResults");
+  const input = document.getElementById("customerServiceCustomerAccount");
+  if (!results || !(input instanceof HTMLInputElement)) return;
+  results.replaceChildren();
+
+  if (!state.customerServiceDebtorMatches.length) {
+    const empty = document.createElement("div");
+    empty.className = "customer-service-debtor-empty";
+    empty.textContent = "No matching customer";
+    results.append(empty);
+    input.removeAttribute("aria-activedescendant");
+    return;
+  }
+
+  state.customerServiceDebtorMatches.forEach((account, index) => {
+    const option = document.createElement("button");
+    option.id = `customerServiceDebtorOption${index}`;
+    option.type = "button";
+    option.className = "customer-service-debtor-option";
+    option.setAttribute("role", "option");
+    option.setAttribute("aria-selected", String(Number(account.id) === Number(state.customerServiceOrderAccountId || 0)));
+    if (index === state.customerServiceDebtorActiveIndex) option.classList.add("is-active");
+
+    const company = document.createElement("strong");
+    company.textContent = String(account.company_name || "").trim() || "Unnamed customer";
+    const code = document.createElement("span");
+    code.textContent = String(account.debtor_code || "").trim();
+    option.append(company, code);
+
+    option.addEventListener("mousedown", (event) => event.preventDefault());
+    option.addEventListener("click", () => selectCustomerServiceOrderAccount(Number(account.id)));
+    results.append(option);
+  });
+
+  const active = state.customerServiceDebtorActiveIndex;
+  if (active >= 0) input.setAttribute("aria-activedescendant", `customerServiceDebtorOption${active}`);
+  else input.removeAttribute("aria-activedescendant");
+}
+
+function handleCustomerServiceDebtorKeydown(event) {
+  if (!["ArrowDown", "ArrowUp", "Enter", "Escape"].includes(event.key)) return;
+
+  const results = document.getElementById("customerServiceDebtorResults");
+  if (event.key === "Escape") {
+    event.preventDefault();
+    closeCustomerServiceDebtorResults();
+    return;
+  }
+
+  if (results?.hidden) openCustomerServiceDebtorResults();
+  const matches = state.customerServiceDebtorMatches;
+  if (!matches.length) return;
+
+  if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+    event.preventDefault();
+    const direction = event.key === "ArrowDown" ? 1 : -1;
+    const current = state.customerServiceDebtorActiveIndex;
+    state.customerServiceDebtorActiveIndex = current < 0
+      ? (direction > 0 ? 0 : matches.length - 1)
+      : (current + direction + matches.length) % matches.length;
+    renderCustomerServiceDebtorResults();
+    document.getElementById(`customerServiceDebtorOption${state.customerServiceDebtorActiveIndex}`)?.scrollIntoView({ block: "nearest" });
+    return;
+  }
+
+  if (event.key === "Enter") {
+    const index = state.customerServiceDebtorActiveIndex >= 0 ? state.customerServiceDebtorActiveIndex : (matches.length === 1 ? 0 : -1);
+    if (index >= 0) {
+      event.preventDefault();
+      selectCustomerServiceOrderAccount(Number(matches[index].id));
+    }
+  }
 }
 
 function selectCustomerServiceOrderAccount(accountId) {
@@ -195,6 +392,8 @@ function selectCustomerServiceOrderAccount(accountId) {
   const selected = state.customerServiceAccounts.find((account) => Number(account.id) === Number(accountId || 0)) || null;
   applyCustomerServiceOrderAccount(selected);
   resetOrder();
+  syncCustomerServiceDebtorField(selected);
+  closeCustomerServiceDebtorResults();
 
   document.dispatchEvent(new CustomEvent("bps:order-account-changed", {
     detail: {
@@ -219,14 +418,30 @@ function applyCustomerServiceOrderAccount(account) {
   state.account.defaultMobile = "";
   state.account.orderDefaults = {};
 
-  const select = document.getElementById("customerServiceCustomerAccount");
-  if (select) select.value = id ? String(id) : "";
+  syncCustomerServiceDebtorField(account);
   const customerName = document.getElementById("customerName");
   if (customerName) customerName.value = companyName;
   const summary = document.getElementById("accountSummary");
   if (summary) summary.textContent = id
     ? [companyName, debtorCode].filter(Boolean).join(" · ")
-    : "Customer Service · Select customer";
+    : "Customer Service · Select debtor";
+}
+
+function syncCustomerServiceDebtorField(account) {
+  const input = document.getElementById("customerServiceCustomerAccount");
+  if (!(input instanceof HTMLInputElement)) return;
+  const id = Number(account?.id || 0) || null;
+  const debtorCode = String(account?.debtor_code || "").trim();
+  const companyName = String(account?.company_name || "").trim();
+  input.value = debtorCode;
+  input.title = id ? [companyName, debtorCode].filter(Boolean).join(" · ") : "";
+  if (id) {
+    input.dataset.selectedAccountId = String(id);
+    input.dataset.selectedDebtorCode = debtorCode;
+  } else {
+    delete input.dataset.selectedAccountId;
+    delete input.dataset.selectedDebtorCode;
+  }
 }
 
 function configureAdminOrderTools(accounts) {
