@@ -33,7 +33,8 @@ test("retired BaseCote and cornice adhesive SKUs are removed from the catalogue"
 test("the update uses the existing compounds table and quantity control", () => {
   assert.match(source, /\.compounds-category \.compounds-table tbody/);
   assert.match(source, /createQuantityCell\(floor, keyFor\(sku\)\)/);
-  assert.match(source, /section\.rows = COMPOUND_RANGE\.map/);
+  assert.match(source, /\.\.\.COMPOUND_RANGE\.map/);
+  assert.match(source, /\.\.\.accessoryRows/);
 });
 
 test("the compound range controller is loaded once", () => {

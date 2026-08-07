@@ -18,6 +18,7 @@
     ["Firesound Sausage", "600 ml", "6026194133"],
   ]);
 
+  const ACCESSORY_PATTERN = /^(Stud Adhesive|Paper Tape|Fibreglass Tape)$/i;
   const RETIRED_SKUS = new Set(["BC4520", "BC6020", "BC9020", "CAN4520", "CAN6020"]);
 
   function slug(value) {
@@ -54,11 +55,19 @@
   function updateLayoutSource() {
     const section = state.layout?.sections?.compounds;
     if (!section) return;
-    section.rows = COMPOUND_RANGE.map(([label, detail, sku]) => ({
-      label,
-      detail,
-      key: keyFor(sku),
-    }));
+
+    const accessoryRows = (section.rows || []).filter((row) =>
+      ACCESSORY_PATTERN.test(String(row?.label || "").trim()),
+    );
+
+    section.rows = [
+      ...COMPOUND_RANGE.map(([label, detail, sku]) => ({
+        label,
+        detail,
+        key: keyFor(sku),
+      })),
+      ...accessoryRows,
+    ];
   }
 
   function renderRows(floor) {
@@ -80,9 +89,9 @@
   }
 
   const renderer = function renderWithUpdatedCompoundRange(floor, ...args) {
-    const result = previousRenderer.call(this, floor, ...args);
     registerRange();
     updateLayoutSource();
+    const result = previousRenderer.call(this, floor, ...args);
     renderRows(floor);
     return result;
   };
@@ -90,6 +99,7 @@
   renderer.__compoundRangeUpdate20260807 = true;
   window.renderUnifiedFloorSheet = renderer;
   registerRange();
+  updateLayoutSource();
   queueMicrotask(() => {
     const areas = Array.isArray(state?.deliveryAreas) ? state.deliveryAreas : [];
     areas.forEach((area) => {
