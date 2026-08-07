@@ -58,6 +58,8 @@ test("customer service debtor selection is integrated into Order Details as an a
   assert.match(css, /grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
   assert.doesNotMatch(css, /customer-service-details-grid > \.sheet-field-row\s*\{[\s\S]*?border-right:\s*0\s*!important/);
   assert.match(css, /customer-service-details-grid > \.customer-service-reference-row,[\s\S]*customer-service-details-grid > \.customer-service-contact-row[\s\S]*border-right: 1px solid #d4d9d7 !important/);
+  assert.match(css, /customer-service-debtor-results[\s\S]*top: 100%;/);
+  assert.doesNotMatch(css, /top: calc\(100% \+ 6px\)/);
   assert.match(css, /customer-service-debtor-option[\s\S]*min-height: 34px/);
   assert.doesNotMatch(css, /magnifier|search-icon/i);
   assert.match(order, /Choose a customer account before building the order/);
@@ -88,7 +90,7 @@ test("required date and saved contacts attach directly to their input", async ()
 test("order form does not expose the base layout before account bootstrap resolves", async () => {
   const css = await read("public/order-field-behaviour.css");
 
-  assert.match(css, /@import url\("\/customer-service-ordering\.css\?v=20260808-3"\)/);
+  assert.match(css, /@import url\("\/customer-service-ordering\.css\?v=20260808-4"\)/);
   assert.match(css, /\.order-form-page \.order-shell \{[\s\S]*visibility: hidden;[\s\S]*opacity: 0;/);
   assert.match(css, /:has\(#accountSummary:not\(:empty\)\) \.order-shell/);
   assert.match(css, /:has\(#adminOrderTools:not\(\[hidden\]\)\) \.order-shell/);
