@@ -33,10 +33,11 @@
     const timeSelect = createSyncedSelect("timeSlot", "Time Slot", true);
     const deliverySelect = createSyncedSelect("deliveryType", "Delivery Type", true);
     const extrasControl = createExtrasDropdown(extrasField);
+    const gateControl = createGateCodeControl();
 
     const controlRow = document.createElement("div");
     controlRow.className = "delivery-instruction-controls delivery-table-row";
-    controlRow.append(timeSelect.wrapper, deliverySelect.wrapper, extrasControl.wrapper);
+    controlRow.append(timeSelect.wrapper, deliverySelect.wrapper, extrasControl.wrapper, gateControl.wrapper);
 
     notesField.querySelector(":scope > span")?.remove();
     notesField.querySelector(".generated-delivery-notes")?.remove();
@@ -72,6 +73,13 @@
       updateAddressPlaceholder();
     };
 
+    window.BPSGateCode = Object.freeze({
+      value: gateControl.value,
+      setValue: gateControl.setValue,
+      validate: gateControl.validate,
+      normalise: gateControl.normalise,
+    });
+
     const originalApplyPayload = window.applyPayload;
     if (typeof originalApplyPayload === "function") {
       window.applyPayload = function refinedApplyPayload(...args) {
@@ -82,6 +90,7 @@
     }
 
     document.getElementById("orderForm")?.addEventListener("reset", () => {
+      gateControl.setValue("");
       window.setTimeout(() => window.syncUnifiedDeliveryControls?.(), 0);
     });
 
@@ -217,6 +226,82 @@
     menu.querySelectorAll('input[name="deliveryExtra"]').forEach((input) => input.addEventListener("change", updateSummary));
     updateSummary();
     return { wrapper, details, updateSummary };
+  }
+
+  function createGateCodeControl() {
+    const MAX_LENGTH = 6;
+    const normalise = (value) => String(value || "").replace(/\D/g, "").slice(0, MAX_LENGTH);
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "delivery-select-field gate-code-field";
+
+    const label = document.createElement("span");
+    label.textContent = "Gate Code";
+
+    const control = document.createElement("div");
+    control.className = "gate-code-control";
+
+    const input = document.createElement("input");
+    input.id = "gateCode";
+    input.type = "text";
+    input.inputMode = "numeric";
+    input.autocomplete = "off";
+    input.maxLength = MAX_LENGTH;
+    input.placeholder = "Code";
+    input.setAttribute("aria-label", "Gate code, 4 to 6 digits");
+
+    const naLabel = document.createElement("label");
+    naLabel.className = "gate-code-na";
+    const na = document.createElement("input");
+    na.id = "gateCodeNotApplicable";
+    na.type = "checkbox";
+    na.autocomplete = "off";
+    const naText = document.createElement("span");
+    naText.textContent = "N/A";
+    naLabel.append(na, naText);
+
+    const clearValidation = () => control.classList.remove("is-invalid");
+    const value = () => na.checked ? "N/A" : normalise(input.value);
+    const setValue = (saved) => {
+      const source = String(saved || "").trim();
+      const notApplicable = source.toUpperCase() === "N/A";
+      na.checked = notApplicable;
+      input.value = notApplicable ? "" : normalise(source);
+      input.disabled = notApplicable;
+      clearValidation();
+    };
+    const validate = () => {
+      const valid = na.checked || /^\d{4,6}$/.test(normalise(input.value));
+      control.classList.toggle("is-invalid", !valid);
+      if (!valid) {
+        input.disabled = false;
+        input.focus();
+      }
+      return valid;
+    };
+
+    input.addEventListener("input", () => {
+      input.value = normalise(input.value);
+      if (input.value) na.checked = false;
+      input.disabled = false;
+      clearValidation();
+      window.scheduleDraft?.();
+    });
+    na.addEventListener("change", () => {
+      if (na.checked) {
+        input.value = "";
+        input.disabled = true;
+      } else {
+        input.disabled = false;
+        input.focus();
+      }
+      clearValidation();
+      window.scheduleDraft?.();
+    });
+
+    control.append(input, naLabel);
+    wrapper.append(label, control);
+    return { wrapper, value, setValue, validate, normalise };
   }
 
   window.getGeneratedDeliveryLines = function refinedGeneratedDeliveryLines(payload = null) {
