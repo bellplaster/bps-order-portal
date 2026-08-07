@@ -20,7 +20,7 @@ const PUBLIC_PATHS = new Set([
   "/api/login",
 ]);
 
-const CUSTOMER_SERVICE_REDIRECT_PATHS = new Set(["/", "/account", "/account/"]);
+const CUSTOMER_SERVICE_REDIRECT_PATHS = new Set(["/account", "/account/"]);
 
 export async function onRequest(context) {
   const url = new URL(context.request.url);
