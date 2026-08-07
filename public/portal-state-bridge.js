@@ -49,10 +49,11 @@
     });
   }
 
-  function selectChoice(name, value) {
+  function selectChoice(name, value, { notify = false } = {}) {
     const selected = document.querySelector(`input[name="${name}"][value="${CSS.escape(String(value || ""))}"]`);
     if (!(selected instanceof HTMLInputElement)) return null;
     selected.checked = true;
+    if (notify) selected.dispatchEvent(new Event("change", { bubbles: true }));
     return selected;
   }
 
@@ -63,31 +64,9 @@
     ].filter(Boolean).join(", ");
   }
 
-  function syncVisibleSelect(selector, value, label = "") {
-    const select = document.querySelector(selector);
-    if (!(select instanceof HTMLSelectElement)) return;
-
-    const normalised = String(value || "");
-    if (normalised && ![...select.options].some((option) => option.value === normalised)) {
-      select.append(new Option(label || normalised, normalised));
-    }
-
-    select.value = normalised;
-    select.classList.toggle("is-placeholder", !normalised);
-  }
-
-  function syncVisibleOrderDetailFields(timeSlot, deliveryType) {
+  function syncVisibleOrderDetailFields() {
     window.initialiseOrderDetailFields?.();
     window.formatOrderDetailFields?.();
-
-    syncVisibleSelect(".delivery-select-timeSlot .delivery-select", timeSlot, timeSlot === "ANY" ? "Any" : timeSlot);
-    syncVisibleSelect(".delivery-select-deliveryType .delivery-select", deliveryType, deliveryType);
-  }
-
-  function resyncGeneratedDeliveryControls(selectedTimeSlot) {
-    if (selectedTimeSlot instanceof HTMLInputElement && selectedTimeSlot.checked) {
-      selectedTimeSlot.dispatchEvent(new Event("change", { bubbles: true }));
-    }
     window.syncUnifiedDeliveryControls?.();
   }
 
@@ -108,7 +87,7 @@
 
     clearChoiceGroup("timeSlot");
     const timeSlot = String(defaults.timeSlot || "").trim().toUpperCase();
-    const selectedTimeSlot = timeSlot ? selectChoice("timeSlot", timeSlot) : null;
+    if (timeSlot) selectChoice("timeSlot", timeSlot, { notify: true });
 
     clearChoiceGroup("deliveryType");
     const deliveryType = canonicalDeliveryType(defaults.deliveryType);
@@ -125,9 +104,7 @@
         deliveryType,
       };
     }
-    syncVisibleOrderDetailFields(timeSlot, deliveryType);
-    queueMicrotask(() => resyncGeneratedDeliveryControls(selectedTimeSlot));
-    window.requestAnimationFrame(() => resyncGeneratedDeliveryControls(selectedTimeSlot));
+    syncVisibleOrderDetailFields();
 
     if (typeof updateFutureDateConfirmation === "function") updateFutureDateConfirmation();
     if (typeof updatePickupMode === "function") updatePickupMode();
