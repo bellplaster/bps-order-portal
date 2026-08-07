@@ -15,6 +15,10 @@ function setStep(step, options = {}) {
 function validateForm() {
   clearMessages();
 
+  if (state.account?.role === "customer_service" && !Number(state.customerServiceOrderAccountId || 0)) {
+    throw fieldError("customerServiceCustomerAccount", "Choose a customer account before building the order.");
+  }
+
   const requiredDate = value("requiredDate");
   if (!requiredDate || !window.BPSOrderFields?.validateField?.("requiredDateDisplay", { show: true })) {
     throw fieldError("requiredDateDisplay", "Choose the required date.");
@@ -218,7 +222,15 @@ async function submitOrder(event) {
     button.disabled = true;
     button.textContent = "Submitting order…";
     const payload = buildPayload();
-    const result = await fetchJson("/api/submit", { method: "POST", body: JSON.stringify(payload) });
+    const headers = {};
+    if (state.account?.role === "customer_service") {
+      headers["X-BPS-Customer-Account"] = String(state.customerServiceOrderAccountId || "");
+    }
+    const result = await fetchJson("/api/submit", {
+      method: "POST",
+      body: JSON.stringify(payload),
+      headers,
+    });
     showSuccess(result);
     clearDraft();
   } catch (error) {
