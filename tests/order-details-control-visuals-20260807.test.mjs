@@ -39,5 +39,5 @@ test("Delivery Type and Extras use one shared chevron with matching inset", () =
 });
 
 test("Order Details stylesheet cache key is refreshed", () => {
-  assert.match(html, /order-control-refinement\.css\?v=20260807-3/);
+  assert.match(html, /order-control-refinement\.css\?v=20260808-1/);
 });
