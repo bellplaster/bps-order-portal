@@ -36,13 +36,26 @@ test("customer service receives active genuine customer accounts for order entry
   assert.match(accountApi, /ADMIN_TEST_DEBTOR_CODE = "STAFF"/);
 });
 
-test("order form requires a selected debtor and sends it separately from the order payload", async () => {
+test("customer service debtor selection is integrated into Order Details as an autosuggest", async () => {
   const app = await read("public/app.js");
+  const css = await read("public/customer-service-ordering.css");
   const order = await read("public/app-order.js");
 
   assert.match(app, /customerServiceOrderAccountId: null/);
-  assert.match(app, /id="customerServiceCustomerAccount"/);
-  assert.match(app, /bps:order-account-changed/);
+  assert.match(app, /label\.textContent = "Debtor"/);
+  assert.match(app, /input\.id = "customerServiceCustomerAccount"/);
+  assert.match(app, /input\.placeholder = "Debtor code or company"/);
+  assert.match(app, /filterCustomerServiceAccounts/);
+  assert.match(app, /handleCustomerServiceDebtorKeydown/);
+  assert.match(app, /company_name/);
+  assert.match(app, /debtor_code/);
+  assert.match(app, /tools\.hidden = true/);
+  assert.doesNotMatch(app, /Place an order for a customer/);
+  assert.doesNotMatch(app, /Debtor account/);
+  assert.doesNotMatch(app, /customer-service-order-copy/);
+  assert.match(css, /grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
+  assert.match(css, /customer-service-debtor-option[\s\S]*min-height: 34px/);
+  assert.doesNotMatch(css, /magnifier|search-icon/i);
   assert.match(order, /Choose a customer account before building the order/);
   assert.match(order, /X-BPS-Customer-Account/);
 });
