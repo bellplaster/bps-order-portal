@@ -164,8 +164,8 @@
     });
     const nailRows = normaliseMatrixRows(nails?.rows || []);
     if (nailRows.length) {
-      appendMatrixHeader(tbody, "Nails", nails?.columns || ["30 mm", "40 mm"]);
-      nailRows.forEach((row) => appendMatrixRow(tbody, floor, row.label || "", row.cells || []));
+      appendSingleSizeHeader(tbody, "Nails", nails?.columns?.[0] || "30 mm");
+      nailRows.forEach((row) => appendSingleSizeRow(tbody, floor, row.label || "", row.cells?.[0] || null));
     }
     table.append(tbody);
     section.append(table);
@@ -186,6 +186,18 @@
     tbody.append(tr);
   }
 
+  function appendSingleSizeHeader(tbody, title, size) {
+    const tr = document.createElement("tr");
+    tr.className = "lower-subheader lower-matrix-header nails-single-size-header";
+    const titleCell = document.createElement("th");
+    titleCell.colSpan = 2;
+    titleCell.textContent = title;
+    const sizeCell = document.createElement("th");
+    sizeCell.textContent = size;
+    tr.append(titleCell, sizeCell);
+    tbody.append(tr);
+  }
+
   function appendSubheading(tbody, title, colspan) {
     const tr = document.createElement("tr");
     tr.className = "lower-subheader lower-group-heading";
@@ -203,6 +215,17 @@
     th.textContent = label;
     tr.append(th);
     (cells || []).forEach((key) => tr.append(createQuantityCell(floor, key || null)));
+    tbody.append(tr);
+  }
+
+  function appendSingleSizeRow(tbody, floor, label, key) {
+    const tr = document.createElement("tr");
+    tr.className = "nails-single-size-row";
+    const th = document.createElement("th");
+    th.scope = "row";
+    th.colSpan = 2;
+    th.textContent = label;
+    tr.append(th, createQuantityCell(floor, key || null));
     tbody.append(tr);
   }
 

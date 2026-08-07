@@ -95,7 +95,7 @@
       ["AAC Adhesive", "20 kg", "ADH20"],
       ["Party Wall Angle Bracket", "", "APW01"],
       ["C Batten 16mm", "2.85 m", "BC162850"],
-      ["C Batten 24mm (12 Pack)", "2.85 m", "BC242850"],
+      ["C Batten 24mm", "2.85 m", "BC242850"],
       ["C Batten 35mm", "3.0 m", "BC353000"],
       ["H Section 50mm", "3.0 m", "BH503000"],
       ["Fire Rated Caulking", "600 mL", "FRIC600"],
