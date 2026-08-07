@@ -27,7 +27,7 @@
     ["compound-range-update", "/compound-range-update-20260807.js?v=20260807-1"],
     ["partiwall-wall-track-label", "/partiwall-wall-track-label.js?v=20260807-1"],
     ["remove-rondo-finishing-beads", "/remove-rondo-finishing-beads-20260807.js?v=20260807-1"],
-    ["rondo-variant-removals", "/rondo-variant-removals-20260807.js?v=20260807-1"],
+    ["rondo-variant-removals", "/rondo-variant-removals-20260807.js?v=20260807-2"],
   ];
 
   controllers.forEach(([marker, src]) => {
