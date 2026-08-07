@@ -68,6 +68,61 @@
     removeIndexes.forEach((index) => cols[index]?.remove());
   }
 
+  function rowLabel(row) {
+    return normalise(row?.querySelector("th")?.textContent || row?.children?.[0]?.textContent);
+  }
+
+  function unavailableCellTemplate(table) {
+    const cell = [...table.querySelectorAll("td")].find((candidate) => !candidate.querySelector("input"));
+    if (!cell) return null;
+    const clone = cell.cloneNode(false);
+    clone.removeAttribute("id");
+    clone.removeAttribute("data-product-key");
+    clone.removeAttribute("data-key");
+    clone.textContent = "";
+    return clone;
+  }
+
+  function consolidateWallFramingStudTables(section) {
+    const tables = [...section.querySelectorAll("table")];
+    const primary = tables[0];
+    const longLengths = tables[1];
+    if (!(primary instanceof HTMLTableElement) || !(longLengths instanceof HTMLTableElement)) return;
+
+    const primaryHeader = primary.querySelector("tr.lower-matrix-header, thead tr, tbody tr");
+    const longHeader = longLengths.querySelector("tr.lower-matrix-header, thead tr, tbody tr");
+    if (!primaryHeader || !longHeader) return;
+
+    const longColumns = [...longHeader.children].slice(1).map((cell) => String(cell.textContent || "").trim());
+    if (!longColumns.length || longColumns.some((column) => !["4800", "6000"].includes(column))) return;
+
+    [...longHeader.children].slice(1).forEach((cell) => primaryHeader.append(cell));
+
+    const primaryRows = [...primary.rows].slice(1);
+    const longRows = [...longLengths.rows].slice(1);
+    const longRowsByLabel = new Map(longRows.map((row) => [rowLabel(row), row]));
+    const unavailableTemplate = unavailableCellTemplate(longLengths) || unavailableCellTemplate(primary);
+
+    primaryRows.forEach((row) => {
+      const matchingRow = longRowsByLabel.get(rowLabel(row));
+      if (matchingRow) {
+        [...matchingRow.children].slice(1).forEach((cell) => row.append(cell));
+        return;
+      }
+
+      longColumns.forEach(() => {
+        if (unavailableTemplate) row.append(unavailableTemplate.cloneNode(false));
+        else row.append(document.createElement("td"));
+      });
+    });
+
+    const primaryCols = primary.querySelector("colgroup");
+    const longCols = [...longLengths.querySelectorAll("colgroup col")].slice(1);
+    if (primaryCols) longCols.forEach((col) => primaryCols.append(col));
+
+    longLengths.remove();
+  }
+
   function removeVariantsFromSection(section) {
     const title = normalise(section.querySelector(".rondo-expanded-title, .lower-category-title, h3")?.textContent);
     const rules = COLUMN_RULES[title];
@@ -75,6 +130,8 @@
 
     const tables = [...section.querySelectorAll("table")];
     rules.forEach((headings, tableIndex) => removeTableColumns(tables[tableIndex], headings));
+
+    if (title === "RONDO WALL FRAMING") consolidateWallFramingStudTables(section);
   }
 
   function apply() {
