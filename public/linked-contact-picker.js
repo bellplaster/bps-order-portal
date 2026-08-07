@@ -3,6 +3,8 @@
   window.__bpsLinkedContactPickerStarted = true;
 
   let contacts = [];
+  let customerServiceMode = false;
+  let customerServiceAccountId = null;
 
   const start = async () => {
     const contactInput = document.getElementById("contactName");
@@ -13,9 +15,13 @@
     applyFieldPresentation(contactInput, phoneInput);
     installStyles();
     installDuplicateGuard(contactInput);
+    contacts = [];
+
+    const endpoint = contactEndpoint();
+    if (!endpoint) return;
 
     try {
-      const response = await fetch("/api/account-contacts", {
+      const response = await fetch(endpoint, {
         credentials: "same-origin",
         headers: { Accept: "application/json" },
       });
@@ -36,6 +42,12 @@
       // Manual contact entry remains available when saved contacts cannot load.
     }
   };
+
+  function contactEndpoint() {
+    if (!customerServiceMode) return "/api/account-contacts";
+    if (!customerServiceAccountId) return null;
+    return `/api/account-contacts?accountId=${encodeURIComponent(customerServiceAccountId)}`;
+  }
 
   function removeObsoletePickers(contactInput) {
     document.querySelectorAll("#linkedContactSelect, #linkedContactButton, #linkedContactMenu").forEach((element) => element.remove());
@@ -111,9 +123,9 @@
         <span>${contacts.length}</span>
       </div>
       <div class="linked-contact-options"></div>
-      <div class="linked-contact-menu-footer">
+      ${customerServiceMode ? "" : `<div class="linked-contact-menu-footer">
         <a href="/account/#savedContactsSection">Manage contacts</a>
-      </div>`;
+      </div>`}`;
 
     const optionsRoot = menu.querySelector(".linked-contact-options");
     contacts.forEach((contact, index) => {
@@ -238,6 +250,13 @@
     `;
     document.head.append(style);
   }
+
+  document.addEventListener("bps:order-account-changed", (event) => {
+    const detail = event.detail || {};
+    customerServiceMode = detail.role === "customer_service";
+    customerServiceAccountId = Number(detail.accountId || 0) || null;
+    void start();
+  });
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start, { once: true });
   else void start();

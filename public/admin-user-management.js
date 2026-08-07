@@ -59,9 +59,11 @@
   }
 
   function allGroups() {
-    const internalUsers = model.users.filter((user) => isInternalRole(user.role));
     const groups = [];
-    if (internalUsers.length) {
+    const administrators = model.users.filter((user) => user.role === ROLE_ADMIN);
+    const customerServiceUsers = model.users.filter((user) => user.role === ROLE_CUSTOMER_SERVICE);
+
+    if (administrators.length) {
       groups.push({
         id: "internal-staff",
         accountId: null,
@@ -69,9 +71,21 @@
         debtorCode: "Internal access",
         active: true,
         internal: true,
-        users: internalUsers,
+        users: administrators,
+        emptyLabel: "No administrator users.",
       });
     }
+
+    groups.push({
+      id: "customer-service",
+      accountId: null,
+      name: "Customer Service",
+      debtorCode: "All customer accounts",
+      active: true,
+      internal: true,
+      users: customerServiceUsers,
+      emptyLabel: "No Customer Service users yet.",
+    });
 
     model.accounts.forEach((account) => {
       groups.push({
@@ -82,6 +96,7 @@
         active: Number(account.active) === 1,
         internal: false,
         users: model.users.filter((user) => user.role === ROLE_CUSTOMER && Number(user.account_id) === Number(account.id)),
+        emptyLabel: "No portal users linked to this customer.",
       });
     });
     return groups;
@@ -133,7 +148,7 @@
         <span class="portal-user-group-meta">${group.users.length} ${group.users.length === 1 ? "user" : "users"}${escapeHtml(primaryText)}${escapeHtml(inactiveText)}</span>
       </button>
       <div class="portal-user-group-body" ${expanded ? "" : "hidden"}>
-        ${group.users.length ? group.users.map(userTemplate).join("") : '<div class="admin-empty compact">No portal users linked to this customer.</div>'}
+        ${group.users.length ? group.users.map(userTemplate).join("") : `<div class="admin-empty compact">${escapeHtml(group.emptyLabel || "No portal users.")}</div>`}
       </div>
     </section>`;
   }
@@ -240,7 +255,7 @@
     if (role === ROLE_ADMIN) {
       note.textContent = "Administrators can manage customers, users, catalogue settings and every order, including test orders.";
     } else if (role === ROLE_CUSTOMER_SERVICE) {
-      note.textContent = "Customer Service can review genuine customer orders and download Excel files. Administrator test orders and administration tools remain hidden.";
+      note.textContent = "Customer Service users can review genuine customer orders and place orders on behalf of any active customer. Administrator test orders and administration tools remain hidden.";
     } else {
       note.textContent = "Only one primary user is allowed per customer. Assigning this user as primary replaces the current primary user.";
     }

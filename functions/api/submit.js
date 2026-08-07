@@ -1,11 +1,17 @@
 import { processOrderSubmission } from "../_shared/orders-v2.js";
 import { sendOrderFilesEmail } from "../_shared/order-email.js";
 import { prepareOrderFilesForViewer } from "../_shared/order-email-attachments.js";
-import { effectiveUserRole, isAdministratorRole } from "../_shared/user-roles.js";
+import {
+  effectiveUserRole,
+  isAdministratorRole,
+  isCustomerServiceRole,
+} from "../_shared/user-roles.js";
 import { reconcileStandardProductItems } from "../_shared/product-payload.js";
 import { createMatrixAwareDb } from "../_shared/matrix-catalog-db.js";
 import { replaceAreaExportsWithCombined } from "../_shared/combined-accrivia-export.js";
 import { createOrderViewSnapshot, parseOrderPayload } from "../_shared/order-view-model.js";
+
+const ADMIN_TEST_DEBTOR_CODE = "STAFF";
 
 export async function onRequestPost(context) {
   const requestId = crypto.randomUUID();
@@ -28,8 +34,40 @@ export async function onRequestPost(context) {
       `SELECT id, account_id, username, role, access_role, active, default_contact_name
        FROM users WHERE id = ? AND active = 1 LIMIT 1`,
     ).bind(auth.userId).first();
-    const accountId = Number(actor?.account_id || 0);
-    if (!actor || !accountId) {
+    if (!actor) {
+      return Response.json(
+        { ok: false, error: "Authentication required.", requestId },
+        { status: 401, headers: { "Cache-Control": "no-store", "X-Request-ID": requestId } },
+      );
+    }
+
+    const actorRole = effectiveUserRole(actor.role, actor.access_role);
+    let accountId = Number(actor.account_id || 0);
+
+    if (isCustomerServiceRole(actorRole)) {
+      const requestedAccountId = Number(context.request.headers.get("X-BPS-Customer-Account") || 0);
+      const targetAccount = requestedAccountId
+        ? await context.env.DB.prepare(
+            `SELECT id, debtor_code, company_name
+             FROM customer_accounts
+             WHERE id = ?
+               AND active = 1
+               AND UPPER(COALESCE(debtor_code, '')) <> ?
+             LIMIT 1`,
+          ).bind(requestedAccountId, ADMIN_TEST_DEBTOR_CODE).first()
+        : null;
+
+      if (!targetAccount) {
+        return Response.json(
+          { ok: false, error: "Choose an active customer account before submitting the order.", requestId },
+          { status: 400, headers: { "Cache-Control": "no-store", "X-Request-ID": requestId } },
+        );
+      }
+
+      accountId = Number(targetAccount.id);
+      payload.customer = String(targetAccount.company_name || "");
+      payload.debtorCode = String(targetAccount.debtor_code || "");
+    } else if (!accountId) {
       return Response.json(
         { ok: false, error: "Your login is not assigned to a customer account.", requestId },
         { status: 400, headers: { "Cache-Control": "no-store", "X-Request-ID": requestId } },
@@ -84,7 +122,6 @@ export async function onRequestPost(context) {
       console.warn("Pickup site reference could not be stored.", error);
     });
 
-    const actorRole = effectiveUserRole(actor?.role, actor?.access_role);
     const isAdminOrder = isAdministratorRole(actorRole);
     const presentedFiles = prepareOrderFilesForViewer(result.generatedFiles, { isAdmin: isAdminOrder });
 

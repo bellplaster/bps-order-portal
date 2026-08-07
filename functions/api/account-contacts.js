@@ -1,17 +1,19 @@
 import { cleanPersonName } from "../_shared/account-field-validation.js";
 import { normaliseAustralianPhone } from "../_shared/phone.js";
 import { json } from "../_shared/responses.js";
+import { isCustomerServiceRole } from "../_shared/user-roles.js";
 
 const MIGRATION_KEY = "account_saved_contacts_v1";
+const ADMIN_TEST_DEBTOR_CODE = "STAFF";
 
 export async function onRequestGet(context) {
   try {
     const auth = requireAuth(context);
     await ensureContactSchema(context.env.DB);
-    const accountId = Number(auth.accountId || 0);
+    const accountId = await resolveReadAccountId(context, auth);
     if (!accountId) return json({ ok: true, contacts: [], canManage: false });
 
-    const canManage = await userCanManage(context.env.DB, auth);
+    const canManage = isCustomerServiceRole(auth.role) ? false : await userCanManage(context.env.DB, auth);
     const result = await context.env.DB.prepare(
       `SELECT id, contact_name, mobile, created_at, updated_at
        FROM account_contacts
@@ -139,6 +141,25 @@ export async function onRequestDelete(context) {
   } catch (error) {
     return fail(error);
   }
+}
+
+async function resolveReadAccountId(context, auth) {
+  if (!isCustomerServiceRole(auth.role)) return Number(auth.accountId || 0);
+
+  const url = new URL(context.request.url);
+  const requestedAccountId = Number(url.searchParams.get("accountId") || 0);
+  if (!requestedAccountId) return 0;
+
+  const account = await context.env.DB.prepare(
+    `SELECT id
+     FROM customer_accounts
+     WHERE id = ?
+       AND active = 1
+       AND UPPER(COALESCE(debtor_code, '')) <> ?
+     LIMIT 1`,
+  ).bind(requestedAccountId, ADMIN_TEST_DEBTOR_CODE).first();
+  if (!account) throw badRequest("Choose an active customer account.");
+  return Number(account.id);
 }
 
 async function ensureContactSchema(db) {

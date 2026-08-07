@@ -97,13 +97,13 @@ function configureScope() {
   elements.ordersScopeDescription.textContent = administrator
     ? "View and manage orders across every customer account, including administrator tests."
     : customerService
-      ? "Review genuine customer orders across every customer account. Administrator test orders are excluded."
+      ? "Review genuine customer orders across every customer account and place orders on behalf of customers. Administrator test orders are excluded."
       : scope === "account"
         ? "View all orders placed under your customer account."
         : "View orders placed using your username.";
 
-  if (elements.createOrderButton) elements.createOrderButton.hidden = customerService;
-  if (elements.orderFormLink) elements.orderFormLink.hidden = customerService;
+  if (elements.createOrderButton) elements.createOrderButton.hidden = false;
+  if (elements.orderFormLink) elements.orderFormLink.hidden = false;
   if (elements.accountLink) elements.accountLink.hidden = customerService;
 
   populateCustomerFilter(globalScope);
