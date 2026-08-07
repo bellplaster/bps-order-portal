@@ -4,11 +4,21 @@ import test from "node:test";
 
 const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
-test("stud rows are sorted from smallest to largest", async () => {
-  const source = await read("public/studs-bmt-row-order-20260807.js");
-  assert.match(source, /function studWidth\(row\)/);
-  assert.match(source, /rows\.sort\(\(rowA, rowB\) => studWidth\(rowA\) - studWidth\(rowB\)\)/);
-  assert.match(source, /studs-bmt-table tbody/);
+test("stud matrices declare rows from smallest to largest", async () => {
+  const source = await read("public/studs-bmt-tabs-20260807.js");
+  for (const block of [
+    ["51 mm Stud", "64 mm Stud"],
+    ["76 mm Stud", "92 mm Stud"],
+    ["51 mm Stud", "64 mm Stud", "76 mm Stud", "92 mm Stud", "150 mm Stud"],
+    ["64 mm Stud", "76 mm Stud", "92 mm Stud", "150 mm Stud"],
+  ]) {
+    let previous = -1;
+    for (const label of block) {
+      const current = source.indexOf(`"${label}"`, previous + 1);
+      assert.ok(current > previous, `${label} must follow the previous stud width`);
+      previous = current;
+    }
+  }
 });
 
 test("stud title and BMT tabs share one compact aligned header row", async () => {
@@ -21,7 +31,11 @@ test("stud title and BMT tabs share one compact aligned header row", async () =>
   assert.match(styles, /padding:4px 8px/);
 });
 
-test("row order controller loads with catalogue refinements", async () => {
-  const loader = await read("public/draft-restore-fix.js");
-  assert.match(loader, /studs-bmt-row-order-20260807\.js\?v=20260807-1/);
+test("redundant row-order controller is not part of the runtime lifecycle", async () => {
+  const [index, loader] = await Promise.all([
+    read("public/index.html"),
+    read("public/draft-restore-fix.js"),
+  ]);
+  assert.doesNotMatch(index, /studs-bmt-row-order-20260807\.js/);
+  assert.doesNotMatch(loader, /studs-bmt-row-order-20260807\.js/);
 });
