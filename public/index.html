@@ -21,7 +21,7 @@
   <link rel="stylesheet" href="/focus-refinement.css?v=20260724-2">
   <link rel="stylesheet" href="/experience-refinement.css?v=20260801-1">
   <link rel="stylesheet" href="/review-metrics-refinement.css?v=20260724-2">
-  <link rel="stylesheet" href="/order-control-refinement.css?v=20260731-1">
+  <link rel="stylesheet" href="/order-control-refinement.css?v=20260807-2">
   <link rel="stylesheet" href="/order-success-checkout.css?v=20260804-1">
   <link rel="stylesheet" href="/order-success-checkout-guard.css?v=20260804-1">
   <link rel="stylesheet" href="/order-readonly-mode.css?v=20260805-1">
@@ -176,7 +176,7 @@
           <section class="review-section">
             <div class="review-section-header"><h2>Products</h2><button id="editProductsButton" class="text-button" type="button">Edit</button></div>
             <div id="reviewOrderLines" class="review-lines"></div>
-            <div class="review-total"><span id="reviewLineTotal">0 product lines</span><strong id="reviewUnitTotal">0 total units</strong></div>
+            <div class="review-total"><span id="reviewLineTotal">0 product lines</span><strong id="reviewUnitTotal">0 total unit${unitCount === 1 ? "" : "s"}</strong></div>
           </section>
         </div>
         <div id="formMessage" class="portal-message" hidden role="alert"></div>
