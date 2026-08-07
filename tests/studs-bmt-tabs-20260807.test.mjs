@@ -25,15 +25,14 @@ test("stud availability comes from the approved SKU matrix", async () => {
   assert.match(source, /const STUD_VARIANTS = Object\.freeze/);
   assert.match(source, /findCatalogKey\(sku\)/);
   assert.match(source, /createQuantityCell\(floor, key\)/);
-  assert.match(source, /if \(!sku\) return unavailableCell\.cloneNode\(false\)/);
-  assert.doesNotMatch(source, /if \(!cell\) return document\.createElement\("td"\)/);
+  assert.match(source, /if \(!sku\) return createQuantityCell\(floor, null\)/);
 });
 
 test("missing active SKU mappings fail before old stud sections are removed", async () => {
   const source = await read("public/studs-bmt-tabs-20260807.js");
   assert.match(source, /throw new Error\(`STUDS: catalogue key missing for SKU \$\{sku\}`\)/);
   assert.ok(
-    source.indexOf("const newSection = buildSection") < source.indexOf("document.querySelectorAll(\".studs-bmt-section\")"),
+    source.indexOf("const newSection = buildSection(floor)") < source.indexOf("root.querySelectorAll(\".studs-bmt-section\")"),
     "the replacement must build successfully before existing sections are removed",
   );
 });
@@ -64,19 +63,22 @@ test("STUDS title and tab controls use the same fixed header height", async () =
   assert.match(styles, /studs-bmt-tabs[^\n]*height:34px/);
 });
 
-test("stud tabs observe the catalogue lifecycle because Rondo extensions render later", async () => {
+test("stud consolidation is owned by the floor render lifecycle", async () => {
   const source = await read("public/studs-bmt-tabs-20260807.js");
-  assert.match(source, /function observeCatalogueLifecycle\(\)/);
-  assert.match(source, /new MutationObserver/);
-  assert.match(source, /\.floor-panels/);
-  assert.match(source, /queueMicrotask/);
-  assert.match(source, /node\.matches\?\.\("\.rondo-expanded-group, \.lower-catalogue-section"\)/);
-  assert.match(source, /return true/);
+  assert.match(source, /function apply\(floor\)/);
+  assert.match(source, /document\.getElementById\(`\$\{floor\}OrderSheet`\)/);
+  assert.match(source, /collectStudSources\(root\)/);
+  assert.match(source, /apply\(floor\)/);
+  assert.doesNotMatch(source, /MutationObserver/);
+  assert.doesNotMatch(source, /queueMicrotask/);
+  assert.doesNotMatch(source, /DOMContentLoaded/);
 });
 
-test("index loads the stud tab assets and disables caching", async () => {
+test("index loads the stud tab assets before delivery-area rendering", async () => {
   const [index, headers] = await Promise.all([read("public/index.html"), read("public/_headers")]);
-  assert.match(index, /studs-bmt-tabs-20260807\.css\?v=20260807-1/);
-  assert.match(index, /studs-bmt-tabs-20260807\.js\?v=20260807-1/);
+  const studsIndex = index.indexOf("/studs-bmt-tabs-20260807.js?v=20260807-2");
+  const deliveryIndex = index.indexOf("/delivery-areas.js?v=20260724-1");
+  assert.ok(studsIndex >= 0, "stud tab controller is missing");
+  assert.ok(deliveryIndex > studsIndex, "stud tab controller must be installed before floor rendering");
   assert.match(headers, /Cache-Control: no-store/);
 });

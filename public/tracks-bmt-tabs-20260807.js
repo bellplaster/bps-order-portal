@@ -71,14 +71,14 @@
     return String(value || "").replace(/\s+/g, " ").trim().toUpperCase();
   }
 
+  function sectionTitle(section) {
+    return normalise(section?.querySelector(".rondo-expanded-title, .lower-category-title, h3, h4")?.textContent);
+  }
+
   function findCatalogKey(sku) {
     return Object.entries(state?.catalog || {}).find(([, product]) =>
       String(product?.sku || product?.stockCode || "").trim() === sku,
     )?.[0] || "";
-  }
-
-  function floorIdFor(section) {
-    return String(section?.closest?.('[id$="OrderSheet"]')?.id || "").replace(/OrderSheet$/, "");
   }
 
   function createTrackCell(floor, sku) {
@@ -193,50 +193,39 @@
     return section;
   }
 
-  function removeLegacyTrackSections(root) {
+  function removeLegacyTrackSources(root) {
+    const legacyTitles = new Set([
+      "RONDO WALL FRAMING",
+      "RONDO TRACKS & DH TRACK",
+      "RONDO HEAVY-DUTY WALL FRAMING",
+    ]);
     [...root.querySelectorAll(".rondo-expanded-group, .lower-catalogue-section")].forEach((section) => {
-      const title = normalise(section.querySelector(".rondo-expanded-title, .lower-category-title, h3")?.textContent);
-      if (["RONDO TRACKS & DH TRACK", "RONDO HEAVY-DUTY WALL FRAMING"].includes(title)) section.remove();
+      if (legacyTitles.has(sectionTitle(section))) section.remove();
     });
   }
 
-  function apply() {
-    const studs = document.querySelector(".studs-bmt-section");
+  function apply(floor) {
+    const root = document.getElementById(`${floor}OrderSheet`);
+    if (!root) return false;
+    const studs = root.querySelector(".studs-bmt-section");
     if (!studs) return false;
-    const floor = floorIdFor(studs);
-    if (!floor) return false;
 
     const newSection = buildSection(floor);
-    document.querySelectorAll(".tracks-bmt-section").forEach((section) => section.remove());
+    root.querySelectorAll(".tracks-bmt-section").forEach((section) => section.remove());
     studs.insertAdjacentElement("afterend", newSection);
-    removeLegacyTrackSections(studs.closest('[id$="OrderSheet"]') || document);
+    removeLegacyTrackSources(root);
     return true;
   }
 
-  let queued = false;
-  function queueApply() {
-    if (queued) return;
-    queued = true;
-    queueMicrotask(() => {
-      queued = false;
-      apply();
-    });
+  ensureStyles();
+  const previousRenderer = window.renderUnifiedFloorSheet;
+  if (typeof previousRenderer === "function" && !previousRenderer.__tracksBmtTabs20260807) {
+    const renderer = function renderWithTabbedTracks(floor, ...args) {
+      const result = previousRenderer.call(this, floor, ...args);
+      apply(floor);
+      return result;
+    };
+    renderer.__tracksBmtTabs20260807 = true;
+    window.renderUnifiedFloorSheet = renderer;
   }
-
-  function initialise() {
-    ensureStyles();
-    apply();
-    const root = document.querySelector(".floor-panels");
-    if (!root || root.dataset.tracksBmtObserved === "true") return;
-    root.dataset.tracksBmtObserved = "true";
-    new MutationObserver((mutations) => {
-      const changed = mutations.some((mutation) => [...mutation.addedNodes].some((node) =>
-        node instanceof Element && (node.matches?.(".studs-bmt-section") || node.querySelector?.(".studs-bmt-section")),
-      ));
-      if (changed) queueApply();
-    }).observe(root, { childList: true, subtree: true });
-  }
-
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initialise, { once: true });
-  else initialise();
 })();

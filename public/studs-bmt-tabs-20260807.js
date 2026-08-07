@@ -38,12 +38,12 @@
   }
 
   function sectionTitle(section) {
-    return normalise(section?.querySelector(".rondo-expanded-title, .lower-category-title, h3")?.textContent);
+    return normalise(section?.querySelector(".rondo-expanded-title, .lower-category-title, h3, h4")?.textContent);
   }
 
-  function findSection(title) {
+  function findSection(root, title) {
     const target = normalise(title);
-    return [...document.querySelectorAll(".rondo-expanded-group, .lower-catalogue-section")]
+    return [...root.querySelectorAll(".rondo-expanded-group, .lower-catalogue-section")]
       .find((section) => sectionTitle(section) === target);
   }
 
@@ -53,48 +53,23 @@
     )?.[0] || "";
   }
 
-  function floorIdFor(section) {
-    const sheet = section?.closest?.('[id$="OrderSheet"]');
-    return String(sheet?.id || "").replace(/OrderSheet$/, "");
-  }
-
-  function unavailableTemplate(sections) {
-    const cell = sections.flatMap((section) => [...section.querySelectorAll("td")])
-      .find((candidate) => !candidate.querySelector("input"));
-    if (!cell) throw new Error("STUDS: unavailable cell template not found");
-    const template = cell.cloneNode(false);
-    template.removeAttribute("id");
-    template.removeAttribute("data-product-key");
-    template.removeAttribute("data-key");
-    template.textContent = "";
-    return template;
-  }
-
-  function collectStudSources() {
-    const standard = findSection("RONDO WALL FRAMING");
-    const medium = findSection("RONDO MEDIUM GAUGE STUDS — 0.75 BMT");
-    const heavy = findSection("RONDO HEAVY-DUTY WALL FRAMING");
+  function collectStudSources(root) {
+    const standard = findSection(root, "RONDO WALL FRAMING");
+    const medium = findSection(root, "RONDO MEDIUM GAUGE STUDS — 0.75 BMT");
+    const heavy = findSection(root, "RONDO HEAVY-DUTY WALL FRAMING");
     if (!standard || !medium || !heavy) return null;
-    const floor = floorIdFor(standard);
-    if (!floor) return null;
-    return {
-      standard,
-      medium,
-      heavy,
-      floor,
-      unavailableCell: unavailableTemplate([standard, medium, heavy]),
-    };
+    return { standard, medium, heavy };
   }
 
-  function createStudCell(floor, sku, unavailableCell) {
-    if (!sku) return unavailableCell.cloneNode(false);
+  function createStudCell(floor, sku) {
+    if (!sku) return createQuantityCell(floor, null);
     const key = findCatalogKey(sku);
     if (!key) throw new Error(`STUDS: catalogue key missing for SKU ${sku}`);
     if (typeof createQuantityCell !== "function") throw new Error("STUDS: createQuantityCell is unavailable");
     return createQuantityCell(floor, key);
   }
 
-  function buildMatrix(floor, bmt, unavailableCell) {
+  function buildMatrix(floor, bmt) {
     const variants = STUD_VARIANTS[bmt];
     const table = document.createElement("table");
     table.className = "lower-catalogue-table studs-bmt-table";
@@ -122,7 +97,7 @@
       name.scope = "row";
       name.textContent = label;
       row.append(name);
-      LENGTHS.forEach((length) => row.append(createStudCell(floor, skuByLength[length], unavailableCell)));
+      LENGTHS.forEach((length) => row.append(createStudCell(floor, skuByLength[length])));
       tbody.append(row);
     });
 
@@ -145,7 +120,7 @@
     });
   }
 
-  function buildSection(floor, unavailableCell) {
+  function buildSection(floor) {
     const section = document.createElement("section");
     section.className = "lower-catalogue-section studs-bmt-section";
 
@@ -179,7 +154,7 @@
       panel.setAttribute("role", "tabpanel");
       panel.hidden = index !== 0;
       if (index === 0) panel.classList.add("is-active");
-      panel.append(buildMatrix(floor, tab.key, unavailableCell));
+      panel.append(buildMatrix(floor, tab.key));
       content.append(panel);
     });
 
@@ -205,12 +180,14 @@
     return section;
   }
 
-  function apply() {
-    const collected = collectStudSources();
+  function apply(floor) {
+    const root = document.getElementById(`${floor}OrderSheet`);
+    if (!root) return false;
+    const collected = collectStudSources(root);
     if (!collected) return false;
 
-    const newSection = buildSection(collected.floor, collected.unavailableCell);
-    document.querySelectorAll(".studs-bmt-section").forEach((section) => section.remove());
+    const newSection = buildSection(floor);
+    root.querySelectorAll(".studs-bmt-section").forEach((section) => section.remove());
     collected.standard.parentElement?.insertBefore(newSection, collected.standard);
 
     [collected.standard, collected.medium, collected.heavy].forEach((section) => {
@@ -224,43 +201,10 @@
   if (typeof previousRenderer === "function" && !previousRenderer.__studsBmtTabs20260807) {
     const renderer = function renderWithTabbedStuds(floor, ...args) {
       const result = previousRenderer.call(this, floor, ...args);
-      apply();
+      apply(floor);
       return result;
     };
     renderer.__studsBmtTabs20260807 = true;
     window.renderUnifiedFloorSheet = renderer;
   }
-
-  let applyQueued = false;
-  function queueApply() {
-    if (applyQueued) return;
-    applyQueued = true;
-    queueMicrotask(() => {
-      applyQueued = false;
-      apply();
-    });
-  }
-
-  function observeCatalogueLifecycle() {
-    const root = document.querySelector(".floor-panels");
-    if (!root || root.dataset.studsBmtObserved === "true") return;
-    root.dataset.studsBmtObserved = "true";
-    new MutationObserver((mutations) => {
-      const catalogueChanged = mutations.some((mutation) => [...mutation.addedNodes].some((node) =>
-        node instanceof Element && (
-          node.matches?.(".rondo-expanded-group, .lower-catalogue-section")
-          || node.querySelector?.(".rondo-expanded-group, .lower-catalogue-section")
-        ),
-      ));
-      if (catalogueChanged) queueApply();
-    }).observe(root, { childList: true, subtree: true });
-  }
-
-  function initialise() {
-    observeCatalogueLifecycle();
-    apply();
-  }
-
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initialise, { once: true });
-  else initialise();
 })();

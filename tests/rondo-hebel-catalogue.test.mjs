@@ -47,11 +47,15 @@ test("lower-products stylesheet is the sole catalogue column-layout owner", () =
 
 test("catalogue renderers load once in deterministic document order", () => {
   const lowerIndex = index.indexOf('/lower-products-refinement.js?v=20260801-3');
-  const catalogueIndex = index.indexOf('/rondo-hebel-catalogue.js?v=20260806-1');
+  const catalogueIndex = index.indexOf('/rondo-hebel-catalogue.js?v=20260807-2');
+  const expandedIndex = index.indexOf('/product-additions-20260806.js?v=20260807-2');
+  const deliveryIndex = index.indexOf('/delivery-areas.js?v=20260724-1');
   const additionalIndex = index.indexOf('/additional-products-refinement.js?v=20260729-2');
   assert.ok(lowerIndex >= 0, "lower catalogue renderer is missing");
   assert.ok(catalogueIndex > lowerIndex, "Rondo/AAC must wrap the lower renderer");
-  assert.ok(additionalIndex > catalogueIndex, "Additional Products must wrap the completed catalogue renderer");
+  assert.ok(expandedIndex > catalogueIndex, "expanded Rondo must wrap the Rondo/AAC renderer");
+  assert.ok(deliveryIndex > expandedIndex, "catalogue render chain must be installed before floor rendering");
+  assert.ok(additionalIndex > deliveryIndex, "Additional Products remains a post-render refinement");
   assert.equal((index.match(/rondo-hebel-catalogue\.js/g) || []).length, 1);
   assert.doesNotMatch(loader, /rondo-hebel-catalogue\.js/);
 });
@@ -62,8 +66,9 @@ test("the deployed page requests the current catalogue assets", () => {
   assert.doesNotMatch(index, /lower-products-refinement\.js\?v=20260801-2/);
   assert.match(index, /experience-refinement\.css\?v=20260801-1/);
   assert.doesNotMatch(index, /experience-refinement\.css\?v=20260724-2/);
-  assert.match(index, /rondo-hebel-catalogue\.js\?v=20260806-1/);
-  assert.match(index, /draft-restore-fix\.js\?v=20260805-1/);
+  assert.match(index, /rondo-hebel-catalogue\.js\?v=20260807-2/);
+  assert.match(index, /sku-source-truth\.js\?v=20260807-2/);
+  assert.match(index, /draft-restore-fix\.js\?v=20260807-2/);
 });
 
 test("Additional Products is a separate full-width region below the catalogue", () => {
