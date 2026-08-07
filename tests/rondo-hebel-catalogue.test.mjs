@@ -123,3 +123,11 @@ test("catalogue styles retain Rondo, Hebel and AAC rules", () => {
   assert.match(styles, /hebel-panel-table/);
   assert.match(styles, /aac-brand-tabs/);
 });
+
+test("lower catalogue nails render only the supported 30 mm size", () => {
+  assert.match(lower, /appendSingleSizeHeader\(tbody, "Nails", nails\?\.columns\?\.\[0\] \|\| "30 mm"\)/);
+  assert.match(lower, /appendSingleSizeRow\(tbody, floor, row\.label \|\| "", row\.cells\?\.\[0\] \|\| null\)/);
+  assert.match(lower, /titleCell\.colSpan = 2/);
+  assert.match(lower, /th\.colSpan = 2/);
+  assert.doesNotMatch(lower, /nails\?\.columns \|\| \["30 mm", "40 mm"\]/);
+});
