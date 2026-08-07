@@ -14,10 +14,11 @@ test("stud rows are sorted from smallest to largest", async () => {
 test("stud title and BMT tabs share one compact header row", async () => {
   const styles = await read("public/studs-bmt-tabs-20260807.css");
   assert.match(styles, /\.studs-bmt-section\{display:grid;grid-template-columns:minmax\(74px,\.72fr\) minmax\(0,3\.28fr\)/);
-  assert.match(styles, /\.studs-bmt-section>\.lower-category-title\{grid-column:1/);
+  assert.match(styles, /\.studs-bmt-section>\.lower-category-title\{grid-column:1;display:flex;align-items:center;justify-content:flex-start;align-self:stretch/);
   assert.match(styles, /\.studs-bmt-tabs\{grid-column:2/);
   assert.match(styles, /\.studs-bmt-content\{grid-column:1\/-1/);
-  assert.match(styles, /font:700 10px\/24px/);
+  assert.match(styles, /font:700 11px\/24px/);
+  assert.match(styles, /padding:4px 8px/);
 });
 
 test("row order controller loads with catalogue refinements", async () => {
