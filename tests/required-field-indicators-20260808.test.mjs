@@ -29,6 +29,8 @@ test("address required indicator follows the delivery versus pickup rule", async
   assert.match(source, /input\.required = !pickup/);
   assert.match(source, /input\.setAttribute\("aria-required", String\(!pickup\)\)/);
   assert.match(source, /input\.addEventListener\("change", syncAddressRequirement\)/);
+  assert.match(source, /installDeliverySyncBridge/);
+  assert.match(source, /previous\.apply\(this, args\);[\s\S]*syncAddressRequirement\(\)/);
 });
 
 test("required markers are visual only and use the Bell maroon treatment", async () => {
