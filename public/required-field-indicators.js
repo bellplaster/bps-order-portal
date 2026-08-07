@@ -78,6 +78,18 @@
     });
   }
 
+  function installDeliverySyncBridge() {
+    const previous = window.syncUnifiedDeliveryControls;
+    if (typeof previous !== "function" || previous.__requiredFieldIndicators === true) return;
+    const synced = function syncUnifiedDeliveryControlsWithRequiredIndicators(...args) {
+      const result = previous.apply(this, args);
+      syncAddressRequirement();
+      return result;
+    };
+    synced.__requiredFieldIndicators = true;
+    window.syncUnifiedDeliveryControls = synced;
+  }
+
   function applyIndicators() {
     STATIC_REQUIRED_FIELDS.forEach(markRequiredField);
     markDeliveryType();
@@ -89,6 +101,7 @@
   function initialise() {
     applyIndicators();
     bindDeliveryTypeChanges();
+    installDeliverySyncBridge();
     document.getElementById("orderForm")?.addEventListener("reset", () => {
       queueMicrotask(syncAddressRequirement);
     });
