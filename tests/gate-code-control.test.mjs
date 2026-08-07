@@ -3,11 +3,11 @@ import fs from "node:fs";
 import test from "node:test";
 
 const source = fs.readFileSync(new URL("../public/gate-code.js", import.meta.url), "utf8");
-const loader = fs.readFileSync(new URL("../public/reference-placeholder.js", import.meta.url), "utf8");
+const orderForm = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
 
 test("gate code control is loaded by the order form", () => {
-  assert.match(loader, /gate-code\.js\?v=/);
-  assert.match(loader, /data-gate-code-control/);
+  assert.match(orderForm, /src="\/gate-code\.js\?v=/);
+  assert.match(orderForm, /data-gate-code-control="true"/);
 });
 
 test("gate code requires four to six digits or N\/A", () => {
