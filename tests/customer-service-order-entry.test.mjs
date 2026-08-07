@@ -1,0 +1,72 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
+
+const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
+
+test("customer service is rendered as its own parent portal-user group", async () => {
+  const source = await read("public/admin-user-management.js");
+
+  assert.match(source, /const administrators = model\.users\.filter\(\(user\) => user\.role === ROLE_ADMIN\)/);
+  assert.match(source, /const customerServiceUsers = model\.users\.filter\(\(user\) => user\.role === ROLE_CUSTOMER_SERVICE\)/);
+  assert.match(source, /id: "customer-service"/);
+  assert.match(source, /name: "Customer Service"/);
+  assert.match(source, /debtorCode: "All customer accounts"/);
+  assert.match(source, /users: customerServiceUsers/);
+});
+
+test("customer service can enter the order form but remains blocked from Account", async () => {
+  const middleware = await read("functions/_middleware.js");
+  const orders = await read("public/orders/orders.js");
+
+  assert.match(middleware, /CUSTOMER_SERVICE_REDIRECT_PATHS = new Set\(\["\/account", "\/account\/"\]\)/);
+  assert.doesNotMatch(middleware, /CUSTOMER_SERVICE_REDIRECT_PATHS = new Set\(\["\/"/);
+  assert.match(orders, /createOrderButton\.hidden = false/);
+  assert.match(orders, /orderFormLink\.hidden = false/);
+  assert.match(orders, /accountLink\.hidden = customerService/);
+});
+
+test("customer service receives active genuine customer accounts for order entry", async () => {
+  const accountApi = await read("functions/api/account.js");
+
+  assert.match(accountApi, /COALESCE\(NULLIF\(u\.access_role, ''\), u\.role\) AS role/);
+  assert.match(accountApi, /isCustomerServiceRole\(profile\.role\)/);
+  assert.match(accountApi, /WHERE active = 1/);
+  assert.match(accountApi, /UPPER\(COALESCE\(debtor_code, ''\)\) <> \?/);
+  assert.match(accountApi, /ADMIN_TEST_DEBTOR_CODE = "STAFF"/);
+});
+
+test("order form requires a selected debtor and sends it separately from the order payload", async () => {
+  const app = await read("public/app.js");
+  const order = await read("public/app-order.js");
+
+  assert.match(app, /customerServiceOrderAccountId: null/);
+  assert.match(app, /id="customerServiceCustomerAccount"/);
+  assert.match(app, /bps:order-account-changed/);
+  assert.match(order, /Choose a customer account before building the order/);
+  assert.match(order, /X-BPS-Customer-Account/);
+});
+
+test("submission endpoint authorizes the selected customer instead of impersonating it", async () => {
+  const submit = await read("functions/api/submit.js");
+
+  assert.match(submit, /isCustomerServiceRole\(actorRole\)/);
+  assert.match(submit, /context\.request\.headers\.get\("X-BPS-Customer-Account"\)/);
+  assert.match(submit, /FROM customer_accounts/);
+  assert.match(submit, /AND active = 1/);
+  assert.match(submit, /UPPER\(COALESCE\(debtor_code, ''\)\) <> \?/);
+  assert.match(submit, /payload\.customerAccountId = accountId/);
+  assert.match(submit, /stampOrderCreator\(context\.env\.DB, savedSubmissionId, actor\)/);
+});
+
+test("saved contacts follow the customer selected by Customer Service and stay read only", async () => {
+  const api = await read("functions/api/account-contacts.js");
+  const picker = await read("public/linked-contact-picker.js");
+
+  assert.match(api, /resolveReadAccountId\(context, auth\)/);
+  assert.match(api, /isCustomerServiceRole\(auth\.role\) \? false : await userCanManage/);
+  assert.match(api, /url\.searchParams\.get\("accountId"\)/);
+  assert.match(picker, /api\/account-contacts\?accountId=/);
+  assert.match(picker, /bps:order-account-changed/);
+  assert.match(picker, /customerServiceMode \? "" :/);
+});
