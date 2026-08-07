@@ -49,6 +49,10 @@ function validateForm() {
     }
   }
 
+  if (!window.BPSGateCode?.validate?.()) {
+    throw fieldError("gateCode", "Enter a 4–6 digit gate code or select N/A.");
+  }
+
   if (!selectedProductLines().length) throw new Error("Enter a quantity for at least one product.");
   return true;
 }
@@ -75,6 +79,7 @@ function buildPayload() {
     timeSlot: selectedRadio("timeSlot") || "ANY",
     deliveryType: selectedRadio("deliveryType"),
     extras: checkedValues("deliveryExtra"),
+    gateCode: window.BPSGateCode?.value?.() || "",
     deliveryAddress: value("deliveryAddress") || value("deliveryAddressSearch"),
     addressLine1: value("deliveryAddressLine1"),
     addressLine2: value("deliveryAddressLine2"),
@@ -166,6 +171,7 @@ function renderReview() {
     ["Address", formatAddressForDisplay(payload.deliveryAddress)],
     ["Delivery", deliveryTypeLabel(payload.deliveryType)],
     ["Extras", payload.extras.join(", ") || "None"],
+    ["Gate code", payload.gateCode || "—"],
     ["Instructions", payload.deliveryInstructions || "—"],
   ];
 
@@ -262,6 +268,7 @@ function applyPayload(payload) {
   document.querySelectorAll('input[name="deliveryExtra"]').forEach((input) => {
     input.checked = (payload.extras || []).includes(input.value);
   });
+  window.BPSGateCode?.setValue?.(payload.gateCode || "");
 
   state.quantities = { ground: new Map(), first: new Map() };
   state.otherMaterials = { ground: [], first: [] };
@@ -295,6 +302,7 @@ function resetOrder() {
   setValue("contactName", state.account?.defaultContactName || "");
   setValue("contactMobile", state.account?.defaultMobile || "");
   setRadio("timeSlot", "ANY");
+  window.BPSGateCode?.setValue?.("");
   clearAddress();
   document.getElementById("editModeBanner").hidden = true;
   document.getElementById("submitButton").textContent = "Submit order";
