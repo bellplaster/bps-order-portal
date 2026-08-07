@@ -175,10 +175,4 @@
     }));
     return [...mapped, ...additional].filter((line) => line.quantity > 0);
   };
-
-  const additionsScript = document.createElement("script");
-  additionsScript.src = "/product-additions-20260806.js?v=20260806-1";
-  additionsScript.defer = true;
-  additionsScript.dataset.productAdditions = "20260806";
-  document.head.append(additionsScript);
 })();
