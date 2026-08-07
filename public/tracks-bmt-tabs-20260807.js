@@ -50,7 +50,7 @@
     const style = document.createElement("style");
     style.dataset.tracksBmtTabs = "true";
     style.textContent = `
-      .tracks-bmt-section{display:grid;grid-template-columns:minmax(74px,.72fr) minmax(0,3.28fr);overflow:hidden;background:#a62b45}
+      .tracks-bmt-section{display:grid;grid-template-columns:minmax(74px,.72fr) minmax(0,3.28fr);margin-top:8px;margin-bottom:8px;overflow:hidden;background:#a62b45}
       .tracks-bmt-section>.lower-category-title{grid-column:1;display:flex;align-items:center;height:34px;margin:0;padding:0 8px;border:1px solid #a62b45;border-right:0;background:#a62b45;color:#fff;line-height:34px;white-space:nowrap;box-sizing:border-box}
       .tracks-bmt-tabs{grid-column:2;position:relative;isolation:isolate;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;height:34px;padding:4px 8px;border:1px solid #a62b45;border-left:0;background:#a62b45;overflow:hidden;box-sizing:border-box}
       .tracks-bmt-tabs::before{content:"";position:absolute;z-index:0;top:4px;bottom:4px;left:8px;width:calc((100% - 28px)/4);border-radius:6px;background:#fff;box-shadow:0 2px 8px rgba(23,33,31,.18);transform:translateX(0);transition:transform .28s cubic-bezier(.22,.8,.28,1)}
