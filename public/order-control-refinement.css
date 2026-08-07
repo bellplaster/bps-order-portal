@@ -1,3 +1,14 @@
+.order-form-page .required-field-indicator {
+  color: var(--bell-maroon, #a32b46) !important;
+  font: inherit !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+}
+
+.order-form-page .required-field-indicator[hidden] {
+  display: none !important;
+}
+
 .order-form-page .delivery-select-field,
 .order-form-page .extras-dropdown-field,
 .order-form-page .extras-dropdown {
