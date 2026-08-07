@@ -48,7 +48,6 @@
     const label = document.querySelector(".gate-code-field > span");
     if (!label) return;
     ensureIndicator(label);
-    document.getElementById("gateCode")?.setAttribute("aria-required", "true");
   }
 
   function markCustomerServiceDebtor() {
