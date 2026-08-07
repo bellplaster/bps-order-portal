@@ -199,7 +199,7 @@
 
   function apply() {
     const collected = collectStudMatrices();
-    if (!collected) return;
+    if (!collected) return false;
     document.querySelectorAll(".studs-bmt-section").forEach((section) => section.remove());
 
     const newSection = buildSection(collected.records);
@@ -209,6 +209,7 @@
       [...section.querySelectorAll("table")].slice(0, 2).forEach((table) => table.remove());
       if (!section.querySelector("table")) section.remove();
     });
+    return true;
   }
 
   const previousRenderer = window.renderUnifiedFloorSheet;
@@ -222,6 +223,37 @@
     window.renderUnifiedFloorSheet = renderer;
   }
 
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", apply, { once: true });
-  else apply();
+  let applyQueued = false;
+  function queueApply() {
+    if (applyQueued) return;
+    applyQueued = true;
+    queueMicrotask(() => {
+      applyQueued = false;
+      apply();
+    });
+  }
+
+  function observeCatalogueLifecycle() {
+    const root = document.querySelector(".floor-panels");
+    if (!root || root.dataset.studsBmtObserved === "true") return;
+    root.dataset.studsBmtObserved = "true";
+    const observer = new MutationObserver((mutations) => {
+      const catalogueChanged = mutations.some((mutation) => [...mutation.addedNodes].some((node) =>
+        node instanceof Element && (
+          node.matches?.(".rondo-expanded-group, .lower-catalogue-section")
+          || node.querySelector?.(".rondo-expanded-group, .lower-catalogue-section")
+        ),
+      ));
+      if (catalogueChanged) queueApply();
+    });
+    observer.observe(root, { childList: true, subtree: true });
+  }
+
+  function initialise() {
+    observeCatalogueLifecycle();
+    apply();
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initialise, { once: true });
+  else initialise();
 })();

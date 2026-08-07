@@ -46,12 +46,24 @@ test("stud tab interaction matches the AAC selector pattern", async () => {
   assert.match(aacStyles, /transition:transform \.28s cubic-bezier\(\.22,\.8,\.28,1\)/);
 });
 
-test("index loads stud tab assets after Rondo variant processing", async () => {
-  const index = await read("public/index.html");
-  const loader = await read("public/draft-restore-fix.js");
+test("stud tabs observe the catalogue lifecycle because Rondo extensions render later", async () => {
+  const source = await read("public/studs-bmt-tabs-20260807.js");
+
+  assert.match(source, /function observeCatalogueLifecycle\(\)/);
+  assert.match(source, /new MutationObserver/);
+  assert.match(source, /\.floor-panels/);
+  assert.match(source, /queueMicrotask/);
+  assert.match(source, /node\.matches\?\.\("\.rondo-expanded-group, \.lower-catalogue-section"\)/);
+  assert.match(source, /return true/);
+});
+
+test("index loads the stud tab assets and disables caching", async () => {
+  const [index, headers] = await Promise.all([
+    read("public/index.html"),
+    read("public/_headers"),
+  ]);
 
   assert.match(index, /studs-bmt-tabs-20260807\.css\?v=20260807-1/);
   assert.match(index, /studs-bmt-tabs-20260807\.js\?v=20260807-1/);
-  assert.ok(index.indexOf("/draft-restore-fix.js") < index.indexOf("/studs-bmt-tabs-20260807.js"));
-  assert.match(loader, /rondo-variant-removals-20260807\.js\?v=20260807-4/);
+  assert.match(headers, /Cache-Control: no-store/);
 });
