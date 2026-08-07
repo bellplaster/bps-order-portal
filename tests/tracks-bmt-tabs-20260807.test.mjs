@@ -6,9 +6,7 @@ const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
 test("tracks consolidate into four BMT tabs", async () => {
   const source = await read("public/tracks-bmt-tabs-20260807.js");
-  for (const label of ["0.50 BMT", "0.70 BMT", "0.75 BMT", "1.15 BMT"]) {
-    assert.match(source, new RegExp(label.replace(".", "\\.")));
-  }
+  for (const label of ["0.50 BMT", "0.70 BMT", "0.75 BMT", "1.15 BMT"]) assert.match(source, new RegExp(label.replace(".", "\\.")));
   assert.match(source, /heading\.textContent = "TRACKS"/);
   assert.match(source, /\["Product", "3000"\]/);
 });
@@ -43,10 +41,10 @@ test("all legacy track source sections are removed after the consolidated sectio
   assert.match(source, /"RONDO HEAVY-DUTY WALL FRAMING"/);
   assert.match(source, /studs\.insertAdjacentElement\("afterend", newSection\)/);
   assert.match(source, /removeLegacyTrackSources\(root\)/);
-  assert.ok(
-    source.indexOf("const newSection = buildSection(floor)") < source.indexOf("removeLegacyTrackSources(root)"),
-    "legacy sources must only be removed after the consolidated TRACKS section builds successfully",
-  );
+  const applyStart = source.indexOf("function apply(floor)");
+  const buildIndex = source.indexOf("const newSection = buildSection(floor)", applyStart);
+  const removeIndex = source.indexOf("removeLegacyTrackSources(root);", buildIndex);
+  assert.ok(applyStart >= 0 && buildIndex > applyStart && removeIndex > buildIndex);
 });
 
 test("track consolidation is floor-scoped and render-driven", async () => {
@@ -62,13 +60,10 @@ test("track consolidation is floor-scoped and render-driven", async () => {
 });
 
 test("tracks controller is statically installed before floor rendering", async () => {
-  const [index, loader] = await Promise.all([
-    read("public/index.html"),
-    read("public/draft-restore-fix.js"),
-  ]);
+  const [index, loader] = await Promise.all([read("public/index.html"), read("public/draft-restore-fix.js")]);
   const tracksIndex = index.indexOf("/tracks-bmt-tabs-20260807.js?v=20260807-2");
   const deliveryIndex = index.indexOf("/delivery-areas.js?v=20260724-1");
-  assert.ok(tracksIndex >= 0, "tracks controller is missing");
-  assert.ok(deliveryIndex > tracksIndex, "tracks controller must be installed before floor rendering");
+  assert.ok(tracksIndex >= 0);
+  assert.ok(deliveryIndex > tracksIndex);
   assert.doesNotMatch(loader, /tracks-bmt-tabs-20260807\.js/);
 });
