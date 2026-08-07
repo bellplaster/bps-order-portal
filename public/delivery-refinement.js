@@ -30,7 +30,7 @@
     sourceControls.className = "delivery-source-controls";
     sourceControls.hidden = true;
 
-    const timeSelect = createSyncedSelect("timeSlot", "Time Slot", false);
+    const timeSelect = createSyncedSelect("timeSlot", "Time Slot", true);
     const deliverySelect = createSyncedSelect("deliveryType", "Delivery Type", true);
     const extrasControl = createExtrasDropdown(extrasField);
 
@@ -161,17 +161,23 @@
     select.className = "delivery-select";
     select.setAttribute("aria-label", labelText);
 
-    if (includePlaceholder) select.append(new Option("Select delivery type", ""));
+    if (includePlaceholder) {
+      const placeholder = name === "timeSlot" ? "Select time slot" : "Select delivery type";
+      select.append(new Option(placeholder, ""));
+    }
     radios.forEach((radio) => {
       const optionLabel = radio.closest("label")?.querySelector("span")?.textContent?.trim() || radio.value;
       select.append(new Option(optionLabel, radio.value));
     });
 
-    select.value = radios.find((radio) => radio.checked)?.value || (includePlaceholder ? "" : "ANY");
+    const updatePresentation = () => select.classList.toggle("is-placeholder", !select.value);
+    select.value = radios.find((radio) => radio.checked)?.value || "";
+    updatePresentation();
     select.addEventListener("change", () => {
       const radio = radios.find((candidate) => candidate.value === select.value);
+      radios.forEach((candidate) => { candidate.checked = candidate === radio; });
+      updatePresentation();
       if (!radio) return;
-      radio.checked = true;
       radio.dispatchEvent(new Event("change", { bubbles: true }));
     });
 
@@ -182,6 +188,7 @@
   function syncSelectFromRadios(select, name) {
     const selected = document.querySelector(`input[name="${name}"]:checked`);
     select.value = selected?.value || "";
+    select.classList.toggle("is-placeholder", !select.value);
   }
 
   function createExtrasDropdown(extrasField) {
