@@ -277,6 +277,10 @@
   overflow: visible !important;
 }
 
+.order-form-page .gate-code-control {
+  display: contents !important;
+}
+
 .order-form-page .delivery-instruction-controls .delivery-select,
 .order-form-page .delivery-instruction-controls .extras-dropdown,
 .order-form-page .delivery-instruction-controls .extras-dropdown > summary {
@@ -329,6 +333,15 @@
   box-shadow: inset 0 0 0 2px var(--bell-green) !important;
 }
 
+.order-form-page .delivery-instruction-controls .gate-code-control.is-invalid input[type="text"] {
+  box-shadow: inset 0 0 0 2px var(--bell-maroon) !important;
+}
+
+.order-form-page .delivery-instruction-controls input[type="text"]:disabled {
+  color: #8c9693 !important;
+  background: #f1f3f2 !important;
+}
+
 .order-form-page .delivery-instruction-controls label:has(input[type="checkbox"]) {
   box-sizing: border-box !important;
   min-width: 0 !important;
@@ -340,6 +353,10 @@
   margin: 0 !important;
   padding: 0 12px 0 8px !important;
   white-space: nowrap !important;
+}
+
+.order-form-page .gate-code-na {
+  border-right: 0 !important;
 }
 
 @media (max-width: 1050px) {
@@ -367,6 +384,11 @@
 @media (max-width: 980px) {
   .order-form-page .delivery-instruction-controls {
     grid-template-columns: 100px minmax(0, 1fr) !important;
+  }
+
+  .order-form-page .gate-code-control {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
   }
 }
 
