@@ -50,7 +50,8 @@ test("canonical required date controller owns the input-triggered calendar panel
   assert.match(dateState, /display\.setAttribute\("aria-haspopup", "dialog"\)/);
   assert.match(dateState, /panel\.hidden = false/);
   assert.match(dateState, /required-date-calendar-open/);
-  assert.match(dateState, /top:calc\(100% \+ 6px\);left:0;width:292px/);
+  assert.match(dateState, /top:100%;left:0;width:292px/);
+  assert.doesNotMatch(dateState, /top:calc\(100% \+ 6px\)/);
   assert.match(dateState, /setValue\(dayButton\.dataset\.date \|\| "", \{ emit: true \}\)/);
   assert.match(dateState, /hidden\.type = "hidden"/);
   assert.match(dateState, /hidden\.hidden = true/);

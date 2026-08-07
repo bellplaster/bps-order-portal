@@ -444,7 +444,7 @@
     .date-input-shell #requiredDateDisplay.has-date-value{color:#17211f}
     .date-input-shell #requiredDateDisplay:focus{position:relative;z-index:2;box-shadow:inset 0 0 0 1px var(--bell-green,#006557)}
     #${BUTTON_ID}{display:none!important}
-    #${PANEL_ID}{position:absolute;z-index:100006;top:calc(100% + 6px);left:0;width:292px;margin:0;padding:0;overflow:hidden;border:1px solid #aebbb7;border-radius:8px;background:#fff;box-shadow:0 12px 28px rgba(23,33,31,.16);box-sizing:border-box;color:#17211f;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;transform-origin:top left}
+    #${PANEL_ID}{position:absolute;z-index:100006;top:100%;left:0;width:292px;margin:0;padding:0;overflow:hidden;border:1px solid #aebbb7;border-radius:8px;background:#fff;box-shadow:0 12px 28px rgba(23,33,31,.16);box-sizing:border-box;color:#17211f;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;transform-origin:top left}
     #${PANEL_ID}[hidden]{display:none}
     .required-date-calendar-header{display:grid;grid-template-columns:32px minmax(0,1fr) 32px;align-items:center;gap:4px;height:44px;margin:0;padding:0 6px;border-bottom:1px solid #e8edeb;background:#fff}
     .required-date-calendar-month{overflow:hidden;color:#17211f;font-size:11px;font-weight:650;line-height:1.2;text-align:center;text-overflow:ellipsis;white-space:nowrap}

@@ -259,7 +259,7 @@
       .linked-contact-control>#contactName:focus,.sheet-details-grid #contactMobile:focus{position:relative;z-index:2;box-shadow:inset 0 0 0 1px var(--bell-green,#006557)!important}
       .linked-contact-control:not(:focus-within){box-shadow:none!important}
       .linked-contact-control>#contactName::placeholder,#contactMobile::placeholder,#deliveryStreet::placeholder,#deliveryAddressSearch::placeholder,#deliveryInstructions::placeholder{color:#9aa5a2!important;opacity:1!important;text-transform:none!important;font-family:inherit!important;font-size:11px!important;font-weight:400!important;letter-spacing:0!important}
-      .linked-contact-menu{position:absolute;z-index:100003;top:calc(100% + 6px);left:0;width:390px;max-width:min(390px,calc(100vw - 48px));max-height:310px;overflow:hidden;margin:0;padding:0;border:1px solid #aebbb7;border-radius:8px;background:#fff;box-shadow:0 12px 28px rgba(23,33,31,.16);box-sizing:border-box;transform-origin:top left}
+      .linked-contact-menu{position:absolute;z-index:100003;top:100%;left:0;width:390px;max-width:min(390px,calc(100vw - 48px));max-height:310px;overflow:hidden;margin:0;padding:0;border:1px solid #aebbb7;border-radius:8px;background:#fff;box-shadow:0 12px 28px rgba(23,33,31,.16);box-sizing:border-box;transform-origin:top left}
       .linked-contact-menu[hidden]{display:none!important}
       .linked-contact-menu::before,.linked-contact-menu::after{display:none!important;content:none!important}
       .linked-contact-menu-heading{display:flex;min-height:34px;align-items:center;justify-content:space-between;padding:0 9px;border-bottom:1px solid #e8edeb;background:#fafbfb;color:#7b8783;font-size:9px;font-weight:650;letter-spacing:.04em;text-transform:uppercase}
