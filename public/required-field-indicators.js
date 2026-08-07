@@ -8,6 +8,12 @@
     "contactName",
     "contactMobile",
   ]);
+  const STRUCTURED_ADDRESS_FIELDS = Object.freeze([
+    { id: "deliveryStreet", label: "Street" },
+    { id: "deliveryAddressSearch", label: "Suburb" },
+    { id: "deliveryPostcode", label: "Postcode" },
+  ]);
+  let addressSyncQueued = false;
 
   function createIndicator() {
     const indicator = document.createElement("span");
@@ -35,9 +41,9 @@
     field.setAttribute("aria-required", "true");
   }
 
-  function markDeliveryType() {
-    const label = document.querySelector(".delivery-select-deliveryType > span");
-    const select = document.querySelector(".delivery-select-deliveryType > .delivery-select");
+  function markRequiredSelect(name) {
+    const label = document.querySelector(`.delivery-select-${CSS.escape(name)} > span`);
+    const select = document.querySelector(`.delivery-select-${CSS.escape(name)} > .delivery-select`);
     if (!label || !select) return;
     ensureIndicator(label);
     select.required = true;
@@ -54,20 +60,90 @@
     const input = document.getElementById("customerServiceCustomerAccount");
     const label = document.querySelector('label[for="customerServiceCustomerAccount"]');
     if (!input || !label) return;
+
+    if (directText(label) !== "Debtor Code") {
+      label.querySelector(":scope > .required-field-indicator")?.remove();
+      label.textContent = "Debtor Code";
+    }
     ensureIndicator(label);
+    input.placeholder = "Debtor Code";
+    input.setAttribute("aria-label", "Debtor Code");
     input.setAttribute("aria-required", "true");
   }
 
-  function syncAddressRequirement() {
-    const input = document.getElementById("deliveryAddressSearch");
-    const label = document.querySelector('label[for="deliveryAddressSearch"]');
-    if (!input || !label) return;
+  function directText(element) {
+    return [...(element?.childNodes || [])]
+      .filter((node) => node.nodeType === Node.TEXT_NODE)
+      .map((node) => node.textContent || "")
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
 
-    const pickup = document.querySelector('input[name="deliveryType"]:checked')?.value === PICKUP_VALUE;
+  function findStructuredAddressLabel(field, text) {
+    const cell = field?.closest(".structured-address-cell");
+    if (!cell) return null;
+
+    const explicit = cell.querySelector(`label[for="${CSS.escape(field.id)}"]`);
+    if (explicit) return explicit;
+
+    return [...cell.querySelectorAll("label, span, small, b")].find((element) => {
+      return element.dataset.requiredFieldLabel === text || directText(element) === text;
+    }) || null;
+  }
+
+  function setConditionalIndicator(label, required) {
     const indicator = ensureIndicator(label);
-    if (indicator) indicator.hidden = pickup;
-    input.required = !pickup;
-    input.setAttribute("aria-required", String(!pickup));
+    if (indicator) indicator.hidden = !required;
+  }
+
+  function syncAddressRequirement() {
+    const pickup = document.querySelector('input[name="deliveryType"]:checked')?.value === PICKUP_VALUE;
+    const required = !pickup;
+    const suburbInput = document.getElementById("deliveryAddressSearch");
+    const addressField = suburbInput?.closest(".delivery-address-field");
+    const addressLabel = addressField?.querySelector(':scope > label[for="deliveryAddressSearch"]')
+      || addressField?.querySelector(":scope > label")
+      || document.querySelector('label[for="deliveryAddressSearch"]');
+
+    setConditionalIndicator(addressLabel, required);
+
+    STRUCTURED_ADDRESS_FIELDS.forEach(({ id, label: labelText }) => {
+      const field = document.getElementById(id);
+      if (!field) return;
+      const label = findStructuredAddressLabel(field, labelText);
+      if (label) {
+        label.dataset.requiredFieldLabel = labelText;
+        setConditionalIndicator(label, required);
+      }
+      field.required = required;
+      field.setAttribute("aria-required", String(required));
+    });
+  }
+
+  function queueAddressRequirementSync() {
+    if (addressSyncQueued) return;
+    addressSyncQueued = true;
+    queueMicrotask(() => {
+      addressSyncQueued = false;
+      syncAddressRequirement();
+    });
+  }
+
+  function observeAddressStructure() {
+    const root = document.querySelector(".order-details-section");
+    if (!root || root.dataset.requiredIndicatorObserved === "true") return;
+    root.dataset.requiredIndicatorObserved = "true";
+
+    const observer = new MutationObserver((records) => {
+      const relevant = records.some((record) => [...record.addedNodes, ...record.removedNodes].some((node) => {
+        if (!(node instanceof Element)) return false;
+        return node.matches?.(".delivery-address-field, .structured-address-cell, #deliveryStreet, #deliveryAddressSearch, #deliveryPostcode")
+          || node.querySelector?.(".delivery-address-field, .structured-address-cell, #deliveryStreet, #deliveryAddressSearch, #deliveryPostcode");
+      }));
+      if (relevant) queueAddressRequirementSync();
+    });
+    observer.observe(root, { childList: true, subtree: true });
   }
 
   function bindDeliveryTypeChanges() {
@@ -92,10 +168,12 @@
 
   function applyIndicators() {
     STATIC_REQUIRED_FIELDS.forEach(markRequiredField);
-    markDeliveryType();
+    markRequiredSelect("timeSlot");
+    markRequiredSelect("deliveryType");
     markGateCode();
     markCustomerServiceDebtor();
     syncAddressRequirement();
+    observeAddressStructure();
   }
 
   function initialise() {
