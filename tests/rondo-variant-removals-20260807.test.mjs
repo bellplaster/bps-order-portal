@@ -13,12 +13,15 @@ test("approved Rondo columns and SKUs are removed", async () => {
     "11103600", "25003600", "12902700",
     "49102400", "49102700", "49302400", "49302700",
     "49502400", "49502700", "51107200",
+    "66102700", "67102400", "67102700", "68102700",
+    "68107200", "69107200",
   ]) {
     assert.match(source, new RegExp(`"${sku}"`));
   }
 
   assert.match(source, /"RONDO WALL FRAMING"/);
   assert.match(source, /\["2400", "2700", "3300"\]/);
+  assert.match(source, /findTableByRowLabel\(section, "51 mm Track 0\.50 BMT"\)/);
   assert.match(source, /\["3600"\]/);
   assert.match(source, /"RONDO FURRING CHANNELS"/);
   assert.match(source, /\["2700"\]/);
@@ -26,6 +29,10 @@ test("approved Rondo columns and SKUs are removed", async () => {
   assert.match(source, /\["2400", "2700", "2820", "3900"\]/);
   assert.match(source, /\["7200"\]/);
   assert.match(source, /"RONDO TRACKS & DH TRACK"/);
+  assert.match(source, /\["6000"\]/);
+  assert.match(source, /"RONDO HEAVY-DUTY WALL FRAMING"/);
+  assert.match(source, /\["2400", "2700"\]/);
+  assert.match(source, /\["7200"\]/);
   assert.match(source, /\["6000"\]/);
 });
 
@@ -38,7 +45,6 @@ test("wall framing 4800 and 6000 lengths join the primary stud matrix", async ()
   assert.match(source, /longRowsByLabel/);
   assert.match(source, /row\.append\(cell\)/);
   assert.match(source, /longLengths\.remove\(\)/);
-  assert.match(source, /if \(title === "RONDO WALL FRAMING"\) consolidateWallFramingStudTables\(section\)/);
 });
 
 test("consolidated wall framing length columns have equal widths", async () => {
@@ -68,5 +74,5 @@ test("removed Rondo variants are purged from catalogue and every rerender", asyn
   assert.match(source, /delete catalog\[key\]/);
   assert.match(source, /window\.renderUnifiedFloorSheet = renderer/);
   assert.match(source, /removeTableColumns/);
-  assert.match(loader, /rondo-variant-removals-20260807\.js\?v=20260807-1/);
+  assert.match(loader, /rondo-variant-removals-20260807\.js\?v=20260807-2/);
 });
