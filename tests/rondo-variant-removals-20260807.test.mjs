@@ -21,8 +21,6 @@ test("approved Rondo columns and SKUs are removed", async () => {
 
   assert.match(source, /"RONDO WALL FRAMING"/);
   assert.match(source, /\["2400", "2700", "3300"\]/);
-  assert.match(source, /findTableByRowLabel\(section, "51 mm Track 0\.50 BMT"\)/);
-  assert.match(source, /\["3600"\]/);
   assert.match(source, /"RONDO FURRING CHANNELS"/);
   assert.match(source, /\["2700"\]/);
   assert.match(source, /"RONDO MEDIUM GAUGE STUDS — 0\.75 BMT"/);
@@ -32,8 +30,19 @@ test("approved Rondo columns and SKUs are removed", async () => {
   assert.match(source, /\["6000"\]/);
   assert.match(source, /"RONDO HEAVY-DUTY WALL FRAMING"/);
   assert.match(source, /\["2400", "2700"\]/);
-  assert.match(source, /\["7200"\]/);
-  assert.match(source, /\["6000"\]/);
+});
+
+test("embedded standard and heavy-duty track columns are removed from their own row groups", async () => {
+  const source = await read("public/rondo-variant-removals-20260807.js");
+
+  assert.match(source, /function removeEmbeddedSubgroupColumn\(section, subgroupTitle, heading\)/);
+  assert.match(source, /TRACKS & DH TRACKS — STANDARD", "3600"/);
+  assert.match(source, /TRACKS & DH TRACKS HEAVY DUTY", "6000"/);
+  assert.match(source, /header\.children\[columnIndex\]\?\.remove\(\)/);
+  assert.match(source, /row\.children\[columnIndex\]\?\.remove\(\)/);
+  assert.match(source, /expandLeadingCell\(header\)/);
+  assert.match(source, /expandLeadingCell\(row\)/);
+  assert.doesNotMatch(source, /findTableByRowLabel/);
 });
 
 test("wall framing 4800 and 6000 lengths join the primary stud matrix", async () => {
@@ -74,5 +83,5 @@ test("removed Rondo variants are purged from catalogue and every rerender", asyn
   assert.match(source, /delete catalog\[key\]/);
   assert.match(source, /window\.renderUnifiedFloorSheet = renderer/);
   assert.match(source, /removeTableColumns/);
-  assert.match(loader, /rondo-variant-removals-20260807\.js\?v=20260807-2/);
+  assert.match(loader, /rondo-variant-removals-20260807\.js\?v=20260807-3/);
 });

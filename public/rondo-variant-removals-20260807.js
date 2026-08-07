@@ -36,7 +36,6 @@
     "RONDO HEAVY-DUTY WALL FRAMING": [
       ["2400", "2700"],
       ["7200"],
-      ["6000"],
     ],
   });
 
@@ -79,11 +78,38 @@
     return normalise(row?.querySelector("th")?.textContent || row?.children?.[0]?.textContent);
   }
 
-  function findTableByRowLabel(section, label) {
-    const target = normalise(label);
-    return [...section.querySelectorAll("table")].find((table) =>
-      [...table.rows].some((row) => rowLabel(row) === target),
+  function expandLeadingCell(row, amount = 1) {
+    const firstCell = row?.children?.[0];
+    if (!firstCell) return;
+    firstCell.colSpan = Math.max(1, Number(firstCell.colSpan || 1) + amount);
+  }
+
+  function removeEmbeddedSubgroupColumn(section, subgroupTitle, heading) {
+    const groupRow = [...section.querySelectorAll("tr")].find((row) => rowLabel(row) === normalise(subgroupTitle));
+    if (!groupRow) return false;
+
+    let header = groupRow.nextElementSibling;
+    while (header && !header.classList.contains("lower-matrix-header")) {
+      if (header.classList.contains("lower-group-heading")) return false;
+      header = header.nextElementSibling;
+    }
+    if (!header) return false;
+
+    const columnIndex = [...header.children].findIndex((cell, index) =>
+      index > 0 && String(cell.textContent || "").trim() === heading,
     );
+    if (columnIndex < 1) return false;
+
+    header.children[columnIndex]?.remove();
+    expandLeadingCell(header);
+
+    let row = header.nextElementSibling;
+    while (row && !row.classList.contains("lower-group-heading")) {
+      row.children[columnIndex]?.remove();
+      expandLeadingCell(row);
+      row = row.nextElementSibling;
+    }
+    return true;
   }
 
   function unavailableCellTemplate(table) {
@@ -168,7 +194,11 @@
 
     if (title === "RONDO WALL FRAMING") {
       consolidateWallFramingStudTables(section);
-      removeTableColumns(findTableByRowLabel(section, "51 mm Track 0.50 BMT"), ["3600"]);
+      removeEmbeddedSubgroupColumn(section, "TRACKS & DH TRACKS — STANDARD", "3600");
+    }
+
+    if (title === "RONDO HEAVY-DUTY WALL FRAMING") {
+      removeEmbeddedSubgroupColumn(section, "TRACKS & DH TRACKS HEAVY DUTY", "6000");
     }
   }
 
