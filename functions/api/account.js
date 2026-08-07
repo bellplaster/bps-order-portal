@@ -1,11 +1,17 @@
 import { hashPassword, verifyPassword } from "../_shared/auth.js";
 import { normaliseAustralianPhone } from "../_shared/phone.js";
 import { json } from "../_shared/responses.js";
+import {
+  isAdministratorRole,
+  isCustomerServiceRole,
+} from "../_shared/user-roles.js";
+import { ensureUserRoleSchema } from "../_shared/user-schema.js";
 
 const TIME_SLOTS = new Set(["", "1ST", "2ND", "AM", "PM", "ANY"]);
 const DELIVERY_TYPES = new Set(["", "Hand Unload", "Forklift Delivery", "Crane Delivery", "Delivery (No Assistance)", "Pickup (Customer to collect)"]);
 const DELIVERY_EXTRAS = new Set(["Downstairs", "Upstairs", "Wrap", "Strap", "Extra Labour"]);
 const USER_DEFAULTS_MIGRATION_KEY = "user_order_defaults_v1";
+const ADMIN_TEST_DEBTOR_CODE = "STAFF";
 
 export async function onRequestGet(context) {
   try {
@@ -14,7 +20,7 @@ export async function onRequestGet(context) {
     const profile = await getProfile(context.env.DB, auth);
     const response = { ok: true, profile };
 
-    if (auth.role === "admin") {
+    if (isAdministratorRole(profile.role)) {
       const [accounts, users] = await Promise.all([
         context.env.DB.prepare(
           `SELECT a.id, a.debtor_code, a.company_name,
@@ -25,7 +31,9 @@ export async function onRequestGet(context) {
            ORDER BY a.company_name COLLATE NOCASE`,
         ).all(),
         context.env.DB.prepare(
-          `SELECT u.id, u.account_id, u.username, u.role, u.active, u.last_login_at,
+          `SELECT u.id, u.account_id, u.username,
+                  COALESCE(NULLIF(u.access_role, ''), u.role) AS role,
+                  u.active, u.last_login_at,
                   a.company_name, a.debtor_code
            FROM users u
            LEFT JOIN customer_accounts a ON a.id = u.account_id
@@ -34,6 +42,15 @@ export async function onRequestGet(context) {
       ]);
       response.accounts = accounts.results || [];
       response.users = users.results || [];
+    } else if (isCustomerServiceRole(profile.role)) {
+      const accounts = await context.env.DB.prepare(
+        `SELECT id, debtor_code, company_name, active
+         FROM customer_accounts
+         WHERE active = 1
+           AND UPPER(COALESCE(debtor_code, '')) <> ?
+         ORDER BY company_name COLLATE NOCASE, debtor_code COLLATE NOCASE`,
+      ).bind(ADMIN_TEST_DEBTOR_CODE).all();
+      response.accounts = accounts.results || [];
     }
 
     return json(response, 200);
@@ -229,7 +246,9 @@ export async function onRequestPost(context) {
 
 async function getProfile(db, auth) {
   const user = await db.prepare(
-    `SELECT u.id, u.username, u.role, u.active, u.account_id,
+    `SELECT u.id, u.username,
+            COALESCE(NULLIF(u.access_role, ''), u.role) AS role,
+            u.active, u.account_id,
             u.default_contact_name AS user_default_contact_name,
             u.default_mobile AS user_default_mobile,
             u.order_defaults_json AS user_order_defaults_json,
@@ -239,21 +258,24 @@ async function getProfile(db, auth) {
      WHERE u.id = ? LIMIT 1`,
   ).bind(auth.userId).first();
   if (!user) throw forbidden("User account not found.");
+
+  const internal = isAdministratorRole(user.role) || isCustomerServiceRole(user.role);
   return {
     userId: user.id,
     username: user.username,
     role: user.role,
     accountId: user.account_id || null,
     debtorCode: user.debtor_code || "",
-    companyName: user.company_name || "Bell Plaster Administration",
+    companyName: user.company_name || (isCustomerServiceRole(user.role) ? "Customer Service" : "Bell Plaster Administration"),
     defaultContactName: user.user_default_contact_name || "",
     defaultMobile: user.user_default_mobile || "",
     orderDefaults: parseOrderDefaults(user.user_order_defaults_json),
-    active: user.role === "admin" ? true : user.account_active === 1,
+    active: internal ? true : user.account_active === 1,
   };
 }
 
 async function ensureAccountDefaultsSchema(db) {
+  await ensureUserRoleSchema(db);
   await ensureTableColumns(db, "customer_accounts", {
     order_defaults_json: "TEXT NOT NULL DEFAULT '{}'",
   });
