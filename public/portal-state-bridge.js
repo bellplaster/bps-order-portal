@@ -51,7 +51,9 @@
 
   function selectChoice(name, value) {
     const selected = document.querySelector(`input[name="${name}"][value="${CSS.escape(String(value || ""))}"]`);
-    if (selected instanceof HTMLInputElement) selected.checked = true;
+    if (!(selected instanceof HTMLInputElement)) return null;
+    selected.checked = true;
+    return selected;
   }
 
   function formatDefaultAddress(defaults) {
@@ -82,6 +84,13 @@
     syncVisibleSelect(".delivery-select-deliveryType .delivery-select", deliveryType, deliveryType);
   }
 
+  function resyncGeneratedDeliveryControls(selectedTimeSlot) {
+    if (selectedTimeSlot instanceof HTMLInputElement && selectedTimeSlot.checked) {
+      selectedTimeSlot.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    window.syncUnifiedDeliveryControls?.();
+  }
+
   function applyOrderDefaults(defaults, profile = {}) {
     if (!defaults || typeof defaults !== "object") return;
 
@@ -99,7 +108,7 @@
 
     clearChoiceGroup("timeSlot");
     const timeSlot = String(defaults.timeSlot || "").trim().toUpperCase();
-    if (timeSlot) selectChoice("timeSlot", timeSlot);
+    const selectedTimeSlot = timeSlot ? selectChoice("timeSlot", timeSlot) : null;
 
     clearChoiceGroup("deliveryType");
     const deliveryType = canonicalDeliveryType(defaults.deliveryType);
@@ -117,6 +126,8 @@
       };
     }
     syncVisibleOrderDetailFields(timeSlot, deliveryType);
+    queueMicrotask(() => resyncGeneratedDeliveryControls(selectedTimeSlot));
+    window.requestAnimationFrame(() => resyncGeneratedDeliveryControls(selectedTimeSlot));
 
     if (typeof updateFutureDateConfirmation === "function") updateFutureDateConfirmation();
     if (typeof updatePickupMode === "function") updatePickupMode();
