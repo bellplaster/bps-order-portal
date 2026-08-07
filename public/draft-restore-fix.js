@@ -29,6 +29,7 @@
     ["remove-rondo-finishing-beads", "/remove-rondo-finishing-beads-20260807.js?v=20260807-1"],
     ["rondo-variant-removals", "/rondo-variant-removals-20260807.js?v=20260807-4"],
     ["studs-bmt-row-order", "/studs-bmt-row-order-20260807.js?v=20260807-1"],
+    ["tracks-bmt-tabs", "/tracks-bmt-tabs-20260807.js?v=20260807-1"],
   ];
 
   controllers.forEach(([marker, src]) => {
