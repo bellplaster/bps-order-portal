@@ -78,14 +78,19 @@ test("wall framing rows without long lengths receive unavailable cells", async (
   assert.match(source, /row\.append\(unavailableTemplate\.cloneNode\(false\)\)/);
 });
 
-test("removed Rondo variants are purged from catalogue and every rerender", async () => {
-  const [source, loader] = await Promise.all([
+test("removed Rondo variants are purged and controller is installed before floor rendering", async () => {
+  const [source, index, loader] = await Promise.all([
     read("public/rondo-variant-removals-20260807.js"),
+    read("public/index.html"),
     read("public/draft-restore-fix.js"),
   ]);
 
   assert.match(source, /delete catalog\[key\]/);
   assert.match(source, /window\.renderUnifiedFloorSheet = renderer/);
   assert.match(source, /removeTableColumns/);
-  assert.match(loader, /rondo-variant-removals-20260807\.js\?v=20260807-4/);
+  const variantIndex = index.indexOf("/rondo-variant-removals-20260807.js?v=20260807-5");
+  const deliveryIndex = index.indexOf("/delivery-areas.js?v=20260724-1");
+  assert.ok(variantIndex >= 0, "Rondo variant controller is missing");
+  assert.ok(deliveryIndex > variantIndex, "Rondo variant controller must be installed before floor rendering");
+  assert.doesNotMatch(loader, /rondo-variant-removals-20260807\.js/);
 });
