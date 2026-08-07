@@ -64,7 +64,7 @@ test("customer service debtor selection is integrated into Order Details as an a
   assert.match(order, /X-BPS-Customer-Account/);
 });
 
-test("required date and saved contacts open from their input using the same picker language", async () => {
+test("required date and saved contacts attach directly to their input", async () => {
   const date = await read("public/order-details-date-state.js");
   const contacts = await read("public/linked-contact-picker.js");
 
@@ -72,14 +72,16 @@ test("required date and saved contacts open from their input using the same pick
   assert.match(date, /display\.addEventListener\("click", \(\) => openCalendar\(\)\)/);
   assert.match(date, /document\.getElementById\(BUTTON_ID\)\?\.remove\(\)/);
   assert.doesNotMatch(date, /calendar\.svg/);
-  assert.match(date, /top:calc\(100% \+ 6px\);left:0;width:292px/);
+  assert.match(date, /top:100%;left:0;width:292px/);
+  assert.doesNotMatch(date, /top:calc\(100% \+ 6px\)/);
   assert.match(date, /border:1px solid #aebbb7;border-radius:8px/);
 
   assert.match(contacts, /contactInput\.addEventListener\("focus",[\s\S]*openMenu\(\)/);
   assert.match(contacts, /contactInput\.addEventListener\("click", \(\) => openMenu\(\)\)/);
   assert.doesNotMatch(contacts, /button\.id = "linkedContactButton"/);
   assert.doesNotMatch(contacts, /contact-notebook\.svg/);
-  assert.match(contacts, /top:calc\(100% \+ 6px\);left:0;width:390px/);
+  assert.match(contacts, /top:100%;left:0;width:390px/);
+  assert.doesNotMatch(contacts, /top:calc\(100% \+ 6px\)/);
   assert.match(contacts, /border:1px solid #aebbb7;border-radius:8px/);
 });
 
