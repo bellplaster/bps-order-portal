@@ -65,6 +65,9 @@
 
   const previousRenderer = window.renderUnifiedFloorSheet;
   window.renderUnifiedFloorSheet = function renderSourceTruthOrder(floor, ...args) {
+    const root = document.getElementById(`${floor}OrderSheet`);
+    if (!root) return undefined;
+
     ensureAreaCollections(floor);
     const result = previousRenderer.call(this, floor, ...args);
     reorderPartiwall(floor);
@@ -138,6 +141,18 @@
     return row;
   }
 
+  function createSingleSizeHeader(title, size) {
+    const row = document.createElement("tr");
+    row.className = "lower-subheader lower-matrix-header nails-single-size-header";
+    const titleCell = document.createElement("th");
+    titleCell.colSpan = 2;
+    titleCell.textContent = title;
+    const sizeCell = document.createElement("th");
+    sizeCell.textContent = size;
+    row.append(titleCell, sizeCell);
+    return row;
+  }
+
   function rebuildFastenerRows(floor) {
     const tbody = document.querySelector(`#${CSS.escape(floor)}OrderSheet .fasteners-table tbody`);
     if (!tbody) return;
@@ -165,13 +180,19 @@
 
       if (firstText === "NAILS") {
         section = "NAILS";
-        output.push(createMatrixHeader("Nails", ["30 mm", "40 mm"]));
+        output.push(createSingleSizeHeader("Nails", "30 mm"));
         return;
       }
 
       if (section === "LOOSE" || section === "COLLATED") {
         const labelCell = row.querySelector(":scope > th:first-child");
         if (labelCell) labelCell.textContent = fastenerMatrixLabel(labelCell.textContent);
+      }
+
+      if (section === "NAILS") {
+        const labelCell = row.querySelector(":scope > th:first-child");
+        if (labelCell) labelCell.colSpan = 2;
+        while (row.children.length > 2) row.lastElementChild?.remove();
       }
 
       output.push(row);
