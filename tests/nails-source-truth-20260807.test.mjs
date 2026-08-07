@@ -22,6 +22,26 @@ test("Nails renderer and SKU source truth agree on one quantity column", async (
   assert.match(lower, /appendSingleSizeRow\(tbody, floor, row\.label \|\| "", row\.cells\?\.\[0\] \|\| null\)/);
 });
 
+test("final source-truth renderer cannot reintroduce the retired 40 mm Nails column", async () => {
+  const source = await read("public/source-truth-payload.js");
+
+  assert.doesNotMatch(source, /createMatrixHeader\("Nails", \["30 mm", "40 mm"\]\)/);
+  assert.match(source, /createSingleSizeHeader\("Nails", "30 mm"\)/);
+  assert.match(source, /labelCell\.colSpan = 2/);
+  assert.match(source, /while \(row\.children\.length > 2\) row\.lastElementChild\?\.remove\(\)/);
+});
+
+test("final renderer ignores delivery areas that are not mounted", async () => {
+  const source = await read("public/source-truth-payload.js");
+
+  assert.match(source, /const root = document\.getElementById\(`\$\{floor\}OrderSheet`\);/);
+  assert.match(source, /if \(!root\) return undefined;/);
+  assert.ok(
+    source.indexOf("if (!root) return undefined;") < source.indexOf("previousRenderer.call(this, floor, ...args)"),
+    "mount guard must run before the renderer chain",
+  );
+});
+
 test("deployed page requests the current SKU source-truth asset", async () => {
   const index = await read("public/index.html");
 
