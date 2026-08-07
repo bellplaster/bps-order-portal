@@ -6,7 +6,6 @@ const read = (path) => readFile(new URL(`../${path}`, import.meta.url), "utf8");
 
 test("stud sections consolidate into four BMT tabs", async () => {
   const source = await read("public/studs-bmt-tabs-20260807.js");
-
   for (const label of ["0.50 BMT", "0.55 BMT", "0.75 BMT", "1.15 BMT"]) {
     assert.match(source, new RegExp(label.replace(".", "\\.")));
   }
@@ -17,14 +16,26 @@ test("stud sections consolidate into four BMT tabs", async () => {
   assert.match(source, /LENGTHS = \["3000", "3600", "4200", "4800", "6000"\]/);
 });
 
-test("stud tabs preserve original quantity cells and unavailable cells", async () => {
+test("stud availability comes from the approved SKU matrix", async () => {
   const source = await read("public/studs-bmt-tabs-20260807.js");
+  for (const sku of [
+    "11204800", "11206000", "40304800", "25104800", "25106000",
+    "48903000", "49106000", "51106000", "66104800", "67106000", "68106000", "69106000",
+  ]) assert.match(source, new RegExp(sku));
+  assert.match(source, /const STUD_VARIANTS = Object\.freeze/);
+  assert.match(source, /findCatalogKey\(sku\)/);
+  assert.match(source, /createQuantityCell\(floor, key\)/);
+  assert.match(source, /if \(!sku\) return unavailableCell\.cloneNode\(false\)/);
+  assert.doesNotMatch(source, /if \(!cell\) return document\.createElement\("td"\)/);
+});
 
-  assert.match(source, /cloneNode\(true\)/);
-  assert.match(source, /cellMap\.get\(length\)/);
-  assert.match(source, /row\.append\(cloneCell/);
-  assert.doesNotMatch(source, /createQuantityCell\(/);
-  assert.doesNotMatch(source, /delete state\.catalog/);
+test("missing active SKU mappings fail before old stud sections are removed", async () => {
+  const source = await read("public/studs-bmt-tabs-20260807.js");
+  assert.match(source, /throw new Error\(`STUDS: catalogue key missing for SKU \$\{sku\}`\)/);
+  assert.ok(
+    source.indexOf("const newSection = buildSection") < source.indexOf("document.querySelectorAll(\".studs-bmt-section\")"),
+    "the replacement must build successfully before existing sections are removed",
+  );
 });
 
 test("stud tab interaction matches the AAC selector pattern", async () => {
@@ -33,7 +44,6 @@ test("stud tab interaction matches the AAC selector pattern", async () => {
     read("public/studs-bmt-tabs-20260807.css"),
     read("public/aac-selector-pill.css"),
   ]);
-
   assert.match(script, /role", "tablist"/);
   assert.match(script, /aria-selected/);
   assert.match(script, /ArrowLeft/);
@@ -46,9 +56,16 @@ test("stud tab interaction matches the AAC selector pattern", async () => {
   assert.match(aacStyles, /transition:transform \.28s cubic-bezier\(\.22,\.8,\.28,1\)/);
 });
 
+test("STUDS title and tab controls use the same fixed header height", async () => {
+  const styles = await read("public/studs-bmt-tabs-20260807.css");
+  assert.match(styles, /grid-template-rows:34px auto/);
+  assert.match(styles, /lower-category-title[^\n]*height:34px/);
+  assert.match(styles, /lower-category-title[^\n]*align-items:center/);
+  assert.match(styles, /studs-bmt-tabs[^\n]*height:34px/);
+});
+
 test("stud tabs observe the catalogue lifecycle because Rondo extensions render later", async () => {
   const source = await read("public/studs-bmt-tabs-20260807.js");
-
   assert.match(source, /function observeCatalogueLifecycle\(\)/);
   assert.match(source, /new MutationObserver/);
   assert.match(source, /\.floor-panels/);
@@ -58,12 +75,8 @@ test("stud tabs observe the catalogue lifecycle because Rondo extensions render 
 });
 
 test("index loads the stud tab assets and disables caching", async () => {
-  const [index, headers] = await Promise.all([
-    read("public/index.html"),
-    read("public/_headers"),
-  ]);
-
-  assert.match(index, /studs-bmt-tabs-20260807\.css\?v=20260807-1/);
-  assert.match(index, /studs-bmt-tabs-20260807\.js\?v=20260807-1/);
+  const [index, headers] = await Promise.all([read("public/index.html"), read("public/_headers")]);
+  assert.match(index, /studs-bmt-tabs-20260807\.css\?v=20260807-2/);
+  assert.match(index, /studs-bmt-tabs-20260807\.js\?v=20260807-2/);
   assert.match(headers, /Cache-Control: no-store/);
 });
