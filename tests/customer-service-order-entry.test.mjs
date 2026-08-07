@@ -63,6 +63,15 @@ test("customer service debtor selection is integrated into Order Details as an a
   assert.match(order, /X-BPS-Customer-Account/);
 });
 
+test("order form does not expose the base layout before account bootstrap resolves", async () => {
+  const css = await read("public/order-field-behaviour.css");
+
+  assert.match(css, /@import url\("\/customer-service-ordering\.css\?v=20260808-3"\)/);
+  assert.match(css, /\.order-form-page \.order-shell \{[\s\S]*visibility: hidden;[\s\S]*opacity: 0;/);
+  assert.match(css, /:has\(#accountSummary:not\(:empty\)\) \.order-shell/);
+  assert.match(css, /:has\(#adminOrderTools:not\(\[hidden\]\)\) \.order-shell/);
+});
+
 test("submission endpoint authorizes the selected customer instead of impersonating it", async () => {
   const submit = await read("functions/api/submit.js");
 
