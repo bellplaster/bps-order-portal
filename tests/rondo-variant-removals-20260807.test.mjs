@@ -15,6 +15,8 @@ test("approved Rondo columns and SKUs are removed", async () => {
     "49502400", "49502700", "51107200",
     "66102700", "67102400", "67102700", "68102700",
     "68107200", "69107200",
+    "504036000300", "504036000400", "505036000300",
+    "506036000300", "506036000400", "507036000300",
   ]) {
     assert.match(source, new RegExp(`"${sku}"`));
   }
@@ -28,6 +30,8 @@ test("approved Rondo columns and SKUs are removed", async () => {
   assert.match(source, /\["7200"\]/);
   assert.match(source, /"RONDO TRACKS & DH TRACK"/);
   assert.match(source, /\["6000"\]/);
+  assert.match(source, /"RONDO NOGGIN TRACK 0\.70 BMT \/ 3\.6M"/);
+  assert.match(source, /\["300 cts", "400 cts"\]/);
   assert.match(source, /"RONDO HEAVY-DUTY WALL FRAMING"/);
   assert.match(source, /\["2400", "2700"\]/);
 });
@@ -83,5 +87,5 @@ test("removed Rondo variants are purged from catalogue and every rerender", asyn
   assert.match(source, /delete catalog\[key\]/);
   assert.match(source, /window\.renderUnifiedFloorSheet = renderer/);
   assert.match(source, /removeTableColumns/);
-  assert.match(loader, /rondo-variant-removals-20260807\.js\?v=20260807-3/);
+  assert.match(loader, /rondo-variant-removals-20260807\.js\?v=20260807-4/);
 });
