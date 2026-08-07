@@ -20,7 +20,7 @@
       ],
     },
     duo: {
-      title: "DUO Grid",
+      title: "DUO® Grid",
       columns: ["1200", "3600"],
       rows: [
         ["5mm Suspension Rod", [null, ["12103600", "5mm Suspension Rod", "3600"]]],
@@ -31,6 +31,19 @@
       accessories: [
         ["Rod Spring Clip", "700"],
         ["Flat Rod Bracket", "274"],
+      ],
+    },
+    donn: {
+      title: "DONN® Grid",
+      columns: ["600", "1200", "3600"],
+      rows: [
+        ["DX3 Cross Tee 1200mm", [null, ["DX301200", "DX3 Cross Tee 1200mm", "1200"], null]],
+        ["DX4 Cross Tee 600mm", [["DX400600", "DX4 Cross Tee 600mm", "600"], null, null]],
+        ["DX1 Main Tee 3600mm", [null, null, ["DX103600", "DX1 Main Tee 3600mm", "3600"]]],
+        ["WADX Wall Angle 3600mm", [null, null, ["WADX3600", "WADX Wall Angle 3600mm", "3600"]]],
+      ],
+      accessories: [
+        ["DXCL Suspension Clip", "DXCL"],
       ],
     },
   });
@@ -119,6 +132,7 @@
   });
 
   const renderer = function renderWithRondoHebelCatalogue(floor, ...args) {
+    retireNail40mm();
     registerCatalogue();
     const result = previousRenderer.call(this, floor, ...args);
     renderRondoExtensions(floor);
@@ -166,10 +180,39 @@
     accessories.forEach(([label, detail, sku], index) => register(sku, label, detail, accessoryLineIdentity(scope, index)));
   }
 
+  function retireNail40mm() {
+    const nails = state.layout?.sections?.nails;
+    if (!nails || !Array.isArray(nails.columns) || !Array.isArray(nails.rows)) return;
+
+    const keepIndexes = [];
+    const retiredIndexes = [];
+    nails.columns.forEach((column, index) => {
+      if (/^40\s*mm$/i.test(String(column || "").trim())) retiredIndexes.push(index);
+      else keepIndexes.push(index);
+    });
+    if (!retiredIndexes.length) return;
+
+    const retiredKeys = new Set();
+    nails.rows = nails.rows.map((row) => {
+      const cells = Array.isArray(row?.cells) ? row.cells : [];
+      retiredIndexes.forEach((index) => {
+        if (cells[index]) retiredKeys.add(cells[index]);
+      });
+      return { ...row, cells: keepIndexes.map((index) => cells[index] || null) };
+    });
+    nails.columns = keepIndexes.map((index) => nails.columns[index]);
+
+    retiredKeys.forEach((key) => {
+      delete state.catalog?.[key];
+      Object.values(state.quantities || {}).forEach((quantities) => quantities?.delete?.(key));
+    });
+  }
+
   function registerCatalogue() {
     if (!state?.catalog) state.catalog = {};
     registerDefinition(RONDO.suspended, "rondo-suspended");
     registerDefinition(RONDO.duo, "rondo-duo");
+    registerDefinition(RONDO.donn, "rondo-donn");
     registerDefinition(HEBEL.panels, "hebel-panels");
     registerDefinition(HEBEL.steel, "hebel-steel");
     registerAccessoryList(HEBEL.compounds, "hebel-compounds");
@@ -246,7 +289,11 @@
   function renderRondoExtensions(floor) {
     const section = document.querySelector(`#${CSS.escape(floor)}OrderSheet .rondo-category`);
     if (!section || section.querySelector(".suspended-grid-table")) return;
-    section.append(renderRondoGridTable(floor, RONDO.suspended, "rondo-grid-table suspended-grid-table", "rondo-suspended"), renderRondoGridTable(floor, RONDO.duo, "rondo-grid-table duo-grid-table", "rondo-duo"));
+    section.append(
+      renderRondoGridTable(floor, RONDO.suspended, "rondo-grid-table suspended-grid-table", "rondo-suspended"),
+      renderRondoGridTable(floor, RONDO.duo, "rondo-grid-table duo-grid-table", "rondo-duo"),
+      renderRondoGridTable(floor, RONDO.donn, "rondo-grid-table donn-grid-table", "rondo-donn"),
+    );
   }
 
   function renderAacSection(floor) {
