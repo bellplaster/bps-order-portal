@@ -173,7 +173,7 @@ function ensureCustomerServiceOrderingStyles() {
   if (document.querySelector('link[data-customer-service-ordering="true"]')) return;
   const stylesheet = document.createElement("link");
   stylesheet.rel = "stylesheet";
-  stylesheet.href = "/customer-service-ordering.css?v=20260808-2";
+  stylesheet.href = "/customer-service-ordering.css?v=20260808-3";
   stylesheet.dataset.customerServiceOrdering = "true";
   document.head.append(stylesheet);
 }
@@ -211,12 +211,12 @@ function installCustomerServiceDebtorField() {
     input.autocomplete = "off";
     input.spellcheck = false;
     input.required = true;
-    input.placeholder = "Debtor code or company";
+    input.placeholder = "Debtor";
     input.setAttribute("role", "combobox");
     input.setAttribute("aria-autocomplete", "list");
     input.setAttribute("aria-expanded", "false");
     input.setAttribute("aria-controls", "customerServiceDebtorResults");
-    input.setAttribute("aria-label", "Debtor code or company");
+    input.setAttribute("aria-label", "Debtor");
 
     const results = document.createElement("div");
     results.id = "customerServiceDebtorResults";
@@ -309,7 +309,7 @@ function filterCustomerServiceAccounts(query) {
   scored.sort((left, right) => left.score - right.score
     || left.companyKey.localeCompare(right.companyKey)
     || left.codeKey.localeCompare(right.codeKey));
-  return scored.slice(0, 8).map((item) => item.account);
+  return scored.map((item) => item.account);
 }
 
 function renderCustomerServiceDebtorResults() {
