@@ -31,7 +31,8 @@ test("the order-form contact input owns the compact saved-contact menu", async (
   assert.doesNotMatch(picker, /button\.id = "linkedContactButton"/);
   assert.match(picker, /\/account\/#savedContactsSection/);
   assert.match(picker, />Manage contacts</);
-  assert.match(picker, /top:calc\(100% \+ 6px\);left:0;width:390px/);
+  assert.match(picker, /top:100%;left:0;width:390px/);
+  assert.doesNotMatch(picker, /top:calc\(100% \+ 6px\)/);
   assert.match(picker, /border:1px solid #aebbb7;border-radius:8px/);
   assert.match(picker, /background:#eef6f3/);
 });
