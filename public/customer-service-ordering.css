@@ -1,80 +1,194 @@
 .customer-service-order-tools {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
-  align-items: end;
-  gap: 18px;
-  margin: 0 0 18px;
-  padding: 16px 18px;
-  border: 1px solid #d8dfdd;
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(23, 33, 31, 0.04);
-}
-
-.customer-service-order-tools[hidden] {
   display: none !important;
 }
 
-.customer-service-order-copy {
-  display: grid;
-  gap: 4px;
+.customer-service-details-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.customer-service-details-grid > .sheet-field-row {
+  border-right: 0 !important;
+}
+
+.customer-service-debtor-row,
+.customer-service-reference-row {
+  grid-column: span 1;
+  border-right: 1px solid #d4d9d7 !important;
+}
+
+.customer-service-required-date-row {
+  grid-column: span 2;
+}
+
+.customer-service-contact-row {
+  grid-column: span 2;
+  border-right: 1px solid #d4d9d7 !important;
+}
+
+.customer-service-phone-row {
+  grid-column: span 2;
+}
+
+.customer-service-debtor-row {
+  position: relative;
+  z-index: 120;
+}
+
+.customer-service-debtor-control {
+  position: relative;
   min-width: 0;
+  height: 39px;
+  background: #fff;
 }
 
-.customer-service-order-copy strong {
-  color: #17211f;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.customer-service-order-copy span {
-  color: #687471;
-  font-size: 11px;
-  line-height: 1.45;
-}
-
-.customer-service-order-field {
-  display: grid;
-  gap: 6px;
-  min-width: 0;
-}
-
-.customer-service-order-field > span {
-  color: #40504b;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.customer-service-order-field select {
+.customer-service-debtor-control > input {
   width: 100%;
   min-width: 0;
-  height: 42px;
-  padding: 0 38px 0 12px;
-  border: 1px solid #cfd8d5;
-  border-radius: 9px;
+  height: 39px;
+  min-height: 39px;
+  margin: 0;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 0;
   outline: 0;
-  background-color: #fff;
+  background: #fff;
   color: #17211f;
   font: inherit;
   font-size: 12px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.customer-service-debtor-control > input::placeholder {
+  color: #aab0b2;
+  opacity: 1;
+}
+
+.customer-service-debtor-control > input:focus {
+  position: relative;
+  z-index: 2;
+  box-shadow: inset 0 0 0 2px var(--bell-green, #006557);
+}
+
+.customer-service-debtor-results {
+  position: absolute;
+  z-index: 2200;
+  top: 100%;
+  left: -1px;
+  width: 360px;
+  max-width: min(420px, calc(100vw - 48px));
+  max-height: 248px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0;
+  padding: 3px;
+  border: 1px solid #aebbb7;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(23, 33, 31, 0.16);
+}
+
+.customer-service-debtor-results[hidden] {
+  display: none !important;
+}
+
+.customer-service-debtor-option {
+  width: 100%;
+  min-height: 34px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 6px;
+  background: #fff;
+  color: #17211f;
+  text-align: left;
   cursor: pointer;
+  font: inherit;
 }
 
-.customer-service-order-field select:focus {
-  border-color: #006557;
-  box-shadow: 0 0 0 1px #006557;
+.customer-service-debtor-option:hover,
+.customer-service-debtor-option:focus-visible,
+.customer-service-debtor-option.is-active {
+  outline: 0;
+  background: #eef6f3;
 }
 
-.customer-service-order-field select:disabled {
-  cursor: wait;
-  opacity: 0.65;
+.customer-service-debtor-option strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #17211f;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customer-service-debtor-option span {
+  max-width: 150px;
+  overflow: hidden;
+  color: #52605c;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customer-service-debtor-option[aria-selected="true"] span {
+  color: var(--bell-green, #006557);
+}
+
+.customer-service-debtor-empty {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  color: #7d8985;
+  font-size: 10px;
+}
+
+@media (max-width: 1100px) {
+  .customer-service-details-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .customer-service-debtor-row,
+  .customer-service-reference-row {
+    grid-column: span 1;
+  }
+
+  .customer-service-required-date-row {
+    grid-column: span 2;
+    border-right: 0 !important;
+  }
+
+  .customer-service-contact-row,
+  .customer-service-phone-row {
+    grid-column: span 1;
+  }
 }
 
 @media (max-width: 760px) {
-  .customer-service-order-tools {
-    grid-template-columns: 1fr;
-    align-items: stretch;
+  .customer-service-details-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .customer-service-debtor-row,
+  .customer-service-reference-row,
+  .customer-service-required-date-row,
+  .customer-service-contact-row,
+  .customer-service-phone-row {
+    grid-column: span 1;
+    border-right: 0 !important;
+  }
+
+  .customer-service-debtor-results {
+    width: min(360px, calc(100vw - 32px));
   }
 }
