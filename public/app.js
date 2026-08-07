@@ -22,6 +22,8 @@ const state = {
   addressPreviewTimer: null,
   adminAccounts: [],
   adminOrderAccountId: null,
+  customerServiceAccounts: [],
+  customerServiceOrderAccountId: null,
 };
 
 const floorLabels = { ground: "Ground Floor", first: "1st Floor" };
@@ -119,10 +121,112 @@ async function loadAccount() {
     return;
   }
 
+  if (state.account?.role === "customer_service") {
+    configureCustomerServiceOrderTools(result.accounts || []);
+    return;
+  }
+
   document.getElementById("customerName").value = state.account.companyName || "";
   window.BPSOrderFields?.setValue("contactName", state.account.defaultContactName || "", { assist: true });
   window.BPSOrderFields?.setValue("contactMobile", state.account.defaultMobile || "", { assist: true });
   document.getElementById("accountSummary").textContent = [state.account.companyName, state.account.debtorCode].filter(Boolean).join(" · ");
+}
+
+function configureCustomerServiceOrderTools(accounts) {
+  state.customerServiceAccounts = accounts.filter((account) => Number(account.active) === 1);
+  state.customerServiceOrderAccountId = null;
+  state.account.accountId = null;
+  state.account.companyName = "Customer Service";
+  state.account.debtorCode = "";
+  state.account.defaultContactName = "";
+  state.account.defaultMobile = "";
+  state.account.orderDefaults = {};
+
+  document.querySelector('.portal-actions a[href="/account/"]')?.setAttribute("hidden", "");
+  ensureCustomerServiceOrderingStyles();
+
+  const tools = document.getElementById("adminOrderTools");
+  if (!tools) return;
+  tools.hidden = false;
+  tools.className = "customer-service-order-tools";
+  tools.setAttribute("aria-label", "Customer service order account");
+  tools.innerHTML = `
+    <div class="customer-service-order-copy">
+      <strong>Place an order for a customer</strong>
+      <span>Select the debtor account this order belongs to. Your Customer Service username remains recorded as the person who placed it.</span>
+    </div>
+    <label class="customer-service-order-field" for="customerServiceCustomerAccount">
+      <span>Ordering for</span>
+      <select id="customerServiceCustomerAccount" required>
+        <option value="">Select customer account</option>
+      </select>
+    </label>`;
+
+  const select = document.getElementById("customerServiceCustomerAccount");
+  state.customerServiceAccounts.forEach((account) => {
+    const option = document.createElement("option");
+    option.value = String(account.id);
+    option.textContent = `${account.company_name} · ${account.debtor_code}`;
+    select.append(option);
+  });
+  select.addEventListener("change", () => selectCustomerServiceOrderAccount(Number(select.value || 0)));
+
+  const customerName = document.getElementById("customerName");
+  if (customerName) customerName.value = "";
+  const summary = document.getElementById("accountSummary");
+  if (summary) summary.textContent = "Customer Service · Select customer";
+
+  document.dispatchEvent(new CustomEvent("bps:order-account-changed", {
+    detail: { accountId: null, role: "customer_service" },
+  }));
+}
+
+function ensureCustomerServiceOrderingStyles() {
+  if (document.querySelector('link[data-customer-service-ordering="true"]')) return;
+  const stylesheet = document.createElement("link");
+  stylesheet.rel = "stylesheet";
+  stylesheet.href = "/customer-service-ordering.css?v=20260808-1";
+  stylesheet.dataset.customerServiceOrdering = "true";
+  document.head.append(stylesheet);
+}
+
+function selectCustomerServiceOrderAccount(accountId) {
+  if (state.account?.role !== "customer_service") return;
+  const selected = state.customerServiceAccounts.find((account) => Number(account.id) === Number(accountId || 0)) || null;
+  applyCustomerServiceOrderAccount(selected);
+  resetOrder();
+
+  document.dispatchEvent(new CustomEvent("bps:order-account-changed", {
+    detail: {
+      accountId: state.customerServiceOrderAccountId,
+      role: "customer_service",
+      companyName: selected?.company_name || "",
+      debtorCode: selected?.debtor_code || "",
+    },
+  }));
+}
+
+function applyCustomerServiceOrderAccount(account) {
+  const id = Number(account?.id || 0) || null;
+  const companyName = String(account?.company_name || "");
+  const debtorCode = String(account?.debtor_code || "");
+
+  state.customerServiceOrderAccountId = id;
+  state.account.accountId = id;
+  state.account.companyName = companyName || "Customer Service";
+  state.account.debtorCode = debtorCode;
+  state.account.defaultContactName = "";
+  state.account.defaultMobile = "";
+  state.account.orderDefaults = {};
+
+  const select = document.getElementById("customerServiceCustomerAccount");
+  if (select) select.value = id ? String(id) : "";
+  const customerName = document.getElementById("customerName");
+  if (customerName) customerName.value = companyName;
+  const summary = document.getElementById("accountSummary");
+  if (summary) summary.textContent = id
+    ? [companyName, debtorCode].filter(Boolean).join(" · ")
+    : "Customer Service · Select customer";
 }
 
 function configureAdminOrderTools(accounts) {
