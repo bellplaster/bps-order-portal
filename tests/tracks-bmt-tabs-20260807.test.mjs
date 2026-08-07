@@ -36,15 +36,39 @@ test("track tabs match the STUDS interaction and header design", async () => {
   assert.match(source, /End/);
 });
 
-test("legacy track sections are removed after the consolidated section is built", async () => {
+test("all legacy track source sections are removed after the consolidated section is built", async () => {
   const source = await read("public/tracks-bmt-tabs-20260807.js");
-  assert.match(source, /RONDO TRACKS & DH TRACK/);
-  assert.match(source, /RONDO HEAVY-DUTY WALL FRAMING/);
+  assert.match(source, /"RONDO WALL FRAMING"/);
+  assert.match(source, /"RONDO TRACKS & DH TRACK"/);
+  assert.match(source, /"RONDO HEAVY-DUTY WALL FRAMING"/);
   assert.match(source, /studs\.insertAdjacentElement\("afterend", newSection\)/);
-  assert.match(source, /removeLegacyTrackSections/);
+  assert.match(source, /removeLegacyTrackSources\(root\)/);
+  assert.ok(
+    source.indexOf("const newSection = buildSection(floor)") < source.indexOf("removeLegacyTrackSources(root)"),
+    "legacy sources must only be removed after the consolidated TRACKS section builds successfully",
+  );
 });
 
-test("tracks controller loads with catalogue refinements", async () => {
-  const loader = await read("public/draft-restore-fix.js");
-  assert.match(loader, /tracks-bmt-tabs-20260807\.js\?v=20260807-1/);
+test("track consolidation is floor-scoped and render-driven", async () => {
+  const source = await read("public/tracks-bmt-tabs-20260807.js");
+  assert.match(source, /function apply\(floor\)/);
+  assert.match(source, /document\.getElementById\(`\$\{floor\}OrderSheet`\)/);
+  assert.match(source, /root\.querySelector\("\.studs-bmt-section"\)/);
+  assert.match(source, /root\.querySelectorAll\("\.tracks-bmt-section"\)/);
+  assert.doesNotMatch(source, /document\.querySelector\("\.studs-bmt-section"\)/);
+  assert.doesNotMatch(source, /MutationObserver/);
+  assert.doesNotMatch(source, /queueMicrotask/);
+  assert.doesNotMatch(source, /DOMContentLoaded/);
+});
+
+test("tracks controller is statically installed before floor rendering", async () => {
+  const [index, loader] = await Promise.all([
+    read("public/index.html"),
+    read("public/draft-restore-fix.js"),
+  ]);
+  const tracksIndex = index.indexOf("/tracks-bmt-tabs-20260807.js?v=20260807-2");
+  const deliveryIndex = index.indexOf("/delivery-areas.js?v=20260724-1");
+  assert.ok(tracksIndex >= 0, "tracks controller is missing");
+  assert.ok(deliveryIndex > tracksIndex, "tracks controller must be installed before floor rendering");
+  assert.doesNotMatch(loader, /tracks-bmt-tabs-20260807\.js/);
 });
