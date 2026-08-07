@@ -19,17 +19,21 @@ test("the order-form saved address picker remains unpublished and removed", asyn
   );
 });
 
-test("the order-form contact picker uses an Account-style menu", async () => {
+test("the order-form contact input owns the compact saved-contact menu", async () => {
   const picker = await read("public/linked-contact-picker.js");
 
   assert.match(picker, /linked-contact-menu-heading/);
   assert.match(picker, />Saved contacts</);
-  assert.match(picker, /linked-contact-avatar/);
-  assert.match(picker, /linked-contact-copy/);
+  assert.match(picker, /option\.innerHTML = `[\s\S]*<strong>\$\{escapeHtml\(contact\.contactName\)\}<\/strong>[\s\S]*<span>\$\{escapeHtml\(contact\.mobile \|\| "No phone number"\)\}<\/span>/);
+  assert.match(picker, /contactInput\.addEventListener\("focus",[\s\S]*openMenu\(\)/);
+  assert.match(picker, /contactInput\.addEventListener\("click", \(\) => openMenu\(\)\)/);
+  assert.doesNotMatch(picker, /linked-contact-avatar/);
+  assert.doesNotMatch(picker, /button\.id = "linkedContactButton"/);
   assert.match(picker, /\/account\/#savedContactsSection/);
   assert.match(picker, />Manage contacts</);
-  assert.match(picker, /border-radius:12px/);
-  assert.match(picker, /width:300px/);
+  assert.match(picker, /top:calc\(100% \+ 6px\);left:0;width:390px/);
+  assert.match(picker, /border:1px solid #aebbb7;border-radius:8px/);
+  assert.match(picker, /background:#eef6f3/);
 });
 
 test("contact picker and state bridge are syntax checked", async () => {

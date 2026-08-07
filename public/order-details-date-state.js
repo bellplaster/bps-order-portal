@@ -9,6 +9,7 @@
   const MESSAGE = "Enter a complete valid date.";
   const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
   let visibleMonth = null;
+  let suppressNextFocusOpen = false;
 
   function parseSmartDateDigits(value) {
     const digits = String(value || "").replace(/\D/g, "").slice(0, 6);
@@ -108,7 +109,6 @@
     return {
       hidden: document.getElementById(HIDDEN_ID),
       display: document.getElementById(DISPLAY_ID),
-      button: document.getElementById(BUTTON_ID),
       panel: document.getElementById(PANEL_ID),
     };
   }
@@ -243,42 +243,42 @@
     }
   }
 
+  function animateCalendarOpen(panel) {
+    panel.animate?.([
+      { opacity: 0, transform: "translateY(-5px) scale(.992)" },
+      { opacity: 1, transform: "translateY(0) scale(1)" },
+    ], {
+      duration: 180,
+      easing: "cubic-bezier(.22,.8,.2,1)",
+    });
+  }
+
   function openCalendar() {
-    const { hidden, button, panel } = controls();
-    if (!hidden || !button || !panel) return;
+    const { hidden, display, panel } = controls();
+    if (!hidden || !display || !panel || !panel.hidden) return;
     visibleMonth = startOfMonth(parseIso(hidden.value) || new Date());
     renderCalendar(hidden, panel);
     panel.hidden = false;
-    button.setAttribute("aria-expanded", "true");
-    button.closest(".sheet-field-row")?.classList.add("required-date-calendar-open");
-    const selected = panel.querySelector(".required-date-calendar-day.is-selected:not(:disabled)");
-    const today = panel.querySelector(".required-date-calendar-day.is-today:not(:disabled)");
-    (selected || today || panel.querySelector(".required-date-calendar-day:not(:disabled)"))?.focus({ preventScroll: true });
+    display.setAttribute("aria-expanded", "true");
+    display.closest(".sheet-field-row")?.classList.add("required-date-calendar-open");
+    animateCalendarOpen(panel);
   }
 
   function closeCalendar({ restoreFocus = false } = {}) {
-    const { button, panel } = controls();
-    if (!button || !panel) return;
+    const { display, panel } = controls();
+    if (!display || !panel) return;
     panel.hidden = true;
-    button.setAttribute("aria-expanded", "false");
-    button.closest(".sheet-field-row")?.classList.remove("required-date-calendar-open");
-    if (restoreFocus) button.focus({ preventScroll: true });
+    display.setAttribute("aria-expanded", "false");
+    display.closest(".sheet-field-row")?.classList.remove("required-date-calendar-open");
+    if (restoreFocus) {
+      suppressNextFocusOpen = true;
+      display.focus({ preventScroll: true });
+      queueMicrotask(() => { suppressNextFocusOpen = false; });
+    }
   }
 
-  function initialiseCalendar(shell, hidden) {
-    let button = document.getElementById(BUTTON_ID);
-    if (!button) {
-      button = document.createElement("button");
-      button.id = BUTTON_ID;
-      button.type = "button";
-      button.setAttribute("aria-label", "Choose required date");
-      button.setAttribute("aria-haspopup", "dialog");
-      button.setAttribute("aria-controls", PANEL_ID);
-      button.setAttribute("aria-expanded", "false");
-      button.title = "Choose required date";
-      button.innerHTML = '<img src="/calendar.svg?v=20260731-4" alt="">';
-      shell.append(button);
-    }
+  function initialiseCalendar(shell, hidden, display) {
+    document.getElementById(BUTTON_ID)?.remove();
 
     let panel = document.getElementById(PANEL_ID);
     if (!panel) {
@@ -293,8 +293,10 @@
           <div class="required-date-calendar-month" aria-live="polite"></div>
           <button type="button" class="required-date-calendar-nav" data-calendar-next aria-label="Next month">›</button>
         </div>
-        <div class="required-date-calendar-weekdays" aria-hidden="true">${WEEKDAYS.map((day) => `<span>${day}</span>`).join("")}</div>
-        <div class="required-date-calendar-grid"></div>
+        <div class="required-date-calendar-body">
+          <div class="required-date-calendar-weekdays" aria-hidden="true">${WEEKDAYS.map((day) => `<span>${day}</span>`).join("")}</div>
+          <div class="required-date-calendar-grid"></div>
+        </div>
         <div class="required-date-calendar-footer">
           <button type="button" class="required-date-calendar-action" data-calendar-clear>Clear</button>
           <button type="button" class="required-date-calendar-action" data-calendar-today>Today</button>
@@ -303,39 +305,59 @@
       shell.append(panel);
     }
 
-    if (button.dataset.requiredDateCalendarBound === "true") return;
-    button.dataset.requiredDateCalendarBound = "true";
-    button.addEventListener("click", () => {
-      if (panel.hidden) openCalendar();
-      else closeCalendar({ restoreFocus: true });
-    });
-    panel.querySelector("[data-calendar-previous]")?.addEventListener("click", () => {
-      visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1);
-      renderCalendar(hidden, panel);
-    });
-    panel.querySelector("[data-calendar-next]")?.addEventListener("click", () => {
-      visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1);
-      renderCalendar(hidden, panel);
-    });
-    panel.querySelector("[data-calendar-clear]")?.addEventListener("click", () => {
-      setValue("", { emit: true });
-      closeCalendar({ restoreFocus: true });
-    });
-    panel.querySelector("[data-calendar-today]")?.addEventListener("click", () => {
-      const today = new Date();
-      if (!dateWithinLimits(today, hidden)) return;
-      setValue(isoFromDate(today), { emit: true });
-      closeCalendar({ restoreFocus: true });
-    });
-    panel.addEventListener("keydown", (event) => {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      closeCalendar({ restoreFocus: true });
-    });
-    document.addEventListener("pointerdown", (event) => {
-      if (panel.hidden || shell.contains(event.target)) return;
-      closeCalendar();
-    }, true);
+    display.setAttribute("aria-haspopup", "dialog");
+    display.setAttribute("aria-controls", PANEL_ID);
+    display.setAttribute("aria-expanded", "false");
+
+    if (panel.dataset.requiredDateCalendarBound !== "true") {
+      panel.dataset.requiredDateCalendarBound = "true";
+      panel.querySelector("[data-calendar-previous]")?.addEventListener("click", () => {
+        visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() - 1, 1);
+        renderCalendar(hidden, panel);
+      });
+      panel.querySelector("[data-calendar-next]")?.addEventListener("click", () => {
+        visibleMonth = new Date(visibleMonth.getFullYear(), visibleMonth.getMonth() + 1, 1);
+        renderCalendar(hidden, panel);
+      });
+      panel.querySelector("[data-calendar-clear]")?.addEventListener("click", () => {
+        setValue("", { emit: true });
+        closeCalendar({ restoreFocus: true });
+      });
+      panel.querySelector("[data-calendar-today]")?.addEventListener("click", () => {
+        const today = new Date();
+        if (!dateWithinLimits(today, hidden)) return;
+        setValue(isoFromDate(today), { emit: true });
+        closeCalendar({ restoreFocus: true });
+      });
+      panel.addEventListener("keydown", (event) => {
+        if (event.key !== "Escape") return;
+        event.preventDefault();
+        closeCalendar({ restoreFocus: true });
+      });
+      document.addEventListener("pointerdown", (event) => {
+        if (panel.hidden || shell.contains(event.target)) return;
+        closeCalendar();
+      }, true);
+    }
+
+    if (display.dataset.requiredDatePickerBound !== "true") {
+      display.dataset.requiredDatePickerBound = "true";
+      display.addEventListener("focus", () => {
+        if (suppressNextFocusOpen) return;
+        openCalendar();
+      });
+      display.addEventListener("click", () => openCalendar());
+      display.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          closeCalendar();
+        } else if (event.key === "ArrowDown" && panel.hidden) {
+          event.preventDefault();
+          openCalendar();
+          panel.querySelector(".required-date-calendar-day.is-selected:not(:disabled), .required-date-calendar-day.is-today:not(:disabled), .required-date-calendar-day:not(:disabled)")?.focus({ preventScroll: true });
+        }
+      });
+    }
   }
 
   function initialiseDateField() {
@@ -366,7 +388,7 @@
     display.setAttribute("aria-label", "Required date, day month two digit year");
     document.querySelector(`label[for="${HIDDEN_ID}"], label[for="${DISPLAY_ID}"]`)?.setAttribute("for", DISPLAY_ID);
 
-    initialiseCalendar(shell, hidden);
+    initialiseCalendar(shell, hidden, display);
 
     if (display.dataset.requiredDateBound !== "true") {
       display.dataset.requiredDateBound = "true";
@@ -416,35 +438,33 @@
     .date-input-shell{position:relative;display:block;width:100%;height:39px;overflow:visible;background:#fff}
     .date-input-shell::after{display:none!important;content:none!important}
     .date-input-shell #requiredDate{display:none!important}
-    .date-input-shell #requiredDateDisplay{box-sizing:border-box;width:100%;height:39px;margin:0;padding:0 42px 0 10px;color:#17211f;background:#fff;border:0;border-radius:0;outline:0;font:400 11px/39px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-align:left}
+    .date-input-shell #requiredDateDisplay{box-sizing:border-box;width:100%;height:39px;margin:0;padding:0 10px;color:#17211f;background:#fff;border:0;border-radius:0;outline:0;font:400 11px/39px Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-align:left;cursor:text}
     .date-input-shell #requiredDateDisplay::placeholder{color:#aab0b2;opacity:1}
     .date-input-shell #requiredDateDisplay:not(.has-date-value){color:#aab0b2}
     .date-input-shell #requiredDateDisplay.has-date-value{color:#17211f}
     .date-input-shell #requiredDateDisplay:focus{position:relative;z-index:2;box-shadow:inset 0 0 0 1px var(--bell-green,#006557)}
-    #${BUTTON_ID}{position:absolute;z-index:5;top:0;right:0;display:grid;place-items:center;width:39px;height:39px;margin:0;padding:0;border:0;border-left:1px solid #d5dcda;border-radius:0;background:#fff;cursor:pointer;box-sizing:border-box}
-    #${BUTTON_ID} img{display:block;width:12px;height:12px;pointer-events:none}
-    #${BUTTON_ID}:hover{background:#f5f8f7}
-    #${BUTTON_ID}:focus-visible,#${BUTTON_ID}[aria-expanded="true"]{outline:0;box-shadow:inset 0 0 0 1px var(--bell-green,#006557)}
-    #${PANEL_ID}{position:absolute;z-index:100006;top:100%;right:0;width:258px;margin:0;padding:10px;border:1px solid #cfd7d4;border-radius:0 0 4px 4px;background:#fff;box-shadow:0 10px 24px rgba(23,33,31,.16);box-sizing:border-box;color:#17211f;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    #${BUTTON_ID}{display:none!important}
+    #${PANEL_ID}{position:absolute;z-index:100006;top:calc(100% + 6px);left:0;width:292px;margin:0;padding:0;overflow:hidden;border:1px solid #aebbb7;border-radius:8px;background:#fff;box-shadow:0 12px 28px rgba(23,33,31,.16);box-sizing:border-box;color:#17211f;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;transform-origin:top left}
     #${PANEL_ID}[hidden]{display:none}
-    .required-date-calendar-header{display:grid;grid-template-columns:32px minmax(0,1fr) 32px;align-items:center;gap:4px;height:32px;margin:0 0 6px}
-    .required-date-calendar-month{overflow:hidden;color:#17211f;font-size:11px;font-weight:700;line-height:1.2;text-align:center;text-overflow:ellipsis;white-space:nowrap}
-    .required-date-calendar-nav{display:grid;place-items:center;width:32px;height:32px;margin:0;padding:0;border:0;border-radius:3px;background:#fff;color:#42514d;cursor:pointer;font:500 18px/1 Inter,system-ui,sans-serif}
+    .required-date-calendar-header{display:grid;grid-template-columns:32px minmax(0,1fr) 32px;align-items:center;gap:4px;height:44px;margin:0;padding:0 6px;border-bottom:1px solid #e8edeb;background:#fff}
+    .required-date-calendar-month{overflow:hidden;color:#17211f;font-size:11px;font-weight:650;line-height:1.2;text-align:center;text-overflow:ellipsis;white-space:nowrap}
+    .required-date-calendar-nav{display:grid;place-items:center;width:28px;height:28px;margin:0;padding:0;border:0;border-radius:6px;background:#fff;color:#46544f;cursor:pointer;font:500 18px/1 Inter,system-ui,sans-serif}
     .required-date-calendar-nav:hover,.required-date-calendar-nav:focus-visible{outline:0;background:#eef6f3}
+    .required-date-calendar-body{padding:8px 8px 7px}
     .required-date-calendar-weekdays,.required-date-calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}
-    .required-date-calendar-weekdays{margin-bottom:3px}
-    .required-date-calendar-weekdays span{display:grid;place-items:center;height:24px;color:#687471;font-size:9px;font-weight:600;line-height:1}
-    .required-date-calendar-day{display:grid;place-items:center;width:100%;height:28px;margin:0;padding:0;border:0;border-radius:3px;background:#fff;color:#17211f;cursor:pointer;font:500 10px/1 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-variant-numeric:tabular-nums}
+    .required-date-calendar-weekdays{margin-bottom:2px}
+    .required-date-calendar-weekdays span{display:grid;place-items:center;height:24px;color:#7b8783;font-size:8px;font-weight:650;line-height:1}
+    .required-date-calendar-day{display:grid;place-items:center;width:100%;height:30px;margin:0;padding:0;border:0;border-radius:6px;background:#fff;color:#17211f;cursor:pointer;font:500 9px/1 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-variant-numeric:tabular-nums}
     .required-date-calendar-day:hover,.required-date-calendar-day:focus-visible{outline:0;background:#eef6f3}
-    .required-date-calendar-day.is-outside{color:#a2aaa8}
-    .required-date-calendar-day.is-today{box-shadow:inset 0 0 0 1px #9fb5ae}
-    .required-date-calendar-day.is-selected{background:var(--bell-green,#006557);color:#fff;font-weight:700;box-shadow:none}
-    .required-date-calendar-day:disabled{color:#c7cecc;background:#fff;cursor:not-allowed}
-    .required-date-calendar-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 0;padding:8px 0 0;border-top:1px solid #e2e7e5}
-    .required-date-calendar-action{min-height:28px;margin:0;padding:0 8px;border:0;border-radius:3px;background:#fff;color:var(--bell-green,#006557);cursor:pointer;font:600 10px/1 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    .required-date-calendar-day.is-outside{color:#c0c7c4}
+    .required-date-calendar-day.is-today{box-shadow:inset 0 0 0 1px #aebbb7}
+    .required-date-calendar-day.is-selected{background:#e5f2ee;color:var(--bell-green,#006557);font-weight:750;box-shadow:none}
+    .required-date-calendar-day:disabled{color:#d1d6d4;background:#fff;cursor:not-allowed}
+    .required-date-calendar-footer{display:flex;min-height:38px;align-items:center;justify-content:space-between;gap:8px;margin:0;padding:0 9px;border-top:1px solid #e8edeb;background:#fff}
+    .required-date-calendar-action{margin:0;padding:7px 5px;border:0;border-radius:5px;background:#fff;color:var(--bell-green,#006557);cursor:pointer;font:700 9px/1 Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
     .required-date-calendar-action:hover,.required-date-calendar-action:focus-visible{outline:0;background:#eef6f3}
     .order-address-without-state{grid-template-columns:minmax(0,1fr) 110px!important}
-    @media(max-width:760px){#${PANEL_ID}{width:min(258px,calc(100vw - 32px))}}
+    @media(max-width:760px){#${PANEL_ID}{left:0;width:min(292px,calc(100vw - 32px))}}
   `;
 
   window.BPSRequiredDate = {

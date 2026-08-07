@@ -39,19 +39,23 @@ test("required date and delivery refinement have one deterministic lifecycle", a
   assert.doesNotMatch(deliveryRefinement, /DD\/MM\/YYYY/);
 });
 
-test("canonical required date controller owns the explicit calendar button and panel", async () => {
+test("canonical required date controller owns the input-triggered calendar panel", async () => {
   const dateState = await read("public/order-details-date-state.js");
 
   assert.match(dateState, /BUTTON_ID = "requiredDateCalendarButton"/);
   assert.match(dateState, /PANEL_ID = "requiredDateCalendarPanel"/);
-  assert.match(dateState, /button\.addEventListener\("click"/);
-  assert.match(dateState, /if \(panel\.hidden\) openCalendar\(\)/);
+  assert.match(dateState, /document\.getElementById\(BUTTON_ID\)\?\.remove\(\)/);
+  assert.match(dateState, /display\.addEventListener\("focus",[\s\S]*openCalendar\(\)/);
+  assert.match(dateState, /display\.addEventListener\("click", \(\) => openCalendar\(\)\)/);
+  assert.match(dateState, /display\.setAttribute\("aria-haspopup", "dialog"\)/);
   assert.match(dateState, /panel\.hidden = false/);
   assert.match(dateState, /required-date-calendar-open/);
+  assert.match(dateState, /top:calc\(100% \+ 6px\);left:0;width:292px/);
   assert.match(dateState, /setValue\(dayButton\.dataset\.date \|\| "", \{ emit: true \}\)/);
   assert.match(dateState, /hidden\.type = "hidden"/);
   assert.match(dateState, /hidden\.hidden = true/);
   assert.match(dateState, /classList\.remove\("date-native-picker"\)/);
+  assert.doesNotMatch(dateState, /createElement\("button"\)[\s\S]{0,500}BUTTON_ID/);
   assert.doesNotMatch(dateState, /hidden\.type = "date"/);
   assert.doesNotMatch(dateState, /className\s*=\s*"date-native-picker"/);
   assert.doesNotMatch(dateState, /classList\.add\("date-native-picker"\)/);

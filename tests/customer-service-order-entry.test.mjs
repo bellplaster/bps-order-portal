@@ -56,11 +56,31 @@ test("customer service debtor selection is integrated into Order Details as an a
   assert.doesNotMatch(app, /Debtor account/);
   assert.doesNotMatch(app, /customer-service-order-copy/);
   assert.match(css, /grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
-  assert.match(css, /customer-service-debtor-control[\s\S]*border-right: 1px solid #d4d9d7/);
+  assert.doesNotMatch(css, /customer-service-details-grid > \.sheet-field-row\s*\{[\s\S]*?border-right:\s*0\s*!important/);
+  assert.match(css, /customer-service-details-grid > \.customer-service-reference-row,[\s\S]*customer-service-details-grid > \.customer-service-contact-row[\s\S]*border-right: 1px solid #d4d9d7 !important/);
   assert.match(css, /customer-service-debtor-option[\s\S]*min-height: 34px/);
   assert.doesNotMatch(css, /magnifier|search-icon/i);
   assert.match(order, /Choose a customer account before building the order/);
   assert.match(order, /X-BPS-Customer-Account/);
+});
+
+test("required date and saved contacts open from their input using the same picker language", async () => {
+  const date = await read("public/order-details-date-state.js");
+  const contacts = await read("public/linked-contact-picker.js");
+
+  assert.match(date, /display\.addEventListener\("focus",[\s\S]*openCalendar\(\)/);
+  assert.match(date, /display\.addEventListener\("click", \(\) => openCalendar\(\)\)/);
+  assert.match(date, /document\.getElementById\(BUTTON_ID\)\?\.remove\(\)/);
+  assert.doesNotMatch(date, /calendar\.svg/);
+  assert.match(date, /top:calc\(100% \+ 6px\);left:0;width:292px/);
+  assert.match(date, /border:1px solid #aebbb7;border-radius:8px/);
+
+  assert.match(contacts, /contactInput\.addEventListener\("focus",[\s\S]*openMenu\(\)/);
+  assert.match(contacts, /contactInput\.addEventListener\("click", \(\) => openMenu\(\)\)/);
+  assert.doesNotMatch(contacts, /button\.id = "linkedContactButton"/);
+  assert.doesNotMatch(contacts, /contact-notebook\.svg/);
+  assert.match(contacts, /top:calc\(100% \+ 6px\);left:0;width:390px/);
+  assert.match(contacts, /border:1px solid #aebbb7;border-radius:8px/);
 });
 
 test("order form does not expose the base layout before account bootstrap resolves", async () => {
