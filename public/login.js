@@ -2,6 +2,14 @@ const form = document.getElementById("loginForm");
 const button = document.getElementById("loginButton");
 const message = document.getElementById("loginMessage");
 
+const reason = new URLSearchParams(window.location.search).get("reason");
+if (reason === "timeout") {
+  message.textContent = "You were signed out after 60 minutes of inactivity. Sign in to continue.";
+  message.className = "portal-message";
+  message.hidden = false;
+  window.history.replaceState({}, "", "/signin/");
+}
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   message.hidden = true;

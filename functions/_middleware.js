@@ -21,6 +21,7 @@ const PUBLIC_PATHS = new Set([
 ]);
 
 const CUSTOMER_SERVICE_REDIRECT_PATHS = new Set(["/account", "/account/"]);
+const SESSION_TIMEOUT_SCRIPT = '<script src="/session-timeout.js?v=20260808-1" defer></script>';
 
 export async function onRequest(context) {
   const url = new URL(context.request.url);
@@ -44,8 +45,31 @@ export async function onRequest(context) {
     }
 
     context.data.auth = session;
-    return context.next();
+    const response = await context.next();
+    return injectSessionTimeout(response);
   } catch (error) {
     return json({ ok: false, error: error?.message || String(error) }, 500);
   }
+}
+
+async function injectSessionTimeout(response) {
+  const contentType = response.headers.get("Content-Type") || "";
+  if (!contentType.toLowerCase().includes("text/html")) return response;
+
+  const html = await response.text();
+  if (html.includes("/session-timeout.js")) {
+    return new Response(html, response);
+  }
+
+  const injected = html.includes("</body>")
+    ? html.replace("</body>", `  ${SESSION_TIMEOUT_SCRIPT}\n</body>`)
+    : `${html}\n${SESSION_TIMEOUT_SCRIPT}`;
+  const headers = new Headers(response.headers);
+  headers.delete("Content-Length");
+
+  return new Response(injected, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
 }

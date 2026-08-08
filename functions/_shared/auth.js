@@ -7,7 +7,7 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
 export const SESSION_COOKIE = "bps_session";
-export const SESSION_MAX_AGE_SECONDS = 8 * 60 * 60;
+export const SESSION_MAX_AGE_SECONDS = 12 * 60 * 60;
 export const PASSWORD_ITERATIONS = 100000;
 
 export function readCookie(request, name) {
